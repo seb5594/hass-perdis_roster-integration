@@ -107,7 +107,7 @@ async def test_get_duties_service_returns_the_days(hass, fake_webcomm):
 async def test_device_offers_the_timeline_triggers(hass, fake_webcomm):
     await add_account(hass, fake_webcomm)
     await hass.async_block_till_done()
-    from custom_components.perdis.device_trigger import async_get_triggers
+    from custom_components.perdis_roster.device_trigger import async_get_triggers
 
     device = dr.async_entries_for_config_entry(dr.async_get(hass), entry_of(hass).entry_id)[0]
     types = {trigger["type"] for trigger in await async_get_triggers(hass, device.id)}
@@ -143,8 +143,8 @@ async def test_new_password_through_reauth(hass, fake_webcomm):
 
 
 async def test_client_signs_in_again_when_the_session_expires(hass, fake_webcomm):
-    from custom_components.perdis.api import PerdisAuthError, create_client
-    from custom_components.perdis.const import PortalType
+    from custom_components.perdis_roster.api import PerdisAuthError, create_client
+    from custom_components.perdis_roster.const import PortalType
 
     zone = dt_util.get_default_time_zone()
     now = dt_util.now()

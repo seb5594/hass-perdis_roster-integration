@@ -5,7 +5,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Final
 
-DOMAIN: Final = "perdis"
+DOMAIN: Final = "perdis_roster"
 MANUFACTURER: Final = "INIT Mobility Software Solutions (unofficial)"
 
 # Platforms are set up in this order; the calendar comes last because it only reads.

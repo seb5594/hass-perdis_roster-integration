@@ -3,14 +3,14 @@ refresh:
     config_entry_id:
       selector:
         config_entry:
-          integration: perdis
+          integration: perdis_roster
 
 get_duties:
   fields:
     config_entry_id:
       selector:
         config_entry:
-          integration: perdis
+          integration: perdis_roster
     start_date:
       example: "2026-11-23"
       selector:

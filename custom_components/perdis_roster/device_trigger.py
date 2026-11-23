@@ -1,6 +1,6 @@
 """Device triggers: "when my shift starts", "when it is time to get up", ... in the automation editor.
 
-The coordinator announces each moment once, as a `perdis_event` on the event bus, at the exact
+The coordinator announces each moment once, as a `perdis_roster_event` on the event bus, at the exact
 second. A device trigger is nothing but an event trigger on that event for one device, so
 automations neither poll nor miss a moment.
 """

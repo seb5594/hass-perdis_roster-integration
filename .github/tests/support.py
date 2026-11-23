@@ -1,6 +1,6 @@
 """Loads the parts of the integration that do not need Home Assistant.
 
-Importing `custom_components.perdis` would run its `__init__.py`, which needs Home Assistant.
+Importing `custom_components.perdis_roster` would run its `__init__.py`, which needs Home Assistant.
 The parsers, models, insights and change detection do not, so the tests load them through a
 package of their own that points at the same folder but skips `__init__.py`.
 """
