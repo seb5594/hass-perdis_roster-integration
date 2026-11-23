@@ -139,6 +139,7 @@ class WebCommClient(PortalClient):
         self._signed_in = True
         self._menu_html = page.html
         self._pages = self._find_pages(page)
+        self._employee_name = self._parser.parse_employee_name(page.html) or self._employee_name
 
     def _find_pages(self, menu: _Page) -> dict[str, str]:
         """Kind -> absolute URL, from the options, then the menu links, then canonical filenames."""

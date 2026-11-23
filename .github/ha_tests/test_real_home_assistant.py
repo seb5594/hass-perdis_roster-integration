@@ -70,6 +70,8 @@ async def test_wrong_password_is_reported_in_the_dialog(hass, fake_webcomm):
 async def test_account_is_set_up_and_reads_the_roster(hass, fake_webcomm):
     result = await add_account(hass, fake_webcomm)
     assert result["type"] == "create_entry"
+    # The entry is titled "<operator> - <employee name>", read from the portal header.
+    assert result["title"].endswith("- Max Mustermann")
     assert result["data"]["base_url"] == fake_webcomm.url
     await hass.async_block_till_done()
     assert entry_of(hass).state is ConfigEntryState.LOADED
