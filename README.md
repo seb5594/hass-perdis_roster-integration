@@ -1,24 +1,24 @@
 <!-- header:begin (generated from project metadata) -->
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
 <p align="center">
-  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=seb5594&amp;repository=hass-init_perdis-integration&amp;category=integration"><img src="https://img.shields.io/static/v1?label=HACS%20%C2%B7%20Marketplace&amp;message=Add%20integration&amp;color=41BDF5&amp;logo=homeassistantcommunitystore&amp;logoColor=white&amp;style=for-the-badge" alt="HACS · Marketplace" height="28"></a>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/actions/workflows/compat.yml"><img src="https://img.shields.io/static/v1?label=home%20assistant&amp;message=%E2%89%A5%202025.1.0&amp;color=1877A5&amp;style=for-the-badge" alt="home assistant" height="28"></a><br>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.2&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-init_perdis-integration/latest/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/stargazers"><img src="https://img.shields.io/github/stars/seb5594/hass-init_perdis-integration?label=stars&amp;style=flat" alt="stars" height="20"></a>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/forks"><img src="https://img.shields.io/github/forks/seb5594/hass-init_perdis-integration?label=forks&amp;style=flat" alt="forks" height="20"></a>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/seb5594/hass-init_perdis-integration/ci.yml?branch=main&amp;label=checks&amp;style=flat" alt="checks" height="20"></a>
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=seb5594&amp;repository=hass-perdis_roster-integration&amp;category=integration"><img src="https://img.shields.io/static/v1?label=HACS%20%C2%B7%20Marketplace&amp;message=Add%20integration&amp;color=41BDF5&amp;logo=homeassistantcommunitystore&amp;logoColor=white&amp;style=for-the-badge" alt="HACS · Marketplace" height="28"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/actions/workflows/compat.yml"><img src="https://img.shields.io/static/v1?label=home%20assistant&amp;message=%E2%89%A5%202024.12.0&amp;color=1877A5&amp;style=for-the-badge" alt="home assistant" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.2&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-perdis_roster-integration/latest/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/stargazers"><img src="https://img.shields.io/github/stars/seb5594/hass-perdis_roster-integration?label=stars&amp;style=flat" alt="stars" height="20"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/forks"><img src="https://img.shields.io/github/forks/seb5594/hass-perdis_roster-integration?label=forks&amp;style=flat" alt="forks" height="20"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/seb5594/hass-perdis_roster-integration/ci.yml?branch=main&amp;label=checks&amp;style=flat" alt="checks" height="20"></a>
   <img src="https://img.shields.io/static/v1?label=tests&amp;message=42%20passed&amp;color=2F855A&amp;style=flat" alt="tests" height="20">
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/issues"><img src="https://img.shields.io/github/issues/seb5594/hass-init_perdis-integration?label=issues&amp;style=flat" alt="issues" height="20"></a><br>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/issues"><img src="https://img.shields.io/github/issues/seb5594/hass-perdis_roster-integration?label=issues&amp;style=flat" alt="issues" height="20"></a><br>
   <a href="https://paypal.me/seb5594"><img src="https://img.shields.io/static/v1?label=Support&amp;message=PayPal&amp;color=0070BA&amp;logo=paypal&amp;logoColor=white&amp;style=for-the-badge" alt="PayPal" height="24"></a>
   <a href="https://buymeacoffee.com/seb5594"><img src="https://raw.githubusercontent.com/seb5594/Home-Assistant-Apps/473dc258f963096745aac327df54950eb9b59066/.github/assets/support-beer.svg" alt="Buy me a beer" height="24"></a><br>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration#license"><img src="https://img.shields.io/github/license/seb5594/hass-init_perdis-integration?label=license&amp;style=flat" alt="license" height="20"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration#license"><img src="https://img.shields.io/github/license/seb5594/hass-perdis_roster-integration?label=license&amp;style=flat" alt="license" height="20"></a>
 </p>
 <!-- header:end -->
 
@@ -38,10 +38,10 @@ Netherlands use. Drivers see their roster in the **WebComm** portal in the brows
 > GmbH, which does not document the interfaces of WebComm or AppComm. The integration reads what
 > the portal shows you after signing in, just like your browser. It is not affiliated with,
 > endorsed or supported by INIT or by any transit operator. A portal update can change the pages;
-> if something stops working, please [open an issue](https://github.com/seb5594/hass-init_perdis-integration/issues).
+> if something stops working, please [open an issue](https://github.com/seb5594/hass-perdis_roster-integration/issues).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/.github/images/cards-en.png" alt="The three dashboard cards: next shift, roster and accounts" width="860">
+  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-en.png" alt="The three dashboard cards: next shift, roster and accounts" width="860">
 </p>
 
 ## 📑 Contents
@@ -109,7 +109,7 @@ page in November 2026.
 
 🔎 **Your company is missing?** Choose *Enter the portal address myself* and paste the address you
 open in the browser. A plain host name such as `perdis.example.org` works too; the integration
-adds `/WebComm/` itself. If it works, please [tell me](https://github.com/seb5594/hass-init_perdis-integration/issues)
+adds `/WebComm/` itself. If it works, please [tell me](https://github.com/seb5594/hass-perdis_roster-integration/issues)
 so the company can be added to the list.
 
 ## 📋 Requirements
@@ -127,13 +127,13 @@ so the company can be added to the list.
 1. Click the **HACS · Marketplace** button at the top of this page, or open **HACS** (Home
    Assistant 2026.10 and older) or **Settings → Marketplace** (2026.11 and newer) and search for
    **Perdis Duty Roster**. If it is not found, add
-   `https://github.com/seb5594/hass-init_perdis-integration` as a custom repository of the
+   `https://github.com/seb5594/hass-perdis_roster-integration` as a custom repository of the
    category *Integration* first.
 2. Download it and restart Home Assistant.
 
 ### Manual
 
-1. Download `perdis.zip` from the [latest release](https://github.com/seb5594/hass-init_perdis-integration/releases/latest).
+1. Download `perdis.zip` from the [latest release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
 2. Unpack it into `config/custom_components/perdis_roster/`, so that `manifest.json` ends up in that folder.
 3. Restart Home Assistant.
 
@@ -317,7 +317,7 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, for a second account
 </details>
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/.github/images/cards-de-dark.png" alt="The cards in German with a dark theme" width="860">
+  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-de-dark.png" alt="The cards in German with a dark theme" width="860">
 </p>
 
 ## ⚡ Automations
@@ -456,7 +456,7 @@ AppComm as **experimental**:
   usual field names (`date`/`datum`, `start`/`beginn`, `dutyNumber`/`dienstNr`, …) are understood.
 
 If you know the real endpoints of an AppComm service, an
-[issue](https://github.com/seb5594/hass-init_perdis-integration/issues) with the paths (never your
+[issue](https://github.com/seb5594/hass-perdis_roster-integration/issues) with the paths (never your
 password or token) helps everyone.
 
 ## 🧠 How it works

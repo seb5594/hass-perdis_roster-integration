@@ -9,10 +9,10 @@
     "frontend",
     "http"
   ],
-  "documentation": "https://github.com/seb5594/hass-init_perdis-integration",
+  "documentation": "https://github.com/seb5594/hass-perdis_roster-integration",
   "integration_type": "service",
   "iot_class": "cloud_polling",
-  "issue_tracker": "https://github.com/seb5594/hass-init_perdis-integration/issues",
+  "issue_tracker": "https://github.com/seb5594/hass-perdis_roster-integration/issues",
   "requirements": [],
   "version": "2026.11.23.2"
 }
