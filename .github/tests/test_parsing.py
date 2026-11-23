@@ -183,3 +183,38 @@ class AppComm(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CalendarRoster(unittest.TestCase):
+    """Portals that render the roster as an ASP.NET calendar with the shift in each day's tooltip."""
+
+    def setUp(self):
+        self.duties = {
+            duty.day: duty
+            for duty in webcomm.WebCommParser(ZONE).parse_roster(fixture("webcomm_roster_calendar.html"), TODAY)
+        }
+
+    def test_timed_shifts_from_the_tooltip(self):
+        duty = self.duties[date(2026, 11, 23)]
+        self.assertEqual(duty.code, "4711")
+        self.assertEqual(duty.duty_type, DutyType.WORK)
+        self.assertEqual((duty.start, duty.end), (at("2026-11-23", 5, 12), at("2026-11-23", 13, 40)))
+        self.assertEqual(duty.start_location, "Betriebshof Lierenfeld")
+        self.assertEqual(duty.lines, ("705", "U79"))
+
+    def test_two_time_ranges_make_a_split_shift(self):
+        duty = self.duties[date(2026, 11, 25)]
+        self.assertTrue(duty.split)
+        self.assertEqual((duty.start, duty.end), (at("2026-11-25", 6), at("2026-11-25", 18, 15)))
+
+    def test_night_shift_crosses_midnight(self):
+        self.assertEqual(self.duties[date(2026, 11, 27)].end, at("2026-11-28", 2, 5))
+
+    def test_all_day_code_in_a_span(self):
+        self.assertEqual(self.duties[date(2026, 11, 26)].duty_type, DutyType.VACATION)
+        self.assertEqual(self.duties[date(2026, 11, 30)].duty_type, DutyType.VACATION)
+
+    def test_a_table_roster_still_wins_over_the_calendar_fallback(self):
+        # The November table fixture must parse as a table, not fall through to the calendar reader.
+        duties = webcomm.WebCommParser(ZONE).parse_roster(fixture("webcomm_roster_november.html"), TODAY)
+        self.assertTrue(any(duty.start_location == "Betriebshof Lierenfeld" for duty in duties))

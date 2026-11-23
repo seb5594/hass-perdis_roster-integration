@@ -37,6 +37,15 @@ class PortalClient(ABC):
         self.base_url = base_url
         self._username = username
         self._password = password
+        # Data categories the portal actually served on the last fetch, used to decide which
+        # sensors a portal supports (see capabilities.py). A kind is one of "roster", "balances",
+        # "vacation", "weekend_points".
+        self._reachable: set[str] = set()
+
+    @property
+    def reachable_pages(self) -> set[str]:
+        """The data categories the portal served on the last successful fetch."""
+        return set(self._reachable)
 
     @abstractmethod
     async def async_login(self) -> None:

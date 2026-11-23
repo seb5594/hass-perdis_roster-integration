@@ -10,6 +10,7 @@ from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
+from .capabilities import CAP_ROSTER
 from .coordinator import PerdisConfigEntry, PerdisCoordinator
 from .entity import PerdisEntity
 from .models import Duty, DutyType
@@ -35,7 +36,9 @@ DETAIL_LABELS = {
 async def async_setup_entry(
     hass: HomeAssistant, entry: PerdisConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities([PerdisCalendar(entry.runtime_data, CALENDAR)])
+    coordinator = entry.runtime_data
+    if CAP_ROSTER in coordinator.capabilities:
+        async_add_entities([PerdisCalendar(coordinator, CALENDAR)])
 
 
 class PerdisCalendar(PerdisEntity, CalendarEntity):

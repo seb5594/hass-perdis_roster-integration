@@ -86,8 +86,10 @@ class AppCommClient(PortalClient):
         async with self._lock:
             if not self._signed_in:
                 await self.async_login()
+            self._reachable = set()
             period = {"from": start.isoformat(), "to": end.isoformat()}
             answers = AppCommAnswers(roster=await self._get_signed_in(self._endpoints.roster, period))
+            self._reachable.add("roster")
             for kind in ("balances", "weekend_points"):
                 try:
                     answer = await self._get_signed_in(getattr(self._endpoints, kind))
@@ -96,6 +98,7 @@ class AppCommClient(PortalClient):
                     continue
                 if isinstance(answer, dict):
                     setattr(answers, kind, answer)
+                    self._reachable.add(kind)
         return self._parser.parse(answers, now)
 
     async def _get_signed_in(self, path: str, params: dict[str, str] | None = None) -> Any:

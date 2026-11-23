@@ -9,8 +9,10 @@
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=seb5594&amp;repository=hass-perdis_roster-integration&amp;category=integration"><img src="https://img.shields.io/static/v1?label=HACS%20%C2%B7%20Marketplace&amp;message=Add%20integration&amp;color=41BDF5&amp;logo=homeassistantcommunitystore&amp;logoColor=white&amp;style=for-the-badge" alt="HACS · Marketplace" height="28"></a>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/actions/workflows/compat.yml"><img src="https://img.shields.io/static/v1?label=home%20assistant&amp;message=%E2%89%A5%202024.12.0&amp;color=1877A5&amp;style=for-the-badge" alt="home assistant" height="28"></a><br>
-  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases/tag/2026.11.23.2"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.2&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
-  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-perdis_roster-integration/2026.11.23.2/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.3&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-perdis_roster-integration/latest/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/stargazers"><img src="https://img.shields.io/github/stars/seb5594/hass-perdis_roster-integration?label=stars&amp;style=flat" alt="stars" height="20"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/forks"><img src="https://img.shields.io/github/forks/seb5594/hass-perdis_roster-integration?label=forks&amp;style=flat" alt="forks" height="20"></a>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/seb5594/hass-perdis_roster-integration/ci.yml?branch=main&amp;label=checks&amp;style=flat" alt="checks" height="20"></a>
   <img src="https://img.shields.io/static/v1?label=tests&amp;message=42%20passed&amp;color=2F855A&amp;style=flat" alt="tests" height="20">
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/issues"><img src="https://img.shields.io/github/issues/seb5594/hass-perdis_roster-integration?label=issues&amp;style=flat" alt="issues" height="20"></a><br>
@@ -101,6 +103,8 @@ page in November 2026.
 | rnv Rhein-Neckar-Verkehr | Mannheim / Heidelberg / Ludwigshafen 🇩🇪 | `https://fahrerauskunft.rnv-online.de/WebComm/` |
 | Salzburg AG Verkehr | Salzburg 🇦🇹 | `https://perdis.salzburg-ag.at/WebComm/` |
 | Transdev / Connexxion | Nederland 🇳🇱 | `https://diensten1.transdev.nl/WebComm/` |
+| üstra Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
+| VGF Verkehrsgesellschaft Frankfurt | Frankfurt am Main 🇩🇪 | `https://perdis-info.vgf-ffm.de/WebComm/` |
 | WSW mobil | Wuppertal 🇩🇪 | `https://service.wsw-online.de/WebComm/` ¹ |
 
 ¹ The portal answered "temporarily unavailable" on the day of the check.
@@ -171,6 +175,12 @@ one is not found (see [Troubleshooting](#-troubleshooting)), enter its path here
 `Dienstplan.aspx`.
 
 ## 📊 Entities
+
+> [!NOTE]
+> Only the sensors a portal can actually fill are created. At setup the integration probes which
+> pages your portal serves and which account values it returns; a portal that does not expose, for
+> example, weekend points simply shows no weekend-point sensors instead of a row of "unknown". Add
+> the integration again (reload) after your operator unlocks a new feature.
 
 All entities belong to one device per account. The entity IDs below assume an account named
 *Rheinbahn (4711)* and Home Assistant in English; yours start with the name of your account.

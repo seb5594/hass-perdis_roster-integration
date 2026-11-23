@@ -22,6 +22,14 @@ from homeassistant.const import EntityCategory, UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from .capabilities import (
+    CAP_OVERTIME,
+    CAP_ROSTER,
+    CAP_VACATION,
+    CAP_WEEKEND_AVERAGE,
+    CAP_WEEKEND_FREE,
+    CAP_WEEKEND_POINTS,
+)
 from .changes import describe
 from .coordinator import PerdisConfigEntry, PerdisCoordinator
 from .entity import ATTR_ROLE, PerdisEntity
@@ -301,10 +309,33 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
 )
 
 
+# Which capability each sensor needs; anything not listed needs the roster, and `last_refresh`
+# is a diagnostic that is always created (capability None).
+SENSOR_CAPABILITY: dict[str, str | None] = {
+    "overtime": CAP_OVERTIME,
+    "vacation_remaining": CAP_VACATION,
+    "weekend_points": CAP_WEEKEND_POINTS,
+    "weekend_points_difference": CAP_WEEKEND_AVERAGE,
+    "free_weekends_year": CAP_WEEKEND_FREE,
+    "last_refresh": None,
+}
+
+
+def _supported(description: PerdisSensorDescription, capabilities: frozenset[str]) -> bool:
+    """True when the portal exposes the data this sensor needs."""
+    needed = SENSOR_CAPABILITY.get(description.key, CAP_ROSTER)
+    return needed is None or needed in capabilities
+
+
 async def async_setup_entry(
     hass: HomeAssistant, entry: PerdisConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    async_add_entities(PerdisSensor(entry.runtime_data, description) for description in SENSORS)
+    coordinator = entry.runtime_data
+    async_add_entities(
+        PerdisSensor(coordinator, description)
+        for description in SENSORS
+        if _supported(description, coordinator.capabilities)
+    )
 
 
 class PerdisSensor(PerdisEntity, SensorEntity):

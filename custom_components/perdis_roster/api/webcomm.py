@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 import logging
 from urllib.parse import urljoin
 
@@ -42,13 +42,33 @@ MAX_ROSTER_PAGES = 4  # the current period plus up to three "next" pages (months
 
 # Words in menu links, per page kind, in German, English and Dutch.
 PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "roster": ("dienstplan", "monatsplan", "mein plan", "meine dienste", "diensteinteilung", "dienstübersicht",
-               "einsatzplan", "fahrplan", "duty", "roster", "schedule", "rooster", "dienstrooster", "planung"),
-    "balances": ("salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto", "balances", "accounts",
-                 "tegoeden", "saldi"),
-    "weekend_points": ("we-punkte", "we punkte", "wochenendpunkte", "wochenende", "punkte", "weekend points",
-                       "weekendpunten"),
+    "roster": (
+        "dienstplan", "monatsplan", "mein plan", "meine dienste", "diensteinteilung",
+        "dienstübersicht", "einsatzplan", "fahrplan", "duty", "roster", "schedule",
+        "rooster", "dienstrooster", "planung",
+    ),
+    "balances": (
+        "salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto",
+        "balances", "accounts", "tegoeden", "saldi",
+    ),
+    "vacation": (
+        "urlaub", "resturlaub", "urlaubskonto", "plansalden", "leave", "vacation", "verlof",
+    ),
+    "weekend_points": (
+        "we-punkte", "we punkte", "wochenendpunkte", "wochenende", "punkte",
+        "weekend points", "weekendpunten",
+    ),
 }
+# Filenames WebComm uses regardless of the portal's menu language. They are tried when the menu
+# did not reveal a page of that kind, so a portal whose menu labels we do not recognise still works.
+CANONICAL_PAGES: dict[str, str] = {
+    "roster": "roster.aspx",
+    "balances": "balances.aspx",
+    "vacation": "planbals.aspx",
+    "weekend_points": "wepunkte.aspx",
+}
+# The roster page accepts the month as a query string, e.g. roster.aspx?2026-11-01.
+CANONICAL_ROSTER = "roster.aspx"
 NEXT_PERIOD_SYMBOLS = (">", ">>", "»", "›", "→")
 NEXT_PERIOD_WORDS = ("vor", "weiter", "nächste", "naechste", "next", "volgende", "später")
 NEXT_PERIOD_TARGETS = ("next", "vor", "weiter", "nextmonth", "btnnext")
@@ -121,7 +141,7 @@ class WebCommClient(PortalClient):
         self._pages = self._find_pages(page)
 
     def _find_pages(self, menu: _Page) -> dict[str, str]:
-        """Kind -> absolute URL, from the overrides first and from the menu links otherwise."""
+        """Kind -> absolute URL, from the options, then the menu links, then canonical filenames."""
         found = {kind: urljoin(self.base_url, path) for kind, path in self._overrides.items()}
         for text, href in links(menu.document):
             label = normalize_label(text)
@@ -129,6 +149,11 @@ class WebCommClient(PortalClient):
                 if kind not in found and any(keyword in label for keyword in keywords):
                     found[kind] = urljoin(menu.url, href)
                     break
+        # Fill the kinds the menu did not reveal with the filenames WebComm uses everywhere, so a
+        # portal whose menu labels we do not recognise still gets probed. A canonical page that does
+        # not exist simply answers 404 and is dropped when it is fetched.
+        for kind, filename in CANONICAL_PAGES.items():
+            found.setdefault(kind, urljoin(self.base_url, filename))
         return found
 
     # --- Reading -----------------------------------------------------------------------------
@@ -137,21 +162,49 @@ class WebCommClient(PortalClient):
         async with self._lock:  # one portal session, one request sequence at a time
             if not self._signed_in:
                 await self.async_login()
+            self._reachable = set()
             pages = WebCommPages(menu=self._menu_html)
-            if "roster" not in self._pages:
-                _LOGGER.warning("No roster page found in the WebComm menu of %s; set it in the options", self.base_url)
+            try:
+                roster = await self._roster_pages(self._pages["roster"], start, end, now.date())
+            except (KeyError, PerdisConnectionError, PerdisPortalError) as error:
+                _LOGGER.warning("Perdis roster page unavailable for %s (%s); set it in the options",
+                                self.base_url, error)
             else:
-                pages.roster = await self._roster_pages(self._pages["roster"], end, now.date())
-            for kind in ("balances", "weekend_points"):
-                if kind in self._pages:
-                    try:
-                        setattr(pages, kind, (await self._get_signed_in(self._pages[kind])).html)
-                    except PerdisConnectionError as error:  # optional pages must not fail the update
-                        _LOGGER.debug("Optional page %s unavailable: %s", kind, error)
+                pages.roster = roster
+                self._reachable.add("roster")
+            for kind in ("balances", "vacation", "weekend_points"):
+                if kind not in self._pages:
+                    continue
+                try:
+                    page = await self._get_signed_in(self._pages[kind])
+                except (PerdisConnectionError, PerdisPortalError) as error:  # optional pages
+                    _LOGGER.debug("Optional page %s unavailable: %s", kind, error)
+                    continue
+                setattr(pages, kind, page.html)
+                self._reachable.add(kind)
         return self._parser.parse(pages, now)
 
-    async def _roster_pages(self, url: str, end: date, today: date) -> list[str]:
-        """The roster page and, while it ends before `end`, the following periods."""
+    async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
+        """The roster HTML for the needed months: by month query string, or by paging through it."""
+        if url.lower().rstrip("/").endswith(CANONICAL_ROSTER):
+            months = await self._roster_months(url, start, end)
+            if months:
+                return months
+        return await self._roster_by_postback(url, end, today)
+
+    async def _roster_months(self, url: str, start: date, end: date) -> list[str]:
+        """Fetch roster.aspx?YYYY-MM-01 for each month between `start` and `end`."""
+        pages: list[str] = []
+        month = start.replace(day=1)
+        last = end.replace(day=1)
+        while month <= last and len(pages) <= MAX_ROSTER_PAGES:
+            page = await self._get_signed_in(f"{url}?{month.isoformat()}")
+            pages.append(page.html)
+            month = (month + timedelta(days=32)).replace(day=1)
+        return pages
+
+    async def _roster_by_postback(self, url: str, end: date, today: date) -> list[str]:
+        """The roster page and, while it ends before `end`, the periods reached by its next button."""
         page = await self._get_signed_in(url)
         collected = [page.html]
         for _ in range(MAX_ROSTER_PAGES - 1):

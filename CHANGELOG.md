@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.23.3
+
+- 🚌 Added the VGF Frankfurt and üstra Hannover WebComm portals to the operator list, both verified.
+- 🔧 A manually entered address no longer needs the `/WebComm/` folder: it is appended automatically.
+- 🔎 Only sensors a portal can actually fill are created. At setup the integration probes which
+  pages the portal serves and which account values it returns, and leaves out the rest, so a portal
+  that does not expose weekend points or time accounts no longer shows them as permanently unknown.
+- 🗓️ The roster is now read from portals that render it as an ASP.NET calendar (the shift in each
+  day's tooltip), not only from table layouts, and the canonical WebComm page names
+  (`roster.aspx`, `balances.aspx`, `planbals.aspx`) are tried when the menu labels are not
+  recognised. This fixes portals that previously returned no data at all.
+
 ## 2026.11.23.2
 
 - 🆔 Renamed the integration domain from `perdis` to `perdis_roster` for a clearer, less
