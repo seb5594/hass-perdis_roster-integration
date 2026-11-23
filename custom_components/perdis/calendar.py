@@ -41,6 +41,10 @@ async def async_setup_entry(
 class PerdisCalendar(PerdisEntity, CalendarEntity):
     """Shifts as timed events, days off and absences as all-day events."""
 
+    # Home Assistant 2026.9 reads the calendar's initial colour from the entity: declare it here,
+    # so it is not looked up on the shared (colourless) entity description. Harmless on older cores.
+    _attr_initial_color = None
+
     def __init__(self, coordinator: PerdisCoordinator, description: EntityDescription) -> None:
         super().__init__(coordinator, description)
         language = (coordinator.hass.config.language or "en").split("-")[0]

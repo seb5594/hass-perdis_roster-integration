@@ -119,8 +119,9 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
 
     @property
     def device_id(self) -> str | None:
-        device = dr.async_get(self.hass).async_get_device(identifiers={(DOMAIN, self.config_entry.entry_id)})
-        return device.id if device else None
+        """The id of this account's device, looked up through its config entry."""
+        devices = dr.async_entries_for_config_entry(dr.async_get(self.hass), self.config_entry.entry_id)
+        return devices[0].id if devices else None
 
     # --- Life cycle --------------------------------------------------------------------------
 
