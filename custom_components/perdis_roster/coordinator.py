@@ -34,6 +34,8 @@ from .const import (
     CONF_LOOKBACK_DAYS,
     CONF_MINIMUM_REST,
     CONF_NOTIFY_CHANGES,
+    CONF_NOTIFY_TARGET,
+    CONF_PERSON,
     CONF_SCAN_INTERVAL,
     CONF_WAKE_UP_LEAD,
     DEFAULT_COMMUTE,
@@ -198,18 +200,38 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
     def _announce_changes(self, changes: list[ScheduleChange]) -> None:
         language = self.hass.config.language or "en"
         lines = [describe(change, language) for change in changes]
+        title = f"{texts(language)['title']} ({self.config_entry.title})"
+        message = "\n".join(f"- {line}" for line in lines)
         _LOGGER.info("Roster changes detected: %s", "; ".join(describe(change) for change in changes))
+        # The event lets automations react with any custom action, and carries the person entity.
         self._fire(TimelineEvent.SCHEDULE_CHANGED, {
             "changes": [change.to_dict() for change in changes],
             "summary": lines,
+            "person": self.option(CONF_PERSON, None),
         })
         if self.option(CONF_NOTIFY_CHANGES, DEFAULT_NOTIFY_CHANGES):
             persistent_notification.async_create(
-                self.hass,
-                "\n".join(f"- {line}" for line in lines),
-                title=f"{texts(language)['title']} ({self.config_entry.title})",
+                self.hass, message, title=title,
                 notification_id=f"{DOMAIN}_{self.config_entry.entry_id}_changes",
             )
+        self._call_notify_target(title, message, lines)
+
+    def _call_notify_target(self, title: str, message: str, lines: list[str]) -> None:
+        """Call a user-chosen service (e.g. notify.mobile_app_*, or a script) on a roster change."""
+        target = self.option(CONF_NOTIFY_TARGET, None)
+        if not target or "." not in target:
+            return
+        domain, service = target.split(".", 1)
+        if not self.hass.services.has_service(domain, service):
+            _LOGGER.warning("Perdis notify target %s is not a known service", target)
+            return
+        # notify.* services take title/message; a script or custom action also gets the structured
+        # change and the person entity to work with.
+        data: dict[str, Any] = {"title": title, "message": message}
+        if domain != "notify":
+            data.update(changes=lines, person=self.option(CONF_PERSON, None),
+                        entry_id=self.config_entry.entry_id)
+        self.hass.async_create_task(self.hass.services.async_call(domain, service, data, blocking=False))
 
     def _fire(self, event: TimelineEvent, data: dict[str, Any] | None = None) -> None:
         self.hass.bus.async_fire(EVENT_PERDIS, {

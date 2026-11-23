@@ -17,7 +17,17 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .api import create_client
-from .const import CONF_BASE_URL, CONF_PORTAL_TYPE, CONF_VERIFY_SSL, DOMAIN, PLATFORMS, SECTION_ADVANCED, PortalType
+from .const import (
+    CONF_BASE_URL,
+    CONF_DETAIL_DAYS,
+    CONF_PORTAL_TYPE,
+    CONF_VERIFY_SSL,
+    DEFAULT_DETAIL_DAYS,
+    DOMAIN,
+    PLATFORMS,
+    SECTION_ADVANCED,
+    PortalType,
+)
 from .coordinator import PerdisConfigEntry, PerdisCoordinator
 from .frontend import async_register_cards
 from .services import async_register_services
@@ -48,6 +58,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerdisConfigEntry) -> bo
         entry.data[CONF_PASSWORD],
         dt_util.get_default_time_zone(),
         entry.options.get(SECTION_ADVANCED),
+        detail_days=entry.options.get(CONF_DETAIL_DAYS, DEFAULT_DETAIL_DAYS),
     )
     coordinator = PerdisCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()

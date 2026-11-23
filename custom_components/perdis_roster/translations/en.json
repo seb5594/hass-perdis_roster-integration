@@ -70,13 +70,19 @@
           "notify_changes": "Notify me about roster changes",
           "scan_interval": "Check the portal every",
           "lookahead_days": "Days ahead",
-          "lookback_days": "Days to keep in the past"
+          "lookback_days": "Days to keep in the past",
+          "detail_days": "Fetch exact shift times for this many days ahead",
+          "person": "Employee (person) this roster belongs to",
+          "notify_target": "Notification service on roster changes"
         },
         "data_description": {
           "wake_up_lead_minutes": "Sets the wake-up time and its trigger.",
           "commute_minutes": "Sets the leave-home time and its trigger.",
           "minimum_rest_hours": "A shorter rest switches on the short rest warning (EU rule: 11 hours).",
-          "scan_interval": "Rosters rarely change by the minute; 30 minutes is plenty."
+          "scan_interval": "Rosters rarely change by the minute; 30 minutes is plenty.",
+          "detail_days": "Only the month roster is free; each shift's exact times need one extra request per day. 0 turns it off.",
+          "person": "Used as context and passed to a notification/script you set below.",
+          "notify_target": "A service such as notify.mobile_app_phone or a script.my_script to call on a roster change. Leave empty to use only the repair-style notification."
         },
         "sections": {
           "advanced": {

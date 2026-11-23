@@ -70,13 +70,19 @@
           "notify_changes": "Bei Dienstplanänderungen benachrichtigen",
           "scan_interval": "Portal abfragen alle",
           "lookahead_days": "Tage voraus",
-          "lookback_days": "Vergangene Tage behalten"
+          "lookback_days": "Vergangene Tage behalten",
+          "detail_days": "Genaue Dienstzeiten für so viele Tage voraus laden",
+          "person": "Mitarbeiter (Person), zu dem dieser Dienstplan gehört",
+          "notify_target": "Benachrichtigungsdienst bei Dienstplanänderungen"
         },
         "data_description": {
           "wake_up_lead_minutes": "Ergibt die Weckzeit und ihren Auslöser.",
           "commute_minutes": "Ergibt die Losfahrzeit und ihren Auslöser.",
           "minimum_rest_hours": "Eine kürzere Ruhezeit schaltet die Warnung ein (EU-Vorgabe: 11 Stunden).",
-          "scan_interval": "Dienstpläne ändern sich selten minütlich; 30 Minuten reichen völlig."
+          "scan_interval": "Dienstpläne ändern sich selten minütlich; 30 Minuten reichen völlig.",
+          "detail_days": "Nur der Monatsplan ist kostenlos; die genauen Zeiten je Dienst kosten eine zusätzliche Abfrage pro Tag. 0 schaltet es aus.",
+          "person": "Dient als Kontext und wird an einen unten gesetzten Dienst/ein Skript übergeben.",
+          "notify_target": "Ein Dienst wie notify.mobile_app_handy oder ein script.mein_skript, der bei einer Änderung aufgerufen wird. Leer lassen für nur die Standardbenachrichtigung."
         },
         "sections": {
           "advanced": {

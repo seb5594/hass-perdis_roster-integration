@@ -27,9 +27,10 @@ DAY_LABELS = {
            DutyType.WORK: "Dienst", DutyType.UNKNOWN: "Dienstplan"},
 }
 DETAIL_LABELS = {
-    "en": {"start": "Starts at", "end": "Ends at", "lines": "Lines", "hours": "Paid hours", "split": "Split shift"},
+    "en": {"start": "Starts at", "end": "Ends at", "lines": "Lines", "hours": "Paid hours",
+           "split": "Split shift", "parts": "Legs"},
     "de": {"start": "Beginn in", "end": "Ende in", "lines": "Linien", "hours": "Bezahlte Stunden",
-           "split": "Geteilter Dienst"},
+           "split": "Geteilter Dienst", "parts": "Abschnitte"},
 }
 
 
@@ -91,7 +92,23 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
             words["split"] if duty.split else None,
             duty.remark,
         ]
-        return "\n".join(line for line in lines if line)
+        if duty.segments:
+            lines.append("")
+            lines.append(f"{words['parts']}:")
+            lines.extend(self._segment_line(segment) for segment in duty.segments)
+        return "\n".join(line for line in lines if line is not None)
+
+    def _segment_line(self, segment) -> str:
+        """One leg of the shift, e.g. '10:32-14:32  Hbf→Hbf  Line 21  (Lei)'."""
+        times = f"{segment.start:%H:%M}-{segment.end:%H:%M}"
+        where = segment.start_location or ""
+        if segment.end_location and segment.end_location != segment.start_location:
+            where = f"{where}→{segment.end_location}"
+        extra = " ".join(part for part in (
+            f"{self._details['lines']} {segment.line}" if segment.line else "",
+            f"({segment.kind})" if segment.kind else "",
+        ) if part)
+        return "  ".join(part for part in (times, where, extra) if part)
 
 
 def _overlaps(event: CalendarEvent, start: datetime, end: datetime) -> bool:

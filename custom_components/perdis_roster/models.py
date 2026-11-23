@@ -40,6 +40,46 @@ def _datetime(value: str | None) -> datetime | None:
 
 
 @dataclass(slots=True)
+class DutySegment:
+    """One leg of a shift: a drive, a break, a preparation or a transition between two parts.
+
+    These come from the detail page of a shift and let the calendar and the cards show what a
+    shift is made of (times, reporting points, lines), not just its start and end.
+    """
+
+    start: datetime
+    end: datetime
+    start_location: str | None = None
+    end_location: str | None = None
+    line: str | None = None
+    kind: str = ""  # the portal's own short code, e.g. a drive, a break or a preparation
+    is_break: bool = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "start_location": self.start_location,
+            "end_location": self.end_location,
+            "line": self.line,
+            "kind": self.kind,
+            "is_break": self.is_break,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DutySegment:
+        return cls(
+            start=datetime.fromisoformat(data["start"]),
+            end=datetime.fromisoformat(data["end"]),
+            start_location=data.get("start_location"),
+            end_location=data.get("end_location"),
+            line=data.get("line"),
+            kind=data.get("kind", ""),
+            is_break=data.get("is_break", False),
+        )
+
+
+@dataclass(slots=True)
 class Duty:
     """One operating day of the roster: a shift, a reserve, a day off or an absence.
 
@@ -59,6 +99,7 @@ class Duty:
     break_minutes: int | None = None
     split: bool = False
     remark: str | None = None
+    segments: list[DutySegment] = field(default_factory=list)
 
     @property
     def is_working(self) -> bool:
@@ -105,6 +146,7 @@ class Duty:
             "break_minutes": self.break_minutes,
             "split": self.split,
             "remark": self.remark,
+            "segments": [segment.to_dict() for segment in self.segments],
         }
 
     @classmethod
@@ -122,6 +164,7 @@ class Duty:
             break_minutes=data.get("break_minutes"),
             split=data.get("split", False),
             remark=data.get("remark"),
+            segments=[DutySegment.from_dict(item) for item in data.get("segments", [])],
         )
 
 

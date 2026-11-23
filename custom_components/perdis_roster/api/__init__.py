@@ -16,6 +16,7 @@ from ..const import (
     CONF_BALANCES_PAGE,
     CONF_ROSTER_PAGE,
     CONF_WEEKEND_POINTS_PAGE,
+    DEFAULT_DETAIL_DAYS,
     PortalType,
 )
 from .appcomm import AppCommClient, AppCommEndpoints
@@ -56,6 +57,7 @@ def create_client(
     password: str,
     zone: ZoneInfo,
     advanced: Mapping[str, Any] | None = None,
+    detail_days: int = DEFAULT_DETAIL_DAYS,
 ) -> PortalClient:
     """The client for `portal_type`, set up with the advanced options of the entry."""
     advanced = advanced or {}
@@ -73,4 +75,4 @@ def create_client(
         "balances": advanced.get(CONF_BALANCES_PAGE, ""),
         "weekend_points": advanced.get(CONF_WEEKEND_POINTS_PAGE, ""),
     }
-    return WebCommClient(session, base_url, username, password, zone, overrides)
+    return WebCommClient(session, base_url, username, password, zone, overrides, detail_days=detail_days)

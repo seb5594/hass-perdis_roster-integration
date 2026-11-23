@@ -27,6 +27,8 @@ from homeassistant.data_entry_flow import section
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
+    EntitySelector,
+    EntitySelectorConfig,
     NumberSelector,
     NumberSelectorConfig,
     NumberSelectorMode,
@@ -56,11 +58,14 @@ from .const import (
     CONF_BALANCES_PAGE,
     CONF_BASE_URL,
     CONF_COMMUTE,
+    CONF_DETAIL_DAYS,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
     CONF_MINIMUM_REST,
     CONF_NOTIFY_CHANGES,
+    CONF_NOTIFY_TARGET,
     CONF_OPERATOR,
+    CONF_PERSON,
     CONF_PORTAL_TYPE,
     CONF_ROSTER_PAGE,
     CONF_SCAN_INTERVAL,
@@ -68,6 +73,7 @@ from .const import (
     CONF_WAKE_UP_LEAD,
     CONF_WEEKEND_POINTS_PAGE,
     DEFAULT_COMMUTE,
+    DEFAULT_DETAIL_DAYS,
     DEFAULT_LOOKAHEAD_DAYS,
     DEFAULT_LOOKBACK_DAYS,
     DEFAULT_MINIMUM_REST,
@@ -254,6 +260,9 @@ class PerdisOptionsFlow(OptionsFlow):
             vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _number(10, 360, unit="min"),
             vol.Required(CONF_LOOKAHEAD_DAYS, default=DEFAULT_LOOKAHEAD_DAYS): _number(7, 120, unit="d"),
             vol.Required(CONF_LOOKBACK_DAYS, default=DEFAULT_LOOKBACK_DAYS): _number(0, 60, unit="d"),
+            vol.Required(CONF_DETAIL_DAYS, default=DEFAULT_DETAIL_DAYS): _number(0, 31, unit="d"),
+            vol.Optional(CONF_PERSON): EntitySelector(EntitySelectorConfig(domain="person")),
+            vol.Optional(CONF_NOTIFY_TARGET): TextSelector(),
             vol.Required(SECTION_ADVANCED): section(_advanced_schema(portal_type), {"collapsed": True}),
         })
         return self.async_show_form(
