@@ -223,32 +223,82 @@ Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verla
 ## 🃏 Dashboard-Karten
 
 Die Karten gehören zur Integration und registrieren sich selbst – **keine Ressource nötig**.
-Dashboard bearbeiten, **Karte hinzufügen** und nach **Perdis** suchen. Ohne Einstellungen zeigt eine
-Karte das erste Perdis-Konto; im Editor lässt sich ein anderes wählen.
+Dashboard bearbeiten, **Karte hinzufügen** und nach **Perdis** suchen. Jede Karte hat einen
+**visuellen Editor** mit Abschnitten (*Inhalt*, *Darstellung*, *Verhalten*) – du musst kein YAML
+schreiben. Ohne Einstellungen zeigt eine Karte das erste Perdis-Konto.
 
 | Karte | Zeigt |
 | --- | --- |
 | 🕐 `perdis-shift-card` | Den nächsten Dienst: Nummer, Dienstart, Countdown, Zeiten, Meldeort, Linien, Weck- und Losfahrzeit, Ruhezeit-Warnung, Fortschritt während des Dienstes |
 | 📋 `perdis-roster-card` | Die nächsten Tage nach Kalenderwoche, farbig nach Art, geänderte Tage markiert |
-| 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche |
+| 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche oder des Monats |
+
+Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
+
+| Option | Standard | Wirkung |
+| --- | --- | --- |
+| `device_id` | erstes Konto | Welches Perdis-Konto die Karte zeigt |
+| `title` | Kartenname | Eigener Titel in der Kopfzeile |
+| `icon` | `mdi:bus-clock` | Eigenes Symbol in der Kopfzeile |
+| `show_header` | `true` | Kopfzeile ausblenden für eine schlichte Karte |
+| `accent` | nach Dienstart | Akzentfarbe (RGB), überschreibt die Typfarbe |
+| `tap_action` | more-info | Volle Lovelace-Aktion (`more-info`, `navigate`, `url`, `perform-action`, `none`) |
 
 <details>
-<summary>YAML-Beispiele</summary>
+<summary>🕐 Optionen der Dienst-Karte</summary>
+
+| Option | Standard | Wirkung |
+| --- | --- | --- |
+| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `paid`, `rest` |
+| `show_location` | `true` | Meldeort anzeigen |
+| `show_lines` | `true` | Linien-Badges anzeigen |
+| `show_countdown` | `true` | Countdown-Pille anzeigen |
+| `show_progress` | `true` | Fortschrittsbalken während des Dienstes |
 
 ```yaml
 type: custom:perdis-shift-card
+accent: [123, 97, 255]
+show_facts: [wake_up, rest]
+show_lines: false
 ```
+
+</details>
+
+<details>
+<summary>📋 Optionen der Dienstplan-Karte</summary>
+
+| Option | Standard | Wirkung |
+| --- | --- | --- |
+| `days` | `14` | Wie viele Tage (3–42) |
+| `hide_types` | – | Tagesarten ausblenden, z. B. `[free, vacation]` |
+| `show_days_off` | `true` | Abkürzung: `false` blendet Frei, Urlaub und Ausgleich aus |
+| `group_by_week` | `true` | Tage unter Kalenderwochen-Überschriften gruppieren |
+| `compact` | `false` | Enge Zeilen ohne zweite Zeile |
+| `show_location` / `show_lines` / `show_tags` | `true` | Meldeort, Linien, Markierungen anzeigen |
+| `highlight_today` | `true` | Heutige Zeile hervorheben |
 
 ```yaml
 type: custom:perdis-roster-card
-days: 21            # 3 bis 42, Standard 14
-show_days_off: true # false zeigt nur Arbeitstage
-compact: false      # true blendet Orte und Linien aus
-title: Mein Dienstplan  # optional
+days: 21
+hide_types: [free, vacation, compensation]
+compact: true
+group_by_week: false
 ```
+
+</details>
+
+<details>
+<summary>💼 Optionen der Konten-Karte</summary>
+
+| Option | Standard | Wirkung |
+| --- | --- | --- |
+| `show_tiles` | 5 Kacheln | Welche Kacheln und in welcher Reihenfolge: `overtime`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
+| `columns` | `0` (auto) | Feste Spaltenzahl (1–4) |
 
 ```yaml
 type: custom:perdis-accounts-card
+show_tiles: [overtime, weekend_points, planned_month]
+columns: 3
 device_id: 0123456789abcdef0123456789abcdef  # optional, für ein zweites Konto
 ```
 

@@ -234,32 +234,82 @@ Long lists are kept out of the recorder database, so the history stays small.
 ## 🃏 Dashboard cards
 
 The cards are part of the integration and register themselves – there is **no resource to add**.
-Edit a dashboard, click **Add card** and search for **Perdis**. Without settings a card shows the
-first Perdis account; the editor lets you pick another one.
+Edit a dashboard, click **Add card** and search for **Perdis**. Every card has a **visual editor**
+with grouped sections (*Content*, *Appearance*, *Behaviour*), so you never need to write YAML.
+Without settings a card shows the first Perdis account.
 
 | Card | Shows |
 | --- | --- |
 | 🕐 `perdis-shift-card` | The next shift: duty, shift type, countdown, times, reporting point, lines, wake-up and leave-home time, rest warning, progress while it runs |
 | 📋 `perdis-roster-card` | The coming days grouped by calendar week, colored by type, with changed days marked |
-| 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week |
+| 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week or month |
+
+Everything can be tuned in the editor (or in YAML). Options shared by all cards:
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `device_id` | first account | Which Perdis account the card shows |
+| `title` | card name | A custom header title |
+| `icon` | `mdi:bus-clock` | A custom header icon |
+| `show_header` | `true` | Hide the header for a bare card |
+| `accent` | by shift type | An accent colour (RGB), overriding the type colour |
+| `tap_action` | more-info | A full Lovelace action (`more-info`, `navigate`, `url`, `perform-action`, `none`) |
 
 <details>
-<summary>YAML examples</summary>
+<summary>🕐 Shift card options</summary>
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `paid`, `rest` |
+| `show_location` | `true` | Show the reporting point |
+| `show_lines` | `true` | Show the line badges |
+| `show_countdown` | `true` | Show the countdown pill |
+| `show_progress` | `true` | Show the progress bar while on duty |
 
 ```yaml
 type: custom:perdis-shift-card
+accent: [123, 97, 255]
+show_facts: [wake_up, rest]
+show_lines: false
 ```
+
+</details>
+
+<details>
+<summary>📋 Roster card options</summary>
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `days` | `14` | How many days to list (3–42) |
+| `hide_types` | – | Day types to hide, e.g. `[free, vacation]` |
+| `show_days_off` | `true` | Shortcut: `false` hides days off, vacation and time off |
+| `group_by_week` | `true` | Group the days under calendar week headers |
+| `compact` | `false` | Tighter rows without the second line |
+| `show_location` / `show_lines` / `show_tags` | `true` | Show the reporting point, the lines, the tags |
+| `highlight_today` | `true` | Highlight today's row |
 
 ```yaml
 type: custom:perdis-roster-card
-days: 21            # 3 to 42, default 14
-show_days_off: true # false lists working days only
-compact: false      # true hides places and lines
-title: My roster    # optional
+days: 21
+hide_types: [free, vacation, compensation]
+compact: true
+group_by_week: false
 ```
+
+</details>
+
+<details>
+<summary>💼 Accounts card options</summary>
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `show_tiles` | 5 tiles | Which tiles and in which order: `overtime`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
+| `columns` | `0` (auto) | Fix the number of columns (1–4) |
 
 ```yaml
 type: custom:perdis-accounts-card
+show_tiles: [overtime, weekend_points, planned_month]
+columns: 3
 device_id: 0123456789abcdef0123456789abcdef  # optional, for a second account
 ```
 

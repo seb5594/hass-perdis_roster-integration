@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.23.1
+
+- 🃏 The dashboard cards are now fully configurable, each with a grouped visual editor (Content,
+  Appearance, Behaviour): account, title, header icon, accent colour and a full Lovelace tap
+  action on every card.
+  - Shift card: choose which facts (wake up, leave, paid, rest) to show, and toggle the location,
+    lines, countdown and progress bar.
+  - Roster card: hide day types, switch off the week grouping, the tags, the location, the lines
+    or the today highlight.
+  - Accounts card: pick and order the tiles (now including planned hours of the month) and set a
+    fixed number of columns.
+- 💅 Fresher card look: an accent-tinted hero block on the shift card, softer tiles and hover
+  feedback, all theme-aware in light and dark.
+
 ## 2026.11.23
 
 First release of **Perdis Duty Roster**, an unofficial integration for the duty rosters of

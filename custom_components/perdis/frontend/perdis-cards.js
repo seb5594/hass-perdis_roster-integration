@@ -6,15 +6,16 @@
  *   perdis-accounts-card  overtime, vacation, weekend points and free weekends at a glance
  *
  * The integration loads this file on every dashboard, so the cards appear in the card picker
- * without adding a resource. They need no configuration: without a `device_id` they show the
- * first Perdis account. The entities of an account are found by their `perdis_role` attribute,
- * so renaming an entity never breaks a card.
+ * without adding a resource. They work without any configuration: without a `device_id` they show
+ * the first Perdis account, and the entities of an account are found by their `perdis_role`
+ * attribute, so renaming an entity never breaks a card.
  *
- * Plain web components without any library keep the file small and independent of the
- * frontend version of Home Assistant.
+ * Every card has a visual editor that exposes its options (account, title, icon, accent colour,
+ * tap action, and which parts to show). Plain web components without any library keep the file
+ * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.23";
+const VERSION = "2026.11.23.1";
 const DOMAIN = "perdis";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -51,18 +52,54 @@ const TEXTS = {
     freeWeekends: "Free weekends",
     nextFreeWeekend: "next",
     plannedWeek: "Planned this week",
+    plannedMonth: "Planned this month",
     offline: "Portal offline – showing the saved roster",
     types: {
       work: "Duty", reserve: "Reserve", training: "Training", free: "Day off", vacation: "Vacation",
       compensation: "Time off", sick: "Sick", unknown: "Unknown",
     },
     categories: { early: "Early", day: "Day", late: "Late", night: "Night", split: "Split" },
+    facts: { wake_up: "Wake up", leave_home: "Leave", paid: "Paid hours", rest: "Rest before" },
+    tiles: {
+      overtime: "Overtime balance", vacation: "Vacation left", weekend_points: "Weekend points",
+      free_weekends: "Free weekends", planned_week: "Planned this week", planned_month: "Planned this month",
+    },
     editor: {
-      device_id: "Perdis account (empty: the first one)",
-      title: "Title (empty: default)",
+      // Common
+      device_id: "Perdis account",
+      title: "Title",
+      icon: "Header icon",
+      show_header: "Show the header",
+      accent: "Accent colour",
+      tap_action: "Tap action",
+      // Shift card
+      show_countdown: "Show the countdown",
+      show_progress: "Show the progress bar while on duty",
+      show_lines: "Show the lines",
+      show_location: "Show the reporting point",
+      show_facts: "Facts to show",
+      // Roster card
       days: "Days to show",
       show_days_off: "Show days off",
       compact: "Compact rows",
+      group_by_week: "Group by calendar week",
+      highlight_today: "Highlight today",
+      show_tags: "Show the tags (changed, split, shift type)",
+      hide_types: "Hide these day types",
+      // Accounts card
+      show_tiles: "Tiles to show",
+      columns: "Columns (0 = automatic)",
+      // Section headers
+      sec_content: "Content",
+      sec_appearance: "Appearance",
+      sec_behavior: "Behaviour",
+    },
+    helper: {
+      device_id: "Leave empty for the first account.",
+      title: "Leave empty for the default title.",
+      icon: "Leave empty for the default icon.",
+      accent: "Leave empty to colour the card by the shift type.",
+      hide_types: "Leave empty to show every day.",
     },
   },
   de: {
@@ -96,18 +133,49 @@ const TEXTS = {
     freeWeekends: "Freie Wochenenden",
     nextFreeWeekend: "nächstes",
     plannedWeek: "Geplant diese Woche",
+    plannedMonth: "Geplant diesen Monat",
     offline: "Portal nicht erreichbar – gespeicherter Dienstplan",
     types: {
       work: "Dienst", reserve: "Bereitschaft", training: "Schulung", free: "Frei", vacation: "Urlaub",
       compensation: "Ausgleich", sick: "Krank", unknown: "Unbekannt",
     },
     categories: { early: "Früh", day: "Mittel", late: "Spät", night: "Nacht", split: "Geteilt" },
+    facts: { wake_up: "Aufstehen", leave_home: "Losfahren", paid: "Bezahlte Stunden", rest: "Ruhezeit davor" },
+    tiles: {
+      overtime: "Zeitkonto", vacation: "Resturlaub", weekend_points: "WE-Punkte",
+      free_weekends: "Freie Wochenenden", planned_week: "Geplant diese Woche", planned_month: "Geplant diesen Monat",
+    },
     editor: {
-      device_id: "Perdis-Konto (leer: das erste)",
-      title: "Titel (leer: Standard)",
+      device_id: "Perdis-Konto",
+      title: "Titel",
+      icon: "Symbol in der Kopfzeile",
+      show_header: "Kopfzeile anzeigen",
+      accent: "Akzentfarbe",
+      tap_action: "Tippen-Aktion",
+      show_countdown: "Countdown anzeigen",
+      show_progress: "Fortschritt während des Dienstes anzeigen",
+      show_lines: "Linien anzeigen",
+      show_location: "Meldeort anzeigen",
+      show_facts: "Angezeigte Eckdaten",
       days: "Angezeigte Tage",
       show_days_off: "Freie Tage anzeigen",
       compact: "Kompakte Zeilen",
+      group_by_week: "Nach Kalenderwoche gruppieren",
+      highlight_today: "Heute hervorheben",
+      show_tags: "Markierungen anzeigen (geändert, geteilt, Dienstart)",
+      hide_types: "Diese Tagesarten ausblenden",
+      show_tiles: "Angezeigte Kacheln",
+      columns: "Spalten (0 = automatisch)",
+      sec_content: "Inhalt",
+      sec_appearance: "Darstellung",
+      sec_behavior: "Verhalten",
+    },
+    helper: {
+      device_id: "Leer lassen für das erste Konto.",
+      title: "Leer lassen für den Standardtitel.",
+      icon: "Leer lassen für das Standardsymbol.",
+      accent: "Leer lassen, um die Karte nach der Dienstart einzufärben.",
+      hide_types: "Leer lassen, um jeden Tag anzuzeigen.",
     },
   },
 };
@@ -126,6 +194,11 @@ const CATEGORY_ICONS = {
   early: "mdi:weather-sunset-up", day: "mdi:white-balance-sunny", late: "mdi:weather-sunset-down",
   night: "mdi:weather-night", split: "mdi:call-split",
 };
+const DEFAULT_HEADER_ICON = "mdi:bus-clock";
+const OFF_TYPES = ["free", "vacation", "compensation"];
+const FACT_KEYS = ["wake_up", "leave_home", "paid", "rest"];
+const TILE_KEYS = ["overtime", "vacation", "weekend_points", "free_weekends", "planned_week", "planned_month"];
+const DUTY_TYPE_KEYS = ["work", "reserve", "training", "free", "vacation", "compensation", "sick", "unknown"];
 
 function language(hass) {
   const code = (hass?.locale?.language || hass?.language || "en").split("-")[0];
@@ -140,6 +213,55 @@ function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => (
     { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]
   ));
+}
+
+/** The accent colour of the card: the option, otherwise the colour of the duty type. */
+function accentOf(config, dutyType) {
+  if (config?.accent) return config.accent;
+  return TYPE_COLORS[dutyType] || TYPE_COLORS.work;
+}
+
+// --- Actions (tap) -------------------------------------------------------------------------------
+
+function fireEvent(node, type, detail) {
+  node.dispatchEvent(new CustomEvent(type, { detail, bubbles: true, composed: true }));
+}
+
+/** Run a Lovelace action config (more-info, navigate, url, toggle, call-service) like a normal card. */
+function handleAction(node, hass, actionConfig, fallbackEntity) {
+  const config = actionConfig || { action: "more-info" };
+  switch (config.action || "more-info") {
+    case "none":
+      return;
+    case "more-info": {
+      const entityId = config.entity || fallbackEntity;
+      if (entityId) fireEvent(node, "hass-more-info", { entityId });
+      return;
+    }
+    case "navigate":
+      if (config.navigation_path) {
+        history.pushState(null, "", config.navigation_path);
+        fireEvent(window, "location-changed", { replace: false });
+      }
+      return;
+    case "url":
+      if (config.url_path) window.open(config.url_path, config.url_path.startsWith("http") ? "_blank" : "_self");
+      return;
+    case "toggle": {
+      const entityId = config.entity || fallbackEntity;
+      if (entityId) hass.callService("homeassistant", "toggle", { entity_id: entityId });
+      return;
+    }
+    case "call-service":
+    case "perform-action": {
+      const call = config.perform_action || config.service;
+      if (!call || !call.includes(".")) return;
+      const [domain, service] = call.split(".", 2);
+      hass.callService(domain, service, config.data || config.service_data || {}, config.target);
+      return;
+    }
+    default:
+  }
 }
 
 // --- Finding the entities of an account ----------------------------------------------------------
@@ -247,7 +369,9 @@ const BASE_STYLE = `
   ha-card { height: 100%; overflow: hidden; }
   .header { display: flex; align-items: center; gap: 10px; padding: 16px 16px 4px; }
   .header .title { font-size: 1.15rem; font-weight: 500; flex: 1; }
+  .header ha-icon { color: var(--accent, var(--primary-color)); }
   .content { padding: 8px 16px 16px; }
+  .no-header .content { padding-top: 16px; }
   .muted { color: var(--secondary-text-color); }
   .empty { padding: 16px; color: var(--secondary-text-color); }
   .pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px;
@@ -256,6 +380,8 @@ const BASE_STYLE = `
             background: rgba(var(--rgb-warning-color, 255, 166, 0), 0.15); color: var(--warning-color, #ffa600); }
   ha-icon { --mdc-icon-size: 20px; }
   .clickable { cursor: pointer; }
+  .actionable { cursor: pointer; transition: background 120ms ease; border-radius: 12px; }
+  .actionable:hover { background: color-mix(in srgb, var(--accent, var(--primary-color)) 7%, transparent); }
 `;
 
 class PerdisCardBase extends HTMLElement {
@@ -265,10 +391,18 @@ class PerdisCardBase extends HTMLElement {
     this._signature = "";
   }
 
+  // Defaults merged into every config; a card overrides this for its own options.
+  static defaults() {
+    return {};
+  }
+
   setConfig(config) {
-    this._config = { ...config };
+    this._config = { ...this.constructor.defaults(), ...config };
     this._signature = "";
-    if (this._hass) this._render();
+    if (this._hass) {
+      this._entities = findEntities(this._hass, this._config.device_id);
+      this._render();
+    }
   }
 
   set hass(hass) {
@@ -292,19 +426,26 @@ class PerdisCardBase extends HTMLElement {
     return id ? this._hass.states[id]?.attributes || {} : null;
   }
 
-  moreInfo(role) {
-    const entityId = this._entities?.[role];
-    if (!entityId) return;
-    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
+  /** The configured tap action, or more-info on the role entity by default. */
+  runTap(role) {
+    handleAction(this, this._hass, this._config?.tap_action, this._entities?.[role]);
   }
 
-  frame(title, body, extraStyle = "") {
+  frame(title, body, extraStyle = "", accent = "") {
+    const showHeader = this._config?.show_header !== false;
+    const icon = this._config?.icon || DEFAULT_HEADER_ICON;
     const roster = this.attributes("roster");
-    const offline = roster && roster.online === false ? `<div class="banner">${escapeHtml(texts(this._hass).offline)}</div>` : "";
+    const offline = roster && roster.online === false
+      ? `<div class="banner">${escapeHtml(texts(this._hass).offline)}</div>` : "";
+    const header = showHeader
+      ? `<div class="header"><ha-icon icon="${escapeHtml(icon)}"></ha-icon>
+           <span class="title">${escapeHtml(title)}</span></div>`
+      : "";
+    const style = accent ? `--accent:${accent};` : "";
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLE}${extraStyle}</style>
-      <ha-card>
-        <div class="header"><ha-icon icon="mdi:bus-clock"></ha-icon><span class="title">${escapeHtml(title)}</span></div>
+      <ha-card style="${style}" class="${showHeader ? "" : "no-header"}">
+        ${header}
         ${offline}
         ${body}
       </ha-card>`;
@@ -320,7 +461,8 @@ class PerdisCardBase extends HTMLElement {
   }
 }
 
-function editorFor(fields) {
+/** A visual editor whose schema is built from `(hass, config) => [ha-form schema]`. */
+function editorFor(buildSchema) {
   return class extends HTMLElement {
     setConfig(config) {
       this._config = { ...config };
@@ -338,74 +480,119 @@ function editorFor(fields) {
         this._form = document.createElement("ha-form");
         this._form.addEventListener("value-changed", (event) => {
           const config = { ...event.detail.value };
-          for (const key of Object.keys(config)) if (config[key] === "" || config[key] === undefined) delete config[key];
+          for (const key of Object.keys(config)) {
+            const value = config[key];
+            if (value === "" || value === undefined || value === null || (Array.isArray(value) && !value.length)) {
+              delete config[key];
+            }
+          }
           this._config = config;
-          this.dispatchEvent(new CustomEvent("config-changed", { detail: { config }, bubbles: true, composed: true }));
+          fireEvent(this, "config-changed", { config });
         });
         this.appendChild(this._form);
       }
-      const labels = texts(this._hass).editor;
+      const t = texts(this._hass);
       this._form.hass = this._hass;
       this._form.data = this._config;
-      this._form.schema = [
-        { name: "device_id", selector: { device: { integration: DOMAIN } } },
-        { name: "title", selector: { text: {} } },
-        ...fields,
-      ];
-      this._form.computeLabel = (schema) => labels[schema.name] || schema.name;
+      this._form.schema = buildSchema(this._hass, this._config);
+      this._form.computeLabel = (schema) => t.editor[schema.name] || schema.name;
+      this._form.computeHelper = (schema) => t.helper[schema.name] || "";
     }
   };
+}
+
+// Reusable editor field builders.
+const field = {
+  device: { name: "device_id", selector: { device: { integration: DOMAIN } } },
+  title: { name: "title", selector: { text: {} } },
+  icon: { name: "icon", selector: { icon: {} } },
+  showHeader: { name: "show_header", selector: { boolean: {} } },
+  accent: { name: "accent", selector: { color_rgb: {} } },
+  tapAction: { name: "tap_action", selector: { ui_action: {} } },
+  boolean: (name) => ({ name, selector: { boolean: {} } }),
+  select: (name, options, multiple = false) => ({
+    name,
+    selector: { select: { multiple, mode: multiple ? "list" : "dropdown", options } },
+  }),
+};
+
+function typeOptions(hass) {
+  const t = texts(hass);
+  return DUTY_TYPE_KEYS.map((value) => ({ value, label: t.types[value] }));
+}
+
+function section(hass, name, schema) {
+  return { name, type: "expandable", flatten: true, title: texts(hass).editor[name], schema };
 }
 
 // --- Next shift ----------------------------------------------------------------------------------
 
 const SHIFT_STYLE = `
+  .hero { position: relative; border-radius: 16px; padding: 14px 16px 16px; overflow: hidden;
+          background: var(--secondary-background-color);
+          background: color-mix(in srgb, var(--accent) 14%, var(--card-background-color)); }
+  .hero::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent); }
   .duty { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  .duty .code { font-size: 2rem; font-weight: 600; line-height: 1.1; }
+  .duty .code { font-size: 2.1rem; font-weight: 700; line-height: 1.05; letter-spacing: -0.5px; }
   .when { margin-top: 2px; font-size: 1rem; }
-  .times { font-size: 1.6rem; font-weight: 500; margin: 10px 0 2px; letter-spacing: 0.5px; }
+  .times { font-size: 1.7rem; font-weight: 500; margin: 10px 0 2px; letter-spacing: 0.5px; }
   .place { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-  .lines { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-  .line { background: var(--secondary-background-color); border-radius: 6px; padding: 1px 8px; font-weight: 600; font-size: 0.85rem; }
+  .lines { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .line { background: color-mix(in srgb, var(--accent) 20%, var(--card-background-color));
+          border-radius: 6px; padding: 1px 8px; font-weight: 600; font-size: 0.85rem; }
   .progress { height: 6px; border-radius: 3px; background: var(--divider-color); margin-top: 12px; overflow: hidden; }
-  .progress > div { height: 100%; background: var(--accent); }
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-top: 14px; }
-  .fact { background: var(--secondary-background-color); border-radius: 10px; padding: 8px 10px; }
+  .progress > div { height: 100%; background: var(--accent); transition: width 1s linear; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 14px; }
+  .fact { background: var(--secondary-background-color); border-radius: 12px; padding: 8px 10px; }
   .fact .label { font-size: 0.75rem; color: var(--secondary-text-color); display: flex; align-items: center; gap: 4px; }
-  .fact .value { font-size: 1.05rem; font-weight: 500; margin-top: 2px; }
+  .fact .value { font-size: 1.05rem; font-weight: 600; margin-top: 2px; }
   .fact.warning { background: rgba(var(--rgb-error-color, 219, 68, 55), 0.15); }
   .fact.warning .value { color: var(--error-color, #db4437); }
 `;
 
 class PerdisShiftCard extends PerdisCardBase {
+  static defaults() {
+    return {
+      show_countdown: true, show_progress: true, show_lines: true, show_location: true,
+      show_facts: [...FACT_KEYS],
+    };
+  }
+
   static getConfigElement() {
     return document.createElement("perdis-shift-card-editor");
   }
 
   _render() {
     const t = texts(this._hass);
-    const title = this._config?.title || t.nextShift;
+    const config = this._config;
+    const title = config.title || t.nextShift;
     const shift = this.attributes("next_shift");
     if (shift === null) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
     if (!shift.date) return this.frame(title, `<div class="empty">${escapeHtml(t.noShift)}</div>`);
 
     const category = shift.category || "day";
-    const accent = TYPE_COLORS[shift.duty_type] || TYPE_COLORS.work;
-    const countdown = shift.running
-      ? `<span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">${escapeHtml(t.running)} · ${escapeHtml(t.endsIn)} ${formatCountdown(shift.minutes_until_end)}</span>`
-      : `<span class="pill" style="background:var(--secondary-background-color)">${escapeHtml(t.startsIn)} ${formatCountdown(shift.minutes_until_start)}</span>`;
-    const progress = shift.running && shift.start && shift.end
+    const accent = accentOf(config, shift.duty_type);
+    const countdown = !config.show_countdown ? ""
+      : shift.running
+        ? `<span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">${escapeHtml(t.running)} · ${escapeHtml(t.endsIn)} ${formatCountdown(shift.minutes_until_end)}</span>`
+        : `<span class="pill" style="background:var(--secondary-background-color)">${escapeHtml(t.startsIn)} ${formatCountdown(shift.minutes_until_start)}</span>`;
+    const progress = config.show_progress && shift.running && shift.start && shift.end
       ? Math.min(100, Math.max(0, ((Date.now() - new Date(shift.start)) / (new Date(shift.end) - new Date(shift.start))) * 100))
       : null;
-    const lines = (shift.lines || []).map((line) => `<span class="line">${escapeHtml(line)}</span>`).join("");
+    const lines = config.show_lines
+      ? (shift.lines || []).map((line) => `<span class="line">${escapeHtml(line)}</span>`).join("") : "";
     const rest = shift.rest_before_hours;
+    const wanted = new Set(config.show_facts || FACT_KEYS);
     const facts = [
-      !shift.running && shift.wake_up ? [t.wakeUp, "mdi:alarm", formatTime(this._hass, shift.wake_up), false] : null,
-      !shift.running && shift.leave_home ? [t.leaveHome, "mdi:home-export-outline", formatTime(this._hass, shift.leave_home), false] : null,
-      shift.hours ? [t.paidHours, "mdi:timer-outline", `${formatNumber(this._hass, shift.hours, 2)} ${t.hours}`, false] : null,
-      !shift.running && rest !== null && rest !== undefined
-        ? [shift.short_rest ? t.shortRest : t.rest, "mdi:bed-clock", `${formatNumber(this._hass, rest)} ${t.hours}`, shift.short_rest]
-        : null,
+      wanted.has("wake_up") && !shift.running && shift.wake_up
+        ? [t.facts.wake_up, "mdi:alarm", formatTime(this._hass, shift.wake_up), false] : null,
+      wanted.has("leave_home") && !shift.running && shift.leave_home
+        ? [t.facts.leave_home, "mdi:home-export-outline", formatTime(this._hass, shift.leave_home), false] : null,
+      wanted.has("paid") && shift.hours
+        ? [t.facts.paid, "mdi:timer-outline", `${formatNumber(this._hass, shift.hours, 2)} ${t.hours}`, false] : null,
+      wanted.has("rest") && !shift.running && rest !== null && rest !== undefined
+        ? [shift.short_rest ? t.shortRest : t.facts.rest, "mdi:bed-clock",
+           `${formatNumber(this._hass, rest)} ${t.hours}`, shift.short_rest] : null,
     ].filter(Boolean).map(([label, icon, value, warning]) => `
       <div class="fact${warning ? " warning" : ""}">
         <div class="label"><ha-icon icon="${icon}" style="--mdc-icon-size:14px"></ha-icon>${escapeHtml(label)}</div>
@@ -413,29 +600,45 @@ class PerdisShiftCard extends PerdisCardBase {
       </div>`).join("");
 
     this.frame(title, `
-      <div class="content clickable" style="--accent:${accent}">
-        <div class="duty">
-          <span class="code">${escapeHtml(shift.duty || t.types[shift.duty_type] || "")}</span>
-          <span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">
-            <ha-icon icon="${CATEGORY_ICONS[category] || "mdi:bus"}" style="--mdc-icon-size:14px"></ha-icon>
-            ${escapeHtml(t.categories[category] || t.types[shift.duty_type] || "")}${shift.split_shift ? ` · ${escapeHtml(t.split)}` : ""}
-          </span>
-          ${countdown}
+      <div class="content actionable">
+        <div class="hero">
+          <div class="duty">
+            <span class="code">${escapeHtml(shift.duty || t.types[shift.duty_type] || "")}</span>
+            <span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">
+              <ha-icon icon="${CATEGORY_ICONS[category] || "mdi:bus"}" style="--mdc-icon-size:14px"></ha-icon>
+              ${escapeHtml(t.categories[category] || t.types[shift.duty_type] || "")}${shift.split_shift ? ` · ${escapeHtml(t.split)}` : ""}
+            </span>
+            ${countdown}
+          </div>
+          <div class="when muted">${escapeHtml(relativeDay(this._hass, shift.date))}</div>
+          <div class="times">${formatTime(this._hass, shift.start)} – ${formatTime(this._hass, shift.end)}</div>
+          ${config.show_location && shift.start_location ? `<div class="place"><ha-icon icon="mdi:map-marker"></ha-icon>${escapeHtml(shift.start_location)}${shift.end_location && shift.end_location !== shift.start_location ? ` → ${escapeHtml(shift.end_location)}` : ""}</div>` : ""}
+          ${lines ? `<div class="lines">${lines}</div>` : ""}
+          ${progress !== null ? `<div class="progress"><div style="width:${progress.toFixed(1)}%"></div></div>` : ""}
         </div>
-        <div class="when muted">${escapeHtml(relativeDay(this._hass, shift.date))}</div>
-        <div class="times">${formatTime(this._hass, shift.start)} – ${formatTime(this._hass, shift.end)}</div>
-        ${shift.start_location ? `<div class="place"><ha-icon icon="mdi:map-marker"></ha-icon>${escapeHtml(shift.start_location)}${shift.end_location && shift.end_location !== shift.start_location ? ` → ${escapeHtml(shift.end_location)}` : ""}</div>` : ""}
-        ${lines ? `<div class="lines">${lines}</div>` : ""}
-        ${progress !== null ? `<div class="progress"><div style="width:${progress.toFixed(1)}%"></div></div>` : ""}
         ${facts ? `<div class="facts">${facts}</div>` : ""}
-      </div>`, SHIFT_STYLE);
-    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.moreInfo("next_shift"));
+      </div>`, SHIFT_STYLE, accent);
+    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.runTap("next_shift"));
   }
 
   getGridOptions() {
     return { columns: 12, rows: 4, min_rows: 3 };
   }
 }
+
+const SHIFT_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    field.select("show_facts", FACT_KEYS.map((value) => ({ value, label: texts(hass).facts[value] })), true),
+    { type: "grid", schema: [field.boolean("show_location"), field.boolean("show_lines")] },
+    { type: "grid", schema: [field.boolean("show_countdown"), field.boolean("show_progress")] },
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+    field.accent,
+  ]),
+  section(hass, "sec_behavior", [field.tapAction]),
+];
 
 // --- Roster --------------------------------------------------------------------------------------
 
@@ -444,7 +647,8 @@ const ROSTER_STYLE = `
           color: var(--secondary-text-color); margin: 12px 0 4px; }
   .week:first-child { margin-top: 0; }
   .day { display: grid; grid-template-columns: 58px 6px 1fr auto; gap: 10px; align-items: center;
-         padding: 7px 8px; border-radius: 10px; }
+         padding: 7px 8px; border-radius: 10px; cursor: pointer; }
+  .day:hover { background: color-mix(in srgb, var(--accent, var(--primary-color)) 7%, transparent); }
   .day + .day { margin-top: 2px; }
   .day.today { background: var(--secondary-background-color); }
   .day .date { font-size: 0.85rem; line-height: 1.15; }
@@ -462,53 +666,73 @@ const ROSTER_STYLE = `
 `;
 
 class PerdisRosterCard extends PerdisCardBase {
+  static defaults() {
+    return {
+      days: 14, show_days_off: true, compact: false, group_by_week: true,
+      highlight_today: true, show_location: true, show_lines: true, show_tags: true, hide_types: [],
+    };
+  }
+
   static getConfigElement() {
     return document.createElement("perdis-roster-card-editor");
   }
 
-  static getStubConfig(hass) {
-    return { ...PerdisCardBase.getStubConfig(hass), days: 14 };
+  _hidden() {
+    const hidden = new Set(this._config.hide_types || []);
+    if (this._config.show_days_off === false) OFF_TYPES.forEach((type) => hidden.add(type));
+    return hidden;
   }
 
   _render() {
     const t = texts(this._hass);
-    const title = this._config?.title || t.roster;
+    const config = this._config;
+    const title = config.title || t.roster;
     const roster = this.attributes("roster");
     if (roster === null) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
-    const showOff = this._config?.show_days_off !== false;
-    const limit = Number(this._config?.days || 14);
-    const days = (roster.days || []).slice(0, limit).filter((day) => showOff || !["free", "vacation", "compensation"].includes(day.duty_type));
+    const hidden = this._hidden();
+    const limit = Number(config.days || 14);
+    const days = (roster.days || []).slice(0, limit).filter((day) => !hidden.has(day.duty_type));
     if (!days.length) return this.frame(title, `<div class="empty">${escapeHtml(t.noDays)}</div>`);
 
     const todayIso = new Date().toLocaleDateString("sv-SE");
     let currentWeek = null;
     const rows = days.map((day) => {
       const week = isoWeek(parseDay(day.date));
-      const header = week !== currentWeek ? `<div class="week">${escapeHtml(t.week)} ${week}</div>` : "";
+      const header = config.group_by_week && week !== currentWeek
+        ? `<div class="week">${escapeHtml(t.week)} ${week}</div>` : "";
       currentWeek = week;
-      const color = TYPE_COLORS[day.duty_type] || TYPE_COLORS.unknown;
+      const color = accentOf(config, day.duty_type);
       const typeName = t.types[day.duty_type] || day.duty_type;
       const hasTimes = day.start && day.end;
       const heading = hasTimes
         ? `${escapeHtml(day.duty || typeName)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
         : escapeHtml(day.duty && day.duty.toUpperCase() !== typeName.toUpperCase() ? `${typeName} (${day.duty})` : typeName);
-      const sub = [day.start_location, (day.lines || []).join(", "), day.remark].filter(Boolean).join(" · ");
-      const tags = [
+      const subParts = [
+        config.show_location ? day.start_location : null,
+        config.show_lines ? (day.lines || []).join(", ") : null,
+        day.remark,
+      ];
+      const sub = subParts.filter(Boolean).join(" · ");
+      const tags = config.show_tags ? [
         day.changed ? `<span class="tag changed">${escapeHtml(t.changed)}</span>` : "",
         day.split_shift ? `<span class="tag">${escapeHtml(t.split)}</span>` : "",
         day.category && hasTimes ? `<span class="tag">${escapeHtml(t.categories[day.category] || "")}</span>` : "",
-      ].join("");
+      ].join("") : "";
       const [weekday, ...rest] = formatDay(this._hass, day.date).split(/,?\s+/);
+      const today = config.highlight_today && day.date === todayIso ? " today" : "";
       return `${header}
-        <div class="day${day.date === todayIso ? " today" : ""}">
+        <div class="day${today}">
           <div class="date"><b>${escapeHtml(weekday)}</b>${escapeHtml(rest.join(" "))}</div>
           <div class="bar" style="background:${color}"></div>
           <div class="main"><div class="title">${heading}</div>${sub ? `<div class="sub">${escapeHtml(sub)}</div>` : ""}</div>
           <div class="tags">${tags}</div>
         </div>`;
     }).join("");
-    this.frame(title, `<div class="content clickable${this._config?.compact ? " compact" : ""}">${rows}</div>`, ROSTER_STYLE);
-    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.moreInfo("roster"));
+    const accent = accentOf(config, "work");
+    this.frame(title, `<div class="content${config.compact ? " compact" : ""}">${rows}</div>`, ROSTER_STYLE, accent);
+    this.shadowRoot.querySelectorAll(".day").forEach((element) => {
+      element.addEventListener("click", () => this.runTap("roster"));
+    });
   }
 
   getCardSize() {
@@ -520,74 +744,130 @@ class PerdisRosterCard extends PerdisCardBase {
   }
 }
 
+const ROSTER_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    { name: "days", selector: { number: { min: 3, max: 42, mode: "slider" } } },
+    field.select("hide_types", typeOptions(hass), true),
+    { type: "grid", schema: [field.boolean("show_location"), field.boolean("show_lines")] },
+    { type: "grid", schema: [field.boolean("show_tags"), field.boolean("group_by_week")] },
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+    { type: "grid", schema: [field.boolean("compact"), field.boolean("highlight_today")] },
+    field.accent,
+  ]),
+  section(hass, "sec_behavior", [field.tapAction]),
+];
+
 // --- Accounts ------------------------------------------------------------------------------------
 
 const ACCOUNTS_STYLE = `
-  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-  .tile { background: var(--secondary-background-color); border-radius: 12px; padding: 10px 12px; cursor: pointer; }
+  .tiles { display: grid; gap: 10px; }
+  .tiles.auto { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .tile { background: var(--secondary-background-color); border-radius: 14px; padding: 10px 12px; cursor: pointer;
+          transition: transform 120ms ease; }
+  .tile:hover { transform: translateY(-1px); }
   .tile .label { font-size: 0.78rem; color: var(--secondary-text-color); display: flex; align-items: center; gap: 6px; }
-  .tile .value { font-size: 1.5rem; font-weight: 600; margin-top: 4px; }
+  .tile .value { font-size: 1.5rem; font-weight: 700; margin-top: 4px; letter-spacing: -0.5px; }
   .tile .value small { font-size: 0.85rem; font-weight: 400; color: var(--secondary-text-color); margin-left: 3px; }
   .tile .hint { font-size: 0.78rem; color: var(--secondary-text-color); margin-top: 2px; }
   .positive { color: var(--success-color, #43a047); }
   .negative { color: var(--error-color, #db4437); }
   .meter { position: relative; height: 6px; border-radius: 3px; background: var(--divider-color); margin-top: 8px; }
-  .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--primary-color); }
+  .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent, var(--primary-color)); }
   .meter .mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--primary-text-color); }
 `;
 
 class PerdisAccountsCard extends PerdisCardBase {
+  static defaults() {
+    return { show_tiles: ["overtime", "vacation", "weekend_points", "free_weekends", "planned_week"], columns: 0 };
+  }
+
   static getConfigElement() {
     return document.createElement("perdis-accounts-card-editor");
   }
 
-  _render() {
+  _tile(key) {
     const t = texts(this._hass);
     const hass = this._hass;
-    const title = this._config?.title || t.accounts;
-    if (!this._entities?.roster) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
-
-    const overtime = numericState(hass, this._entities.overtime);
-    const vacation = numericState(hass, this._entities.vacation);
-    const vacationInfo = this.attributes("vacation") || {};
-    const points = numericState(hass, this._entities.weekend_points);
-    const pointsInfo = this.attributes("weekend_points") || {};
-    const freeWeekends = numericState(hass, this._entities.free_weekends);
-    const nextFree = hass.states[this._entities.next_free_weekend]?.state;
-    const plannedWeek = numericState(hass, this._entities.planned_week);
-
-    const tile = (role, icon, label, value, unit, hint = "", extra = "", tone = "") => `
+    const wrap = (role, icon, label, inner) => `
       <div class="tile" data-role="${role}">
         <div class="label"><ha-icon icon="${icon}" style="--mdc-icon-size:16px"></ha-icon>${escapeHtml(label)}</div>
-        <div class="value ${tone}">${value}<small>${escapeHtml(unit)}</small></div>
-        ${hint ? `<div class="hint">${hint}</div>` : ""}${extra}
+        ${inner}
       </div>`;
+    const value = (text, unit, tone = "") =>
+      `<div class="value ${tone}">${text}<small>${escapeHtml(unit)}</small></div>`;
+    const hint = (text) => (text ? `<div class="hint">${text}</div>` : "");
 
-    const average = pointsInfo.group_average;
-    let meter = "";
-    if (points !== null && average !== null && average !== undefined) {
-      const scale = Math.max(points, average) * 1.25 || 1;
-      meter = `<div class="meter"><div class="fill" style="width:${(points / scale) * 100}%"></div>
-        <div class="mark" style="left:${(average / scale) * 100}%"></div></div>`;
+    switch (key) {
+      case "overtime": {
+        const overtime = numericState(hass, this._entities.overtime);
+        const tone = overtime === null ? "" : overtime >= 0 ? "positive" : "negative";
+        const text = overtime === null ? "–" : `${overtime > 0 ? "+" : ""}${formatNumber(hass, overtime)}`;
+        return wrap("overtime", "mdi:timer-sand", t.overtime, value(text, t.hours, tone));
+      }
+      case "vacation": {
+        const vacation = numericState(hass, this._entities.vacation);
+        const info = this.attributes("vacation") || {};
+        return wrap("vacation", "mdi:island", t.vacation, value(formatNumber(hass, vacation), t.days)
+          + hint(info.planned_days ? `${formatNumber(hass, info.planned_days)} ${escapeHtml(t.planned)}` : ""));
+      }
+      case "weekend_points": {
+        const points = numericState(hass, this._entities.weekend_points);
+        const info = this.attributes("weekend_points") || {};
+        const average = info.group_average;
+        let meter = "";
+        if (points !== null && average !== null && average !== undefined) {
+          const scale = Math.max(points, average) * 1.25 || 1;
+          meter = `<div class="meter"><div class="fill" style="width:${(points / scale) * 100}%"></div>
+            <div class="mark" style="left:${(average / scale) * 100}%"></div></div>`;
+        }
+        const hintText = average !== null && average !== undefined
+          ? `${escapeHtml(t.average)} ${formatNumber(hass, average)}` : "";
+        return wrap("weekend_points", "mdi:scale-balance", t.weekendPoints,
+          value(formatNumber(hass, points), t.points) + hint(hintText) + meter);
+      }
+      case "free_weekends": {
+        const free = numericState(hass, this._entities.free_weekends);
+        const nextFree = hass.states[this._entities.next_free_weekend]?.state;
+        const text = nextFree && !["unknown", "unavailable"].includes(nextFree)
+          ? `${escapeHtml(t.nextFreeWeekend)}: ${escapeHtml(formatDay(hass, nextFree))}` : "";
+        return wrap("free_weekends", "mdi:calendar-weekend", t.freeWeekends,
+          value(formatNumber(hass, free, 0), "") + hint(text));
+      }
+      case "planned_week":
+        return wrap("planned_week", "mdi:calendar-week", t.plannedWeek,
+          value(formatNumber(hass, numericState(hass, this._entities.planned_week)), t.hours));
+      case "planned_month":
+        return wrap("planned_month", "mdi:calendar-month", t.plannedMonth,
+          value(formatNumber(hass, numericState(hass, this._entities.planned_month)), t.hours));
+      default:
+        return "";
     }
-    const nextFreeText = nextFree && !["unknown", "unavailable"].includes(nextFree)
-      ? `${escapeHtml(t.nextFreeWeekend)}: ${escapeHtml(formatDay(hass, nextFree))}` : "";
+  }
 
-    const tiles = [
-      tile("overtime", "mdi:timer-sand", t.overtime,
-        overtime === null ? "–" : `${overtime > 0 ? "+" : ""}${formatNumber(hass, overtime)}`, t.hours, "", "",
-        overtime === null ? "" : overtime >= 0 ? "positive" : "negative"),
-      tile("vacation", "mdi:island", t.vacation, formatNumber(hass, vacation), t.days,
-        vacationInfo.planned_days ? `${formatNumber(hass, vacationInfo.planned_days)} ${escapeHtml(t.planned)}` : ""),
-      tile("weekend_points", "mdi:scale-balance", t.weekendPoints, formatNumber(hass, points), t.points,
-        average !== null && average !== undefined ? `${escapeHtml(t.average)} ${formatNumber(hass, average)}` : "", meter),
-      tile("free_weekends", "mdi:calendar-weekend", t.freeWeekends, formatNumber(hass, freeWeekends, 0), "", nextFreeText),
-      tile("planned_week", "mdi:calendar-week", t.plannedWeek, formatNumber(hass, plannedWeek), t.hours),
-    ].join("");
+  _render() {
+    const t = texts(this._hass);
+    const config = this._config;
+    const title = config.title || t.accounts;
+    if (!this._entities?.roster) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
 
-    this.frame(title, `<div class="content"><div class="tiles">${tiles}</div></div>`, ACCOUNTS_STYLE);
+    const keys = (config.show_tiles && config.show_tiles.length ? config.show_tiles : TILE_KEYS)
+      .filter((key) => TILE_KEYS.includes(key));
+    const tiles = keys.map((key) => this._tile(key)).join("");
+    const columns = Number(config.columns) || 0;
+    const gridClass = columns > 0 ? "" : " auto";
+    const gridStyle = columns > 0 ? `style="grid-template-columns:repeat(${columns},1fr)"` : "";
+    const accent = accentOf(config, "work");
+
+    this.frame(title, `<div class="content"><div class="tiles${gridClass}" ${gridStyle}>${tiles}</div></div>`,
+      ACCOUNTS_STYLE, accent);
     this.shadowRoot.querySelectorAll(".tile").forEach((element) => {
-      element.addEventListener("click", () => this.moreInfo(element.dataset.role));
+      element.addEventListener("click", () => {
+        if (config.tap_action) handleAction(this, this._hass, config.tap_action, this._entities[element.dataset.role]);
+        else handleAction(this, this._hass, { action: "more-info" }, this._entities[element.dataset.role]);
+      });
     });
   }
 
@@ -600,24 +880,34 @@ class PerdisAccountsCard extends PerdisCardBase {
   }
 }
 
+const ACCOUNTS_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    field.select("show_tiles", TILE_KEYS.map((value) => ({ value, label: texts(hass).tiles[value] })), true),
+    { name: "columns", selector: { number: { min: 0, max: 4, mode: "slider" } } },
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+    field.accent,
+  ]),
+  section(hass, "sec_behavior", [field.tapAction]),
+];
+
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
-  ["perdis-shift-card", PerdisShiftCard, [], "Perdis: next shift",
+  ["perdis-shift-card", PerdisShiftCard, SHIFT_EDITOR, "Perdis: next shift",
     "Your next shift with countdown, place, wake-up and leave-home time."],
-  ["perdis-roster-card", PerdisRosterCard, [
-    { name: "days", selector: { number: { min: 3, max: 42, mode: "box" } } },
-    { name: "show_days_off", selector: { boolean: {} } },
-    { name: "compact", selector: { boolean: {} } },
-  ], "Perdis: roster", "The coming days by week, with days off and roster changes marked."],
-  ["perdis-accounts-card", PerdisAccountsCard, [], "Perdis: accounts",
+  ["perdis-roster-card", PerdisRosterCard, ROSTER_EDITOR, "Perdis: roster",
+    "The coming days by week, with days off and roster changes marked."],
+  ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "Perdis: accounts",
     "Overtime, vacation, weekend points and free weekends at a glance."],
 ];
 
 window.customCards = window.customCards || [];
-for (const [type, cardClass, editorFields, name, description] of CARDS) {
+for (const [type, cardClass, editorBuilder, name, description] of CARDS) {
   if (!customElements.get(type)) customElements.define(type, cardClass);
-  if (!customElements.get(`${type}-editor`)) customElements.define(`${type}-editor`, editorFor(editorFields));
+  if (!customElements.get(`${type}-editor`)) customElements.define(`${type}-editor`, editorFor(editorBuilder));
   if (!window.customCards.some((card) => card.type === type)) {
     window.customCards.push({
       type, name, description, preview: true,
