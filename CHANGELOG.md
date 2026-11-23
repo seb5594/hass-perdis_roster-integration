@@ -13,6 +13,9 @@
     fixed number of columns.
 - 💅 Fresher card look: an accent-tinted hero block on the shift card, softer tiles and hover
   feedback, all theme-aware in light and dark.
+- 🩹 Compatibility with Home Assistant 2026.9 and newer: the calendar entity registers again, and
+  the device is looked up without the deprecated `device_registry.async_get_device`.
+
 
 ## 2026.11.23
 

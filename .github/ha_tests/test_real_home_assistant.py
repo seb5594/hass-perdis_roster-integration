@@ -109,7 +109,7 @@ async def test_device_offers_the_timeline_triggers(hass, fake_webcomm):
     await hass.async_block_till_done()
     from custom_components.perdis.device_trigger import async_get_triggers
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, entry_of(hass).entry_id)})
+    device = dr.async_entries_for_config_entry(dr.async_get(hass), entry_of(hass).entry_id)[0]
     types = {trigger["type"] for trigger in await async_get_triggers(hass, device.id)}
     assert {"wake_up", "leave_home", "shift_started", "shift_ended", "schedule_changed"} <= types
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
