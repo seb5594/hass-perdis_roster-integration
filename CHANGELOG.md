@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026.11.23.5
+
+- 🕐 Exact shift times, reporting points, lines and a leg-by-leg breakdown are now read from each
+  shift's own detail page, not only the duty number from the month roster. The calendar shows the
+  real start and end and the legs; a new "Fetch exact shift times for this many days ahead" option
+  (default 10, 0 = off) bounds how many detail pages are fetched.
+- 🗓️ The month roster is read even when a day cell shows only a code (no tooltip), and the month is
+  taken from the page heading so number-only calendars are dated correctly.
+- 🔔 Notifications: assign the employee as a **person** entity and set a **notification service**
+  (e.g. `notify.mobile_app_phone`) or any `domain.service`/script to call on roster changes. The
+  `perdis_roster_event` already lets automations run any custom action.
+
 ## 2026.11.23.4
 
 - 🏷️ The account is now named "<transit company> - <employee name>" (read from the portal header),

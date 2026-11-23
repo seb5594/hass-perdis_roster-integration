@@ -159,6 +159,14 @@ dem neuen – die Integration muss nicht entfernt werden.
 | 🔄 Portal abfragen alle | 30 min | Wie oft das Portal gefragt wird (10–360 min) |
 | ➡️ Tage voraus | 42 | Wie weit der Dienstplan im Voraus gelesen wird |
 | ⬅️ Vergangene Tage behalten | 7 | Vergangene Tage, die im Kalender bleiben |
+| 🕐 Genaue Dienstzeiten für so viele Tage voraus laden | 10 | Auf Portalen, die je Tag nur eine Dienstnummer zeigen, liefert die Detailseite jedes Dienstes seine echten Zeiten, Orte und Linien. Eine zusätzliche Anfrage je Arbeitstag; 0 schaltet es ab |
+| 👤 Mitarbeiter (Person) | – | Eine Person-Entität, zu der der Dienstplan gehört; wird an deine Benachrichtigung/dein Skript übergeben |
+| 🔔 Dienst bei Dienstplanänderungen | – | Ein Dienst wie `notify.mobile_app_handy` oder ein `script.…`, der bei jeder Dienstplanänderung aufgerufen wird |
+
+> [!TIP]
+> Zeigt die Monatsansicht deines Portals nur die Dienstnummer (keine Zeiten), stammen Beginn, Ende,
+> Meldeorte und Linien von der Detailseite jedes Dienstes und erscheinen am nächsten Dienst und im
+> Kalender. Mit der Option *Genaue Dienstzeiten laden* steuerst du, wie weit im Voraus das geschieht.
 
 Der eingeklappte Bereich **Seiten des Portals (für Fortgeschrittene)** wird nur bei ungewöhnlichen
 Portalen gebraucht. Die Integration findet Dienstplan, Konten und WE-Punkte selbst im Menü des

@@ -207,3 +207,16 @@ async def test_a_roster_only_portal_hides_the_account_sensors(hass, fake_webcomm
     assert state_of(hass, "sensor", "weekend_points") is None
     assert state_of(hass, "binary_sensor", "on_duty") is not None
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_calendar_portal_gets_real_times_from_shift_detail(hass, fake_webcomm_calendar):
+    await add_account_for(hass, fake_webcomm_calendar)
+    await hass.async_block_till_done()
+    # The month calendar lists duty 3095 on the 24th with no times; the detail page fills them in.
+    nxt = state_of(hass, "sensor", "next_shift")
+    assert nxt.state == "3095"
+    assert nxt.attributes["start"] == "2026-11-24T10:22:00+01:00"
+    assert nxt.attributes["end"] == "2026-11-24T18:03:00+01:00"
+    assert nxt.attributes["start_location"] == "HB"
+    assert "21" in nxt.attributes["lines"] and "16" in nxt.attributes["lines"]
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)

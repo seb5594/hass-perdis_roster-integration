@@ -33,7 +33,10 @@ CONF_COMMUTE: Final = "commute_minutes"
 CONF_MINIMUM_REST: Final = "minimum_rest_hours"
 CONF_LOOKAHEAD_DAYS: Final = "lookahead_days"
 CONF_LOOKBACK_DAYS: Final = "lookback_days"
+CONF_DETAIL_DAYS: Final = "detail_days"
 CONF_NOTIFY_CHANGES: Final = "notify_changes"
+CONF_PERSON: Final = "person"  # the employee the roster belongs to (a person entity)
+CONF_NOTIFY_TARGET: Final = "notify_target"  # a service to call on roster changes, e.g. notify.*
 
 # Advanced options: everything the automatic page discovery can get wrong on a strange portal.
 SECTION_ADVANCED: Final = "advanced"
@@ -51,6 +54,7 @@ DEFAULT_COMMUTE: Final = 30  # minutes from home to the reporting point
 DEFAULT_MINIMUM_REST: Final = 11  # hours, the daily rest of EU regulation 561/2006
 DEFAULT_LOOKAHEAD_DAYS: Final = 42
 DEFAULT_LOOKBACK_DAYS: Final = 7
+DEFAULT_DETAIL_DAYS: Final = 10  # how many days ahead to fetch each shift's detail page for times
 DEFAULT_NOTIFY_CHANGES: Final = True
 
 # AppComm does not publish its API. These paths are a reasonable starting point and can be

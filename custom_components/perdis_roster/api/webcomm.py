@@ -24,9 +24,10 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from ..models import Snapshot
+from ..models import DutyType, Snapshot
 from ..parsing.html import Element, PostBack, links, login_form, parse_forms, parse_html
 from ..parsing.values import normalize_label
+from ..parsing.shift_detail import parse_shift_detail
 from ..parsing.webcomm import WebCommPages, WebCommParser
 from .base import (
     REQUEST_TIMEOUT,
@@ -69,6 +70,9 @@ CANONICAL_PAGES: dict[str, str] = {
 }
 # The roster page accepts the month as a query string, e.g. roster.aspx?2026-11-01.
 CANONICAL_ROSTER = "roster.aspx"
+# Each shift's detail page (its legs with real times) answers at shift.aspx?YYYY-MM-DD.
+CANONICAL_SHIFT = "shift.aspx"
+MAX_DETAIL_FETCHES = 16  # a hard ceiling on detail pages fetched per refresh
 NEXT_PERIOD_SYMBOLS = (">", ">>", "»", "›", "→")
 NEXT_PERIOD_WORDS = ("vor", "weiter", "nächste", "naechste", "next", "volgende", "später")
 NEXT_PERIOD_TARGETS = ("next", "vor", "weiter", "nextmonth", "btnnext")
@@ -98,10 +102,13 @@ class WebCommClient(PortalClient):
         password: str,
         zone,
         page_overrides: dict[str, str] | None = None,
+        detail_days: int = 0,
     ) -> None:
         super().__init__(session, base_url, username, password)
+        self._zone = zone
         self._parser = WebCommParser(zone)
         self._overrides = {kind: path for kind, path in (page_overrides or {}).items() if path}
+        self._detail_days = detail_days
         self._pages: dict[str, str] = {}
         self._menu_html = ""
         self._signed_in = False
@@ -183,7 +190,38 @@ class WebCommClient(PortalClient):
                     continue
                 setattr(pages, kind, page.html)
                 self._reachable.add(kind)
-        return self._parser.parse(pages, now)
+            snapshot = self._parser.parse(pages, now)
+            await self._enrich_with_details(snapshot, now.date())
+        return snapshot
+
+    async def _enrich_with_details(self, snapshot: Snapshot, today: date) -> None:
+        """Fill in the real times of the upcoming shifts from their detail pages.
+
+        The month roster often lists only a duty number. For working days in the detail window the
+        shift's own page is fetched and gives the real start, end, places, lines and legs. Days off
+        and days that already have times (tooltip calendars) are left untouched.
+        """
+        if self._detail_days <= 0 or "roster" not in self._pages:
+            return
+        detail_url = urljoin(self._pages["roster"], CANONICAL_SHIFT)
+        fetched = 0
+        for duty in snapshot.duties:
+            if fetched >= MAX_DETAIL_FETCHES:
+                break
+            if duty.is_off or duty.has_times or not (today - timedelta(days=1) <= duty.day <= today
+                                                     + timedelta(days=self._detail_days)):
+                continue
+            try:
+                page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")
+            except (PerdisConnectionError, PerdisPortalError) as error:
+                _LOGGER.debug("Shift detail for %s unavailable: %s", duty.day, error)
+                continue
+            fetched += 1
+            detail = parse_shift_detail(page.html, duty.day, self._zone)
+            if detail.has_times:
+                detail.apply_to(duty)
+                if duty.duty_type is DutyType.UNKNOWN:
+                    duty.duty_type = DutyType.WORK
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
         """The roster HTML for the needed months: by month query string, or by paging through it."""

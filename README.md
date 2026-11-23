@@ -166,6 +166,14 @@ for the new one – no need to remove the integration.
 | 🔄 Check the portal every | 30 min | How often the portal is asked (10–360 min) |
 | ➡️ Days ahead | 42 | How far ahead the roster is read |
 | ⬅️ Days to keep in the past | 7 | Past days that stay in the calendar |
+| 🕐 Fetch exact shift times for this many days ahead | 10 | On portals that show only a duty number per day, each shift's detail page gives its real times, places and lines. One extra request per working day; 0 turns it off |
+| 👤 Employee (person) | – | A person entity the roster belongs to; passed to your notification/script |
+| 🔔 Notification service on roster changes | – | A service such as `notify.mobile_app_phone` or a `script.…` to call on every roster change |
+
+> [!TIP]
+> If your portal's month view shows only the duty number (no times), the exact start, end, reporting
+> points and lines come from each shift's detail page and appear on the next shift and in the
+> calendar. Use the *Fetch exact shift times* option to control how far ahead that happens.
 
 The folded section **Pages of the portal (advanced)** is only needed for unusual portals. The
 integration finds the roster, account and weekend points pages in the portal menu by itself; if

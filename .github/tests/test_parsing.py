@@ -10,6 +10,7 @@ values = load("parsing.values")
 html = load("parsing.html")
 webcomm = load("parsing.webcomm")
 appcomm = load("parsing.appcomm")
+shift_detail = load("parsing.shift_detail")
 models = load("models")
 DutyType = models.DutyType
 TODAY = date(2026, 11, 23)
@@ -218,3 +219,54 @@ class CalendarRoster(unittest.TestCase):
         # The November table fixture must parse as a table, not fall through to the calendar reader.
         duties = webcomm.WebCommParser(ZONE).parse_roster(fixture("webcomm_roster_november.html"), TODAY)
         self.assertTrue(any(duty.start_location == "Betriebshof Lierenfeld" for duty in duties))
+
+
+class CalendarCodes(unittest.TestCase):
+    """A month calendar that shows only a duty code per day (times live on the detail page)."""
+
+    def setUp(self):
+        self.duties = {
+            duty.day: duty
+            for duty in webcomm.WebCommParser(ZONE).parse_roster(
+                fixture("webcomm_roster_calendar_codes.html"), date(2026, 11, 1))
+        }
+
+    def test_the_month_is_read_from_the_heading_and_dates_the_cells(self):
+        self.assertEqual(min(self.duties), date(2026, 11, 1))
+        self.assertEqual(max(self.duties), date(2026, 11, 8))
+
+    def test_codes_become_the_right_types(self):
+        self.assertEqual(self.duties[date(2026, 11, 1)].duty_type, DutyType.FREE)
+        self.assertEqual(self.duties[date(2026, 11, 2)].code, "3088")
+        self.assertEqual(self.duties[date(2026, 11, 2)].duty_type, DutyType.WORK)
+        self.assertEqual(self.duties[date(2026, 11, 8)].duty_type, DutyType.VACATION)
+
+    def test_adjacent_month_cells_are_skipped(self):
+        # The leading cells 26..31 belong to October and must not become November duties; only the
+        # ascending run 1..8 of the fetched month is kept.
+        self.assertEqual(sorted(duty.day.day for duty in self.duties.values()), list(range(1, 9)))
+
+
+class ShiftDetailPage(unittest.TestCase):
+    """The detail page of a shift gives its real times, places, lines and legs."""
+
+    def setUp(self):
+        self.detail = shift_detail.parse_shift_detail(fixture("webcomm_shift_detail.html"), date(2026, 11, 24), ZONE)
+
+    def test_only_timed_legs_become_segments(self):
+        self.assertEqual(len(self.detail.segments), 5)  # the "- / -" separator rows are skipped
+
+    def test_applying_the_detail_fills_the_duty(self):
+        duty = models.Duty(day=date(2026, 11, 24), duty_type=DutyType.WORK, code="3095")
+        self.detail.apply_to(duty)
+        self.assertEqual((duty.start, duty.end), (at("2026-11-24", 10, 22), at("2026-11-24", 18, 3)))
+        self.assertEqual(duty.start_location, "HB")
+        self.assertEqual(duty.lines, ("21", "16"))
+        self.assertEqual(duty.break_minutes, 41)  # the ÜZ transition counts as a break
+        self.assertFalse(duty.split)
+
+    def test_segments_survive_the_storage_round_trip(self):
+        duty = models.Duty(day=date(2026, 11, 24))
+        self.detail.apply_to(duty)
+        restored = models.Duty.from_dict(json.loads(json.dumps(duty.to_dict())))
+        self.assertEqual(restored, duty)
