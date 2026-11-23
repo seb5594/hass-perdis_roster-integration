@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 import logging
+import re
 from typing import Any
 
 import aiohttp
@@ -83,8 +84,24 @@ from .operators import OPERATORS, OPERATORS_BY_KEY, find_operator_by_url
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> str | None:
-    """Sign in once with throw-away cookies; the error key for the dialog, or None when it worked."""
+# A personnel number the portal header often appends in brackets, e.g. "Max Mustermann (4711)".
+_TRAILING_ID = re.compile(r"\s*[(\[]\s*\d{2,}\s*[)\]]\s*$")
+
+
+def clean_employee_name(raw: str | None) -> str | None:
+    """The plain employee name from a portal header, without a trailing personnel number."""
+    if not raw:
+        return None
+    name = _TRAILING_ID.sub("", raw).strip()
+    return name or None
+
+
+async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> tuple[str | None, str | None]:
+    """Sign in once with throw-away cookies.
+
+    Returns ``(error_key, employee_name)``: the error key is set for the dialog when the login
+    failed, and the employee name is the one the portal greets the user with, when it shows one.
+    """
     session = async_create_clientsession(hass, verify_ssl=data.get(CONF_VERIFY_SSL, True), auto_cleanup=False,
                                          cookie_jar=aiohttp.CookieJar(unsafe=True))
     client = create_client(PortalType(data[CONF_PORTAL_TYPE]), session, data[CONF_BASE_URL], data[CONF_USERNAME],
@@ -92,17 +109,17 @@ async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> str
     try:
         await client.async_login()
     except PerdisAuthError:
-        return "invalid_auth"
+        return "invalid_auth", None
     except PerdisConnectionError:
-        return "cannot_connect"
+        return "cannot_connect", None
     except PerdisPortalError:
-        return "not_a_portal"
+        return "not_a_portal", None
     except Exception:
         _LOGGER.exception("Unexpected error while signing in to %s", data[CONF_BASE_URL])
-        return "unknown"
+        return "unknown", None
     finally:
         session.detach()  # the connector is shared with Home Assistant and must stay open
-    return None
+    return None, clean_employee_name(client.employee_name)
 
 
 def _number(minimum: float, maximum: float, step: float = 1, unit: str | None = None) -> NumberSelector:
@@ -176,8 +193,11 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             data = {**self._portal, CONF_USERNAME: username, CONF_PASSWORD: user_input[CONF_PASSWORD]}
             await self.async_set_unique_id(f"{data[CONF_BASE_URL].split('/')[2]}|{username.lower()}")
             self._abort_if_unique_id_configured()
-            if not (error := await async_check_login(self.hass, data)):
-                return self.async_create_entry(title=f"{self._operator_name()} ({username})", data=data)
+            error, employee = await async_check_login(self.hass, data)
+            if not error:
+                # Title: "Verkehrsunternehmen - Mitarbeitername", or the personnel number as a fallback.
+                suffix = employee or username
+                return self.async_create_entry(title=f"{self._operator_name()} - {suffix}", data=data)
             errors["base"] = error
         schema = vol.Schema({vol.Required(CONF_USERNAME): USERNAME, vol.Required(CONF_PASSWORD): PASSWORD})
         entered = {CONF_USERNAME: (user_input or {}).get(CONF_USERNAME)}  # keep the name after an error
@@ -202,7 +222,8 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             data = {**entry.data, CONF_PASSWORD: user_input[CONF_PASSWORD]}
-            if not (error := await async_check_login(self.hass, data)):
+            error, _employee = await async_check_login(self.hass, data)
+            if not error:
                 return self.async_update_reload_and_abort(entry, data=data)
             errors["base"] = error
         return self.async_show_form(

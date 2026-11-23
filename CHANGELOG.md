@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.23.4
+
+- 🏷️ The account is now named "<transit company> - <employee name>" (read from the portal header),
+  instead of the personnel number; it falls back to the number when the portal shows no name.
+
 ## 2026.11.23.3
 
 - 🚌 Added the VGF Frankfurt and üstra Hannover WebComm portals to the operator list, both verified.

@@ -136,6 +136,10 @@ dann kommt das Unternehmen in die Liste.
 3. **Benutzerkennung / Personalnummer** und **Kennwort** eingeben. Der Dialog meldet sich einmal zur
    Prüfung an; wenige Sekunden später ist der Dienstplan da.
 
+Das Konto wird nach deinem Verkehrsunternehmen und deinem Namen benannt, z. B. **Rheinbahn - Max
+Mustermann**, den die Integration aus dem Portal-Header liest; zeigt das Portal keinen Namen, wird
+die Personalnummer verwendet.
+
 Mehrere Konten (zum Beispiel von einem Paar, das beide fahren) lassen sich nebeneinander anlegen;
 jedes bekommt ein eigenes Gerät mit eigenen Entitäten.
 

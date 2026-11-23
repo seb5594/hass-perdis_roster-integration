@@ -41,11 +41,18 @@ class PortalClient(ABC):
         # sensors a portal supports (see capabilities.py). A kind is one of "roster", "balances",
         # "vacation", "weekend_points".
         self._reachable: set[str] = set()
+        # The signed-in employee's name, read from the portal header when it shows one.
+        self._employee_name: str | None = None
 
     @property
     def reachable_pages(self) -> set[str]:
         """The data categories the portal served on the last successful fetch."""
         return set(self._reachable)
+
+    @property
+    def employee_name(self) -> str | None:
+        """The name the portal greets the signed-in employee with, if any."""
+        return self._employee_name
 
     @abstractmethod
     async def async_login(self) -> None:

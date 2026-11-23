@@ -9,7 +9,7 @@
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=seb5594&amp;repository=hass-perdis_roster-integration&amp;category=integration"><img src="https://img.shields.io/static/v1?label=HACS%20%C2%B7%20Marketplace&amp;message=Add%20integration&amp;color=41BDF5&amp;logo=homeassistantcommunitystore&amp;logoColor=white&amp;style=for-the-badge" alt="HACS · Marketplace" height="28"></a>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/actions/workflows/compat.yml"><img src="https://img.shields.io/static/v1?label=home%20assistant&amp;message=%E2%89%A5%202024.12.0&amp;color=1877A5&amp;style=for-the-badge" alt="home assistant" height="28"></a><br>
-  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.3&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
+  <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.4&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-perdis_roster-integration/latest/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/stargazers"><img src="https://img.shields.io/github/stars/seb5594/hass-perdis_roster-integration?label=stars&amp;style=flat" alt="stars" height="20"></a>
   <a href="https://github.com/seb5594/hass-perdis_roster-integration/forks"><img src="https://img.shields.io/github/forks/seb5594/hass-perdis_roster-integration?label=forks&amp;style=flat" alt="forks" height="20"></a>
@@ -148,6 +148,10 @@ so the company can be added to the list.
      portal* on **WebComm** unless your company gave you an AppComm service address.
 3. Enter your **user name / personnel number** and **password**. The dialog signs in once to check
    them, then the roster appears within a few seconds.
+
+The account is named after your transit company and your name, for example **Rheinbahn - Max
+Mustermann**, which the integration reads from the portal header; if the portal shows no name it
+falls back to your personnel number.
 
 Several accounts (for example of a couple who both drive) can be added side by side; each gets
 its own device with its own entities.
