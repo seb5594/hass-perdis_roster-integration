@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
@@ -120,7 +120,7 @@ dann kommt das Unternehmen in die Liste.
 ### Manuell
 
 1. Lade `perdis.zip` aus dem [neuesten Release](https://github.com/seb5594/hass-init_perdis-integration/releases/latest).
-2. Entpacke es nach `config/custom_components/perdis/`, sodass `manifest.json` in diesem Ordner liegt.
+2. Entpacke es nach `config/custom_components/perdis_roster/`, sodass `manifest.json` in diesem Ordner liegt.
 3. Home Assistant neu starten.
 
 ## ⚙️ Einrichtung
@@ -321,7 +321,7 @@ ohne Abfrageschleife:
 
 ### Ereignisse
 
-Jeder Moment ist auch ein Ereignis auf dem Bus, `perdis_event`, mit `type` (`wake_up`,
+Jeder Moment ist auch ein Ereignis auf dem Bus, `perdis_roster_event`, mit `type` (`wake_up`,
 `leave_home`, `shift_started`, `shift_ended`, `free_weekend_started`, `schedule_changed`),
 `device_id`, `entry_id` und dem `duty`. Bei Änderungen kommen `changes` und eine lesbare `summary`
 dazu.
@@ -333,7 +333,7 @@ dazu.
 alias: Dienstplanänderungen melden
 triggers:
   - trigger: event
-    event_type: perdis_event
+    event_type: perdis_roster_event
     event_data:
       type: schedule_changed
 actions:
@@ -394,11 +394,11 @@ actions:
 
 | Aktion | Wirkung |
 | --- | --- |
-| `perdis.refresh` | Fragt das Portal sofort ab, statt auf die nächste Abfrage zu warten. Optional `config_entry_id` |
-| `perdis.get_duties` | Liefert die Dienste zwischen `start_date` und `end_date` (Standard: zwei Wochen ab heute) samt geplanter Stunden – für Skripte und Benachrichtigungen |
+| `perdis_roster.refresh` | Fragt das Portal sofort ab, statt auf die nächste Abfrage zu warten. Optional `config_entry_id` |
+| `perdis_roster.get_duties` | Liefert die Dienste zwischen `start_date` und `end_date` (Standard: zwei Wochen ab heute) samt geplanter Stunden – für Skripte und Benachrichtigungen |
 
 ```yaml
-action: perdis.get_duties
+action: perdis_roster.get_duties
 data:
   start_date: "2026-11-23"
   end_date: "2026-11-29"
@@ -474,7 +474,7 @@ Details liefert das Debug-Protokoll:
 ```yaml
 logger:
   logs:
-    custom_components.perdis: debug
+    custom_components.perdis_roster: debug
 ```
 
 ## 🤝 Mitmachen

@@ -1,16 +1,18 @@
 <!-- header:begin (generated from project metadata) -->
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
 <p align="center">
   <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=seb5594&amp;repository=hass-init_perdis-integration&amp;category=integration"><img src="https://img.shields.io/static/v1?label=HACS%20%C2%B7%20Marketplace&amp;message=Add%20integration&amp;color=41BDF5&amp;logo=homeassistantcommunitystore&amp;logoColor=white&amp;style=for-the-badge" alt="HACS · Marketplace" height="28"></a>
   <a href="https://github.com/seb5594/hass-init_perdis-integration/actions/workflows/compat.yml"><img src="https://img.shields.io/static/v1?label=home%20assistant&amp;message=%E2%89%A5%202025.1.0&amp;color=1877A5&amp;style=for-the-badge" alt="home assistant" height="28"></a><br>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases/tag/2026.11.23.1"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.1&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
-  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-init_perdis-integration/2026.11.23.1/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases"><img src="https://img.shields.io/static/v1?label=integration%20version&amp;message=2026.11.23.2&amp;color=1877A5&amp;style=for-the-badge" alt="integration version" height="28"></a>
+  <a href="https://github.com/seb5594/hass-init_perdis-integration/releases"><img src="https://img.shields.io/github/downloads/seb5594/hass-init_perdis-integration/latest/total?label=downloads&amp;color=1877A5&amp;style=for-the-badge" alt="downloads" height="28"></a><br>
+  <a href="https://github.com/seb5594/hass-init_perdis-integration/stargazers"><img src="https://img.shields.io/github/stars/seb5594/hass-init_perdis-integration?label=stars&amp;style=flat" alt="stars" height="20"></a>
+  <a href="https://github.com/seb5594/hass-init_perdis-integration/forks"><img src="https://img.shields.io/github/forks/seb5594/hass-init_perdis-integration?label=forks&amp;style=flat" alt="forks" height="20"></a>
   <a href="https://github.com/seb5594/hass-init_perdis-integration/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/seb5594/hass-init_perdis-integration/ci.yml?branch=main&amp;label=checks&amp;style=flat" alt="checks" height="20"></a>
   <img src="https://img.shields.io/static/v1?label=tests&amp;message=42%20passed&amp;color=2F855A&amp;style=flat" alt="tests" height="20">
   <a href="https://github.com/seb5594/hass-init_perdis-integration/issues"><img src="https://img.shields.io/github/issues/seb5594/hass-init_perdis-integration?label=issues&amp;style=flat" alt="issues" height="20"></a><br>
@@ -132,7 +134,7 @@ so the company can be added to the list.
 ### Manual
 
 1. Download `perdis.zip` from the [latest release](https://github.com/seb5594/hass-init_perdis-integration/releases/latest).
-2. Unpack it into `config/custom_components/perdis/`, so that `manifest.json` ends up in that folder.
+2. Unpack it into `config/custom_components/perdis_roster/`, so that `manifest.json` ends up in that folder.
 3. Restart Home Assistant.
 
 ## ⚙️ Setup
@@ -335,7 +337,7 @@ second; nothing is polled:
 
 ### Events
 
-Every moment is also an event on the bus, `perdis_event`, with `type` (the trigger names above:
+Every moment is also an event on the bus, `perdis_roster_event`, with `type` (the trigger names above:
 `wake_up`, `leave_home`, `shift_started`, `shift_ended`, `free_weekend_started`,
 `schedule_changed`), `device_id`, `entry_id` and the `duty`. Roster changes add `changes` and a
 readable `summary`.
@@ -372,7 +374,7 @@ actions:
 alias: Tell me about roster changes
 triggers:
   - trigger: event
-    event_type: perdis_event
+    event_type: perdis_roster_event
     event_data:
       type: schedule_changed
 actions:
@@ -427,11 +429,11 @@ actions:
 
 | Service | What it does |
 | --- | --- |
-| `perdis.refresh` | Asks the portal now instead of waiting for the next check. Optional `config_entry_id` |
-| `perdis.get_duties` | Returns the duties between `start_date` and `end_date` (default: two weeks from today) and the planned hours, for scripts and notifications |
+| `perdis_roster.refresh` | Asks the portal now instead of waiting for the next check. Optional `config_entry_id` |
+| `perdis_roster.get_duties` | Returns the duties between `start_date` and `end_date` (default: two weeks from today) and the planned hours, for scripts and notifications |
 
 ```yaml
-action: perdis.get_duties
+action: perdis_roster.get_duties
 data:
   start_date: "2026-11-23"
   end_date: "2026-11-29"
@@ -506,7 +508,7 @@ detail, enable debug logging:
 ```yaml
 logger:
   logs:
-    custom_components.perdis: debug
+    custom_components.perdis_roster: debug
 ```
 
 ## 🤝 Contributing

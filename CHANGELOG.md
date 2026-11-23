@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.23.2
+
+- 🆔 Renamed the integration domain from `perdis` to `perdis_roster` for a clearer, less
+  product-bound identifier. This only affects fresh installs; there is no released version with the
+  old domain to migrate from.
+
 ## 2026.11.23.1
 
 - 🃏 The dashboard cards are now fully configurable, each with a grouped visual editor (Content,
