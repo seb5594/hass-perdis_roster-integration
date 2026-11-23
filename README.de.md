@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
@@ -23,10 +23,10 @@ persönlichen Konto am selben Portal an.
 > Integration liest, was dir das Portal nach der Anmeldung zeigt – genau wie dein Browser. Sie steht
 > in keiner Verbindung zu INIT oder einem Verkehrsunternehmen und wird von diesen weder
 > unterstützt noch empfohlen. Ein Update des Portals kann die Seiten ändern; wenn etwas nicht mehr
-> funktioniert, [melde es bitte](https://github.com/seb5594/hass-init_perdis-integration/issues).
+> funktioniert, [melde es bitte](https://github.com/seb5594/hass-perdis_roster-integration/issues).
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/seb5594/hass-init_perdis-integration/main/.github/images/cards-de-dark.png" alt="Die drei Dashboard-Karten: nächster Dienst, Dienstplan und Konten" width="860">
+  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-de-dark.png" alt="Die drei Dashboard-Karten: nächster Dienst, Dienstplan und Konten" width="860">
 </p>
 
 ## 📑 Inhalt
@@ -95,7 +95,7 @@ Diese Unternehmen betreiben ein öffentliches PERDIS-WebComm-Portal. Jede Adress
 
 🔎 **Dein Unternehmen fehlt?** Wähle *Portal-Adresse selbst eingeben* und füge die Adresse ein, die
 du im Browser öffnest. Der reine Hostname wie `perdis.example.org` reicht auch; `/WebComm/` ergänzt
-die Integration selbst. Wenn es klappt, [sag gern Bescheid](https://github.com/seb5594/hass-init_perdis-integration/issues),
+die Integration selbst. Wenn es klappt, [sag gern Bescheid](https://github.com/seb5594/hass-perdis_roster-integration/issues),
 dann kommt das Unternehmen in die Liste.
 
 ## 📋 Voraussetzungen
@@ -113,13 +113,13 @@ dann kommt das Unternehmen in die Liste.
 1. Klicke oben auf den Button **HACS · Marketplace** oder öffne **HACS** (Home Assistant 2026.10
    und älter) bzw. **Einstellungen → Marketplace** (ab 2026.11) und suche nach **Perdis Duty
    Roster**. Wird es nicht gefunden, füge zuerst
-   `https://github.com/seb5594/hass-init_perdis-integration` als benutzerdefiniertes Repository der
+   `https://github.com/seb5594/hass-perdis_roster-integration` als benutzerdefiniertes Repository der
    Kategorie *Integration* hinzu.
 2. Herunterladen und Home Assistant neu starten.
 
 ### Manuell
 
-1. Lade `perdis.zip` aus dem [neuesten Release](https://github.com/seb5594/hass-init_perdis-integration/releases/latest).
+1. Lade `perdis.zip` aus dem [neuesten Release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
 2. Entpacke es nach `config/custom_components/perdis_roster/`, sodass `manifest.json` in diesem Ordner liegt.
 3. Home Assistant neu starten.
 
@@ -422,7 +422,7 @@ AppComm deshalb als **experimentell**:
   verstanden.
 
 Kennst du die echten Endpunkte eines AppComm-Dienstes, hilft ein
-[Issue](https://github.com/seb5594/hass-init_perdis-integration/issues) mit den Pfaden (niemals mit
+[Issue](https://github.com/seb5594/hass-perdis_roster-integration/issues) mit den Pfaden (niemals mit
 Kennwort oder Token) allen weiter.
 
 ## 🧠 So funktioniert es

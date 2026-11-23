@@ -911,7 +911,7 @@ for (const [type, cardClass, editorBuilder, name, description] of CARDS) {
   if (!window.customCards.some((card) => card.type === type)) {
     window.customCards.push({
       type, name, description, preview: true,
-      documentationURL: "https://github.com/seb5594/hass-init_perdis-integration#-dashboard-cards",
+      documentationURL: "https://github.com/seb5594/hass-perdis_roster-integration#-dashboard-cards",
     });
   }
 }
