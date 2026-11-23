@@ -1,0 +1,76 @@
+{
+  "entity": {
+    "sensor": {
+      "next_shift": {"default": "mdi:bus-clock"},
+      "next_shift_start": {"default": "mdi:clock-start"},
+      "next_shift_end": {"default": "mdi:clock-end"},
+      "next_shift_location": {"default": "mdi:map-marker-account"},
+      "next_shift_category": {
+        "default": "mdi:theme-light-dark",
+        "state": {
+          "early": "mdi:weather-sunset-up",
+          "day": "mdi:white-balance-sunny",
+          "late": "mdi:weather-sunset-down",
+          "night": "mdi:weather-night",
+          "split": "mdi:call-split"
+        }
+      },
+      "wake_up": {"default": "mdi:alarm"},
+      "leave_home": {"default": "mdi:home-export-outline"},
+      "rest_before_next_shift": {"default": "mdi:bed-clock"},
+      "today": {
+        "default": "mdi:calendar-today",
+        "state": {
+          "work": "mdi:bus",
+          "reserve": "mdi:bus-alert",
+          "training": "mdi:school",
+          "free": "mdi:sofa",
+          "vacation": "mdi:beach",
+          "compensation": "mdi:clock-plus-outline",
+          "sick": "mdi:emoticon-sick-outline"
+        }
+      },
+      "tomorrow": {
+        "default": "mdi:calendar-arrow-right",
+        "state": {
+          "work": "mdi:bus",
+          "reserve": "mdi:bus-alert",
+          "training": "mdi:school",
+          "free": "mdi:sofa",
+          "vacation": "mdi:beach",
+          "compensation": "mdi:clock-plus-outline",
+          "sick": "mdi:emoticon-sick-outline"
+        }
+      },
+      "next_day_off": {"default": "mdi:sofa-outline"},
+      "days_until_day_off": {"default": "mdi:calendar-end"},
+      "working_days_in_a_row": {"default": "mdi:calendar-range"},
+      "next_free_weekend": {"default": "mdi:party-popper"},
+      "free_weekends_ahead": {"default": "mdi:calendar-weekend"},
+      "planned_hours_week": {"default": "mdi:calendar-week"},
+      "planned_hours_month": {"default": "mdi:calendar-month"},
+      "overtime": {"default": "mdi:timer-sand"},
+      "vacation_remaining": {"default": "mdi:island"},
+      "weekend_points": {"default": "mdi:scale-balance"},
+      "weekend_points_difference": {"default": "mdi:plus-minus-variant"},
+      "free_weekends_year": {"default": "mdi:calendar-weekend-outline"},
+      "roster": {"default": "mdi:card-account-details-outline"},
+      "schedule_changes": {"default": "mdi:calendar-alert"},
+      "last_refresh": {"default": "mdi:cloud-refresh"}
+    },
+    "binary_sensor": {
+      "on_duty": {"default": "mdi:steering-off", "state": {"on": "mdi:steering"}},
+      "day_off_today": {"default": "mdi:briefcase-outline", "state": {"on": "mdi:sofa"}},
+      "day_off_tomorrow": {"default": "mdi:briefcase-outline", "state": {"on": "mdi:sofa"}},
+      "split_shift_today": {"default": "mdi:call-split"},
+      "short_rest": {"default": "mdi:bed-clock"}
+    },
+    "calendar": {
+      "duties": {"default": "mdi:calendar-clock"}
+    }
+  },
+  "services": {
+    "refresh": {"service": "mdi:refresh"},
+    "get_duties": {"service": "mdi:format-list-bulleted"}
+  }
+}

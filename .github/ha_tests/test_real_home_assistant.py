@@ -1,36 +1,180 @@
-"""The integration inside a genuine Home Assistant core.
+"""The integration inside a genuine Home Assistant core, against a fake WebComm portal.
 
 They need Home Assistant and pytest-homeassistant-custom-component. The shared
 engine installs both for every release the Compatibility workflow lists; to run them
 locally: python .engine/.scripts/ha_matrix.py run 2026.9.4
 """
 
+from datetime import date
 from pathlib import Path
 
+import aiohttp
+from conftest import PASSWORD, USERNAME
 import pytest
 
 pytest.importorskip("pytest_homeassistant_custom_component")
 
-from homeassistant.config_entries import ConfigEntryState  # noqa: E402
-from pytest_homeassistant_custom_component.common import MockConfigEntry  # noqa: E402
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
+from homeassistant.util import dt as dt_util
+from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
 DOMAIN = next((Path(__file__).resolve().parents[2] / "custom_components").iterdir()).name
+# Two o'clock in the night before the first duty of the fixtures (Monday 23 November 2026, 05:12).
+NIGHT_BEFORE = "2026-11-23T01:00:00+00:00"
 
 
-async def test_user_flow_creates_the_single_entry_and_refuses_a_second(hass):
+@pytest.fixture(autouse=True)
+async def berlin(hass, freezer):
+    """The fixtures are a roster in Europe/Berlin around 23 November 2026."""
+    freezer.move_to(NIGHT_BEFORE)
+    await hass.config.async_set_time_zone("Europe/Berlin")
+
+
+async def add_account(hass, portal, password=PASSWORD):
+    """Walk through the setup dialog with the manual address of the fake portal."""
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    assert result["type"] == "menu"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "manual"})
+    assert result["step_id"] == "manual"
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"base_url": portal.url, "portal_type": "webcomm", "verify_ssl": True})
+    assert result["step_id"] == "credentials"
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"username": USERNAME, "password": password})
+
+
+def state_of(hass, platform, key):
+    entity_id = er.async_get(hass).async_get_entity_id(platform, DOMAIN, f"{entry_of(hass).entry_id}_{key}")
+    return hass.states.get(entity_id)
+
+
+def entry_of(hass):
+    return hass.config_entries.async_entries(DOMAIN)[0]
+
+
+async def test_setup_dialog_offers_the_known_operators(hass):
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "operator"})
+    options = result["data_schema"].schema["operator"].config["options"]
+    assert {"rheinbahn", "bogestra", "rnv"} <= {option["value"] for option in options}
+
+
+async def test_wrong_password_is_reported_in_the_dialog(hass, fake_webcomm):
+    result = await add_account(hass, fake_webcomm, password="wrong")
     assert result["type"] == "form"
-    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
+    assert result["errors"] == {"base": "invalid_auth"}
+
+
+async def test_account_is_set_up_and_reads_the_roster(hass, fake_webcomm):
+    result = await add_account(hass, fake_webcomm)
+    assert result["type"] == "create_entry"
+    assert result["data"]["base_url"] == fake_webcomm.url
+    await hass.async_block_till_done()
+    assert entry_of(hass).state is ConfigEntryState.LOADED
+
+    assert state_of(hass, "sensor", "next_shift").state == "4711"
+    assert state_of(hass, "sensor", "next_shift_category").state == "early"
+    assert state_of(hass, "sensor", "today").state == "work"
+    assert state_of(hass, "sensor", "next_day_off").state == "2026-11-26"
+    assert state_of(hass, "sensor", "next_free_weekend").state == "2026-11-28"
+    assert float(state_of(hass, "sensor", "overtime").state) == 14.5
+    assert float(state_of(hass, "sensor", "vacation_remaining").state) == 12.5
+    assert float(state_of(hass, "sensor", "weekend_points_difference").state) == -3.5
+    assert state_of(hass, "binary_sensor", "on_duty").state == "off"
+    roster = state_of(hass, "sensor", "roster")
+    assert roster.attributes["perdis_role"] == "roster"
+    # Both roster months were read: the December page sits behind the "next" button.
+    assert roster.attributes["days"][-1]["date"] == "2026-12-06"
+    assert state_of(hass, "calendar", "duties") is not None
+
+    assert await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_get_duties_service_returns_the_days(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    response = await hass.services.async_call(
+        DOMAIN, "get_duties", {"start_date": "2026-11-23", "end_date": "2026-11-26"}, blocking=True,
+        return_response=True)
+    duties = response["accounts"][0]["duties"]
+    assert [duty["day"] for duty in duties] == ["2026-11-23", "2026-11-24", "2026-11-25", "2026-11-26"]
+    assert duties[2]["split"] is True
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_device_offers_the_timeline_triggers(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    from custom_components.perdis.device_trigger import async_get_triggers
+
+    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, entry_of(hass).entry_id)})
+    types = {trigger["type"] for trigger in await async_get_triggers(hass, device.id)}
+    assert {"wake_up", "leave_home", "shift_started", "shift_ended", "schedule_changed"} <= types
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_wake_up_is_announced_on_time(hass, fake_webcomm, freezer):
+    events = []
+    hass.bus.async_listen(f"{DOMAIN}_event", events.append)
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    wake_up = dt_util.parse_datetime("2026-11-23T03:42:00+01:00")
+    freezer.move_to(wake_up)
+    async_fire_time_changed(hass, wake_up)
+    await hass.async_block_till_done()
+    assert [event.data["type"] for event in events] == ["wake_up"]
+    assert events[0].data["duty"]["code"] == "4711"
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_new_password_through_reauth(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": "reauth", "entry_id": entry.entry_id}, data=dict(entry.data))
+    assert result["step_id"] == "reauth_confirm"
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"password": PASSWORD})
+    assert result["reason"] == "reauth_successful"
+    await hass.async_block_till_done()
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_client_signs_in_again_when_the_session_expires(hass, fake_webcomm):
+    from custom_components.perdis.api import PerdisAuthError, create_client
+    from custom_components.perdis.const import PortalType
+
+    zone = dt_util.get_default_time_zone()
+    now = dt_util.now()
+    async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as session:
+        client = create_client(PortalType.WEBCOMM, session, fake_webcomm.url, USERNAME, PASSWORD, zone)
+        snapshot = await client.async_fetch(date(2026, 11, 16), date(2026, 12, 31), now)
+        assert snapshot.balances.overtime_minutes == 870
+        fake_webcomm.sessions.clear()  # the portal forgets every session
+        snapshot = await client.async_fetch(date(2026, 11, 16), date(2026, 12, 31), now)
+        assert len(snapshot.duties) == 12
+        assert fake_webcomm.logins == 2
+        assert client.discovered_pages["roster"].endswith("/WebComm/Dienstplan.aspx")
+
+    async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as session:
+        wrong = create_client(PortalType.WEBCOMM, session, fake_webcomm.url, USERNAME, "nope", zone)
+        with pytest.raises(PerdisAuthError, match="Anmeldung fehlgeschlagen"):
+            await wrong.async_login()
+
+
+async def test_options_are_saved_and_reload_the_account(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["step_id"] == "init"
+    result = await hass.config_entries.options.async_configure(result["flow_id"], {
+        "wake_up_lead_minutes": 60, "commute_minutes": 20, "minimum_rest_hours": 11, "notify_changes": False,
+        "scan_interval": 30, "lookahead_days": 42, "lookback_days": 7, "advanced": {},
+    })
     assert result["type"] == "create_entry"
     await hass.async_block_till_done()
-    again = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
-    assert again["type"] == "abort" and again["reason"] == "already_configured"
-
-
-async def test_entry_loads_and_unloads(hass):
-    entry = MockConfigEntry(domain=DOMAIN)
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    assert entry.state is ConfigEntryState.LOADED
-    assert await hass.config_entries.async_unload(entry.entry_id)
-    assert entry.state is ConfigEntryState.NOT_LOADED
+    assert state_of(hass, "sensor", "wake_up").state == "2026-11-23T03:12:00+00:00"
+    await hass.config_entries.async_unload(entry.entry_id)

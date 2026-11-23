@@ -1,0 +1,11 @@
+{
+  "employee": {"id": "4711"},
+  "data": {
+    "days": [
+      {"datum": "2026-11-23", "dienstNr": "4711", "beginn": "05:12", "ende": "13:40", "ort": "Betriebshof", "linien": ["705", "U79"], "paidMinutes": 478},
+      {"datum": "2026-11-24", "code": "R"},
+      {"datum": "2026-11-25", "dutyNumber": "6020", "startTime": "2026-11-25T21:30:00+01:00", "endTime": "2026-11-26T02:05:00+01:00", "lines": "N1"},
+      {"datum": "2026-11-26", "code": "U", "absenceType": "Urlaub"}
+    ]
+  }
+}

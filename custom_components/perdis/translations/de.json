@@ -1,0 +1,286 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Perdis-Dienstplan verbinden",
+        "description": "Wie möchtest du dein Portal finden?\n\nInoffizielle Integration: INIT dokumentiert die Perdis-Schnittstellen nicht, daher liest sie, was dir das Portal im Browser zeigt. Dein Kennwort bleibt in Home Assistant.",
+        "menu_options": {
+          "operator": "Mein Verkehrsunternehmen aus der Liste wählen",
+          "manual": "Portal-Adresse selbst eingeben"
+        }
+      },
+      "operator": {
+        "title": "Dein Verkehrsunternehmen",
+        "description": "Diese Unternehmen betreiben ein öffentliches Perdis-WebComm-Portal. Deins fehlt? Geh zurück und gib die Adresse ein, die du im Browser öffnest.",
+        "data": {
+          "operator": "Verkehrsunternehmen"
+        }
+      },
+      "manual": {
+        "title": "Adresse deines Perdis-Portals",
+        "description": "Kopiere die Adresse aus dem Browser, z. B. `https://perdis.example.org/WebComm/`. Der reine Hostname reicht auch.",
+        "data": {
+          "base_url": "Portal-Adresse",
+          "portal_type": "Art des Portals",
+          "verify_ssl": "Zertifikat prüfen"
+        },
+        "data_description": {
+          "base_url": "Die Seite, auf der du dich mit deiner Personalnummer anmeldest.",
+          "portal_type": "Wähle WebComm, außer dein Unternehmen hat dir eine AppComm-Dienstadresse genannt.",
+          "verify_ssl": "Nur für Portale mit selbst signiertem Zertifikat ausschalten."
+        }
+      },
+      "credentials": {
+        "title": "Anmeldung bei {operator}",
+        "description": "Nutze dieselbe Benutzerkennung und dasselbe Kennwort wie auf {url}. Sie werden nur an dieses Portal gesendet.",
+        "data": {
+          "username": "Benutzerkennung / Personalnummer",
+          "password": "Kennwort"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Kennwort geändert?",
+        "description": "Das Portal {url} akzeptiert das Kennwort von {username} nicht mehr. Gib das aktuelle ein.",
+        "data": {
+          "password": "Kennwort"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Das Portal hat Benutzerkennung oder Kennwort nicht akzeptiert.",
+      "cannot_connect": "Das Portal ist nicht erreichbar. Prüfe die Adresse und deine Internetverbindung.",
+      "not_a_portal": "Die Adresse antwortet, aber nicht wie ein Perdis-Portal. Prüfe Adresse und Art des Portals.",
+      "invalid_url": "Das ist keine gültige Webadresse.",
+      "unknown": "Unerwarteter Fehler, Details stehen im Protokoll."
+    },
+    "abort": {
+      "already_configured": "Dieses Konto ist bereits eingerichtet.",
+      "reauth_successful": "Das neue Kennwort funktioniert."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Deine persönlichen Zeiten",
+        "description": "Diese Werte beeinflussen nur, was Home Assistant aus deinem Dienstplan ableitet.",
+        "data": {
+          "wake_up_lead_minutes": "Aufstehen vor Dienstbeginn",
+          "commute_minutes": "Arbeitsweg",
+          "minimum_rest_hours": "Mindestruhezeit zwischen Diensten",
+          "notify_changes": "Bei Dienstplanänderungen benachrichtigen",
+          "scan_interval": "Portal abfragen alle",
+          "lookahead_days": "Tage voraus",
+          "lookback_days": "Vergangene Tage behalten"
+        },
+        "data_description": {
+          "wake_up_lead_minutes": "Ergibt die Weckzeit und ihren Auslöser.",
+          "commute_minutes": "Ergibt die Losfahrzeit und ihren Auslöser.",
+          "minimum_rest_hours": "Eine kürzere Ruhezeit schaltet die Warnung ein (EU-Vorgabe: 11 Stunden).",
+          "scan_interval": "Dienstpläne ändern sich selten minütlich; 30 Minuten reichen völlig."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Seiten des Portals (für Fortgeschrittene)",
+            "description": "Leer lassen: Die Integration findet die Seiten selbst im Menü des Portals. Trage einen Pfad nur ein, wenn eine Seite nicht gefunden wird (siehe Diagnose).",
+            "data": {
+              "roster_page": "Dienstplan-Seite",
+              "balances_page": "Konten-Seite",
+              "weekend_points_page": "WE-Punkte-Seite",
+              "appcomm_login_path": "AppComm-Anmeldepfad",
+              "appcomm_roster_path": "AppComm-Dienstplanpfad",
+              "appcomm_balances_path": "AppComm-Kontenpfad",
+              "appcomm_weekend_points_path": "AppComm-WE-Punkte-Pfad"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "portal_type": {
+      "options": {
+        "webcomm": "WebComm (das Portal im Browser)",
+        "appcomm": "AppComm-Dienst (experimentell)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_shift": {
+        "name": "Nächster Dienst"
+      },
+      "next_shift_start": {
+        "name": "Nächster Dienstbeginn"
+      },
+      "next_shift_end": {
+        "name": "Nächstes Dienstende"
+      },
+      "next_shift_location": {
+        "name": "Nächster Dienstantrittsort"
+      },
+      "next_shift_category": {
+        "name": "Art des nächsten Dienstes",
+        "state": {
+          "early": "Frühdienst",
+          "day": "Mitteldienst",
+          "late": "Spätdienst",
+          "night": "Nachtdienst",
+          "split": "Geteilter Dienst"
+        }
+      },
+      "wake_up": {
+        "name": "Weckzeit"
+      },
+      "leave_home": {
+        "name": "Losfahren"
+      },
+      "rest_before_next_shift": {
+        "name": "Ruhezeit vor nächstem Dienst"
+      },
+      "today": {
+        "name": "Heute",
+        "state": {
+          "work": "Dienst",
+          "reserve": "Bereitschaft",
+          "training": "Schulung",
+          "free": "Frei",
+          "vacation": "Urlaub",
+          "compensation": "Freizeitausgleich",
+          "sick": "Krank",
+          "unknown": "Unbekannt"
+        }
+      },
+      "tomorrow": {
+        "name": "Morgen",
+        "state": {
+          "work": "Dienst",
+          "reserve": "Bereitschaft",
+          "training": "Schulung",
+          "free": "Frei",
+          "vacation": "Urlaub",
+          "compensation": "Freizeitausgleich",
+          "sick": "Krank",
+          "unknown": "Unbekannt"
+        }
+      },
+      "next_day_off": {
+        "name": "Nächster freier Tag"
+      },
+      "days_until_day_off": {
+        "name": "Tage bis frei"
+      },
+      "working_days_in_a_row": {
+        "name": "Arbeitstage am Stück"
+      },
+      "next_free_weekend": {
+        "name": "Nächstes freies Wochenende"
+      },
+      "free_weekends_ahead": {
+        "name": "Freie Wochenenden voraus"
+      },
+      "planned_hours_week": {
+        "name": "Geplante Stunden diese Woche"
+      },
+      "planned_hours_month": {
+        "name": "Geplante Stunden diesen Monat"
+      },
+      "overtime": {
+        "name": "Zeitkonto"
+      },
+      "vacation_remaining": {
+        "name": "Resturlaub"
+      },
+      "weekend_points": {
+        "name": "WE-Punkte"
+      },
+      "weekend_points_difference": {
+        "name": "WE-Punkte zum Durchschnitt"
+      },
+      "free_weekends_year": {
+        "name": "Freie Wochenenden dieses Jahr"
+      },
+      "roster": {
+        "name": "Dienstplan"
+      },
+      "schedule_changes": {
+        "name": "Dienstplanänderungen"
+      },
+      "last_refresh": {
+        "name": "Letzte Aktualisierung"
+      }
+    },
+    "binary_sensor": {
+      "on_duty": {
+        "name": "Im Dienst"
+      },
+      "day_off_today": {
+        "name": "Heute frei"
+      },
+      "day_off_tomorrow": {
+        "name": "Morgen frei"
+      },
+      "split_shift_today": {
+        "name": "Heute geteilter Dienst"
+      },
+      "short_rest": {
+        "name": "Verkürzte Ruhezeit"
+      },
+      "portal_online": {
+        "name": "Portal"
+      }
+    },
+    "calendar": {
+      "duties": {
+        "name": "Dienste"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "wake_up": "Zeit zum Aufstehen",
+      "leave_home": "Zeit zum Losfahren",
+      "shift_started": "Dienst hat begonnen",
+      "shift_ended": "Dienst ist zu Ende",
+      "free_weekend_started": "Freies Wochenende hat begonnen",
+      "schedule_changed": "Dienstplan hat sich geändert"
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Dienstplan aktualisieren",
+      "description": "Fragt den Dienstplan sofort beim Portal ab, statt auf die nächste Abfrage zu warten.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Leer lassen, um alle Konten zu aktualisieren."
+        }
+      }
+    },
+    "get_duties": {
+      "name": "Dienste abrufen",
+      "description": "Liefert die Dienste zwischen zwei Tagen, z. B. für ein Skript oder eine Benachrichtigung.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Konto",
+          "description": "Leer lassen, um die Dienste aller Konten zu erhalten."
+        },
+        "start_date": {
+          "name": "Von",
+          "description": "Erster Tag; leer bedeutet heute."
+        },
+        "end_date": {
+          "name": "Bis",
+          "description": "Letzter Tag; leer bedeutet zwei Wochen nach dem ersten Tag."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_loaded_entry": {
+      "message": "Es ist kein Perdis-Konto geladen."
+    },
+    "end_before_start": {
+      "message": "Der letzte Tag liegt vor dem ersten Tag."
+    }
+  }
+}

@@ -1,0 +1,286 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect your Perdis duty roster",
+        "description": "How do you want to find your portal?\n\nUnofficial integration: INIT does not document the Perdis interfaces, so it reads what the portal shows you in the browser. Your password stays in Home Assistant.",
+        "menu_options": {
+          "operator": "Pick my transit company from the list",
+          "manual": "Enter the portal address myself"
+        }
+      },
+      "operator": {
+        "title": "Your transit company",
+        "description": "These companies run a public Perdis WebComm portal. Yours is missing? Go back and enter the address you open in the browser.",
+        "data": {
+          "operator": "Transit company"
+        }
+      },
+      "manual": {
+        "title": "Address of your Perdis portal",
+        "description": "Copy the address from the browser, e.g. `https://perdis.example.org/WebComm/`. A plain host name works too.",
+        "data": {
+          "base_url": "Portal address",
+          "portal_type": "Kind of portal",
+          "verify_ssl": "Check the certificate"
+        },
+        "data_description": {
+          "base_url": "The page where you sign in with your personnel number.",
+          "portal_type": "Choose WebComm unless your company gave you an AppComm service address.",
+          "verify_ssl": "Only switch off for portals with a self-signed certificate."
+        }
+      },
+      "credentials": {
+        "title": "Sign in to {operator}",
+        "description": "Use the same user name and password as on {url}. They are only sent to that portal.",
+        "data": {
+          "username": "User name / personnel number",
+          "password": "Password"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Password changed?",
+        "description": "The portal {url} no longer accepts the password of {username}. Enter the current one.",
+        "data": {
+          "password": "Password"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "The portal did not accept the user name or password.",
+      "cannot_connect": "The portal could not be reached. Check the address and your internet connection.",
+      "not_a_portal": "This address answers, but not like a Perdis portal. Check the address and the kind of portal.",
+      "invalid_url": "This is not a valid web address.",
+      "unknown": "Unexpected error, see the log for details."
+    },
+    "abort": {
+      "already_configured": "This account is already set up.",
+      "reauth_successful": "The new password works."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Your personal times",
+        "description": "These values only affect what Home Assistant works out from your roster.",
+        "data": {
+          "wake_up_lead_minutes": "Wake up before the shift",
+          "commute_minutes": "Way to work",
+          "minimum_rest_hours": "Minimum rest between shifts",
+          "notify_changes": "Notify me about roster changes",
+          "scan_interval": "Check the portal every",
+          "lookahead_days": "Days ahead",
+          "lookback_days": "Days to keep in the past"
+        },
+        "data_description": {
+          "wake_up_lead_minutes": "Sets the wake-up time and its trigger.",
+          "commute_minutes": "Sets the leave-home time and its trigger.",
+          "minimum_rest_hours": "A shorter rest switches on the short rest warning (EU rule: 11 hours).",
+          "scan_interval": "Rosters rarely change by the minute; 30 minutes is plenty."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Pages of the portal (advanced)",
+            "description": "Leave empty: the integration finds the pages in the portal menu by itself. Fill in a path only if a page is not found (see the diagnostics).",
+            "data": {
+              "roster_page": "Roster page",
+              "balances_page": "Accounts page",
+              "weekend_points_page": "Weekend points page",
+              "appcomm_login_path": "AppComm login path",
+              "appcomm_roster_path": "AppComm roster path",
+              "appcomm_balances_path": "AppComm accounts path",
+              "appcomm_weekend_points_path": "AppComm weekend points path"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "portal_type": {
+      "options": {
+        "webcomm": "WebComm (the portal in the browser)",
+        "appcomm": "AppComm service (experimental)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_shift": {
+        "name": "Next shift"
+      },
+      "next_shift_start": {
+        "name": "Next shift start"
+      },
+      "next_shift_end": {
+        "name": "Next shift end"
+      },
+      "next_shift_location": {
+        "name": "Next shift location"
+      },
+      "next_shift_category": {
+        "name": "Next shift type",
+        "state": {
+          "early": "Early shift",
+          "day": "Day shift",
+          "late": "Late shift",
+          "night": "Night shift",
+          "split": "Split shift"
+        }
+      },
+      "wake_up": {
+        "name": "Wake-up time"
+      },
+      "leave_home": {
+        "name": "Leave home"
+      },
+      "rest_before_next_shift": {
+        "name": "Rest before next shift"
+      },
+      "today": {
+        "name": "Today",
+        "state": {
+          "work": "Duty",
+          "reserve": "Reserve",
+          "training": "Training",
+          "free": "Day off",
+          "vacation": "Vacation",
+          "compensation": "Time off in lieu",
+          "sick": "Sick leave",
+          "unknown": "Unknown"
+        }
+      },
+      "tomorrow": {
+        "name": "Tomorrow",
+        "state": {
+          "work": "Duty",
+          "reserve": "Reserve",
+          "training": "Training",
+          "free": "Day off",
+          "vacation": "Vacation",
+          "compensation": "Time off in lieu",
+          "sick": "Sick leave",
+          "unknown": "Unknown"
+        }
+      },
+      "next_day_off": {
+        "name": "Next day off"
+      },
+      "days_until_day_off": {
+        "name": "Days until day off"
+      },
+      "working_days_in_a_row": {
+        "name": "Working days in a row"
+      },
+      "next_free_weekend": {
+        "name": "Next free weekend"
+      },
+      "free_weekends_ahead": {
+        "name": "Free weekends ahead"
+      },
+      "planned_hours_week": {
+        "name": "Planned hours this week"
+      },
+      "planned_hours_month": {
+        "name": "Planned hours this month"
+      },
+      "overtime": {
+        "name": "Overtime balance"
+      },
+      "vacation_remaining": {
+        "name": "Vacation left"
+      },
+      "weekend_points": {
+        "name": "Weekend points"
+      },
+      "weekend_points_difference": {
+        "name": "Weekend points vs. average"
+      },
+      "free_weekends_year": {
+        "name": "Free weekends this year"
+      },
+      "roster": {
+        "name": "Roster"
+      },
+      "schedule_changes": {
+        "name": "Roster changes"
+      },
+      "last_refresh": {
+        "name": "Last refresh"
+      }
+    },
+    "binary_sensor": {
+      "on_duty": {
+        "name": "On duty"
+      },
+      "day_off_today": {
+        "name": "Day off today"
+      },
+      "day_off_tomorrow": {
+        "name": "Day off tomorrow"
+      },
+      "split_shift_today": {
+        "name": "Split shift today"
+      },
+      "short_rest": {
+        "name": "Short rest"
+      },
+      "portal_online": {
+        "name": "Portal"
+      }
+    },
+    "calendar": {
+      "duties": {
+        "name": "Duties"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "wake_up": "Time to get up",
+      "leave_home": "Time to leave",
+      "shift_started": "Shift started",
+      "shift_ended": "Shift ended",
+      "free_weekend_started": "Free weekend started",
+      "schedule_changed": "Roster changed"
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh roster",
+      "description": "Asks the portal for the roster now instead of waiting for the next check.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Leave empty to refresh every account."
+        }
+      }
+    },
+    "get_duties": {
+      "name": "Get duties",
+      "description": "Returns the duties between two days, e.g. for a script or a notification.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Leave empty to get the duties of every account."
+        },
+        "start_date": {
+          "name": "From",
+          "description": "First day; today when empty."
+        },
+        "end_date": {
+          "name": "Until",
+          "description": "Last day; two weeks after the first day when empty."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_loaded_entry": {
+      "message": "No Perdis account is loaded."
+    },
+    "end_before_start": {
+      "message": "The last day lies before the first day."
+    }
+  }
+}

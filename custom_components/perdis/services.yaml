@@ -1,0 +1,21 @@
+refresh:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: perdis
+
+get_duties:
+  fields:
+    config_entry_id:
+      selector:
+        config_entry:
+          integration: perdis
+    start_date:
+      example: "2026-11-23"
+      selector:
+        date:
+    end_date:
+      example: "2026-12-06"
+      selector:
+        date:
