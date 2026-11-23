@@ -1,0 +1,18 @@
+{
+  "domain": "perdis",
+  "name": "Perdis Duty Roster",
+  "codeowners": [
+    "@seb5594"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
+  "documentation": "https://github.com/seb5594/hass-init_perdis-integration",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/seb5594/hass-init_perdis-integration/issues",
+  "requirements": [],
+  "version": "2026.11.23"
+}
