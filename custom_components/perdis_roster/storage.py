@@ -23,11 +23,13 @@ STORAGE_VERSION = 1
 class StoredState:
     snapshot: Snapshot | None = None
     changes: list[ScheduleChange] = field(default_factory=list)
+    capabilities: frozenset[str] = frozenset()
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "snapshot": self.snapshot.to_dict() if self.snapshot else None,
             "changes": [change.to_dict() for change in self.changes],
+            "capabilities": sorted(self.capabilities),
         }
 
     @classmethod
@@ -36,6 +38,7 @@ class StoredState:
         return cls(
             snapshot=Snapshot.from_dict(snapshot) if snapshot else None,
             changes=[ScheduleChange.from_dict(item) for item in data.get("changes", [])],
+            capabilities=frozenset(data.get("capabilities", [])),
         )
 
 

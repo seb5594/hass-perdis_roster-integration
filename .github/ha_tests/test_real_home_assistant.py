@@ -47,7 +47,7 @@ async def add_account(hass, portal, password=PASSWORD):
 
 def state_of(hass, platform, key):
     entity_id = er.async_get(hass).async_get_entity_id(platform, DOMAIN, f"{entry_of(hass).entry_id}_{key}")
-    return hass.states.get(entity_id)
+    return hass.states.get(entity_id) if entity_id else None
 
 
 def entry_of(hass):
@@ -178,3 +178,30 @@ async def test_options_are_saved_and_reload_the_account(hass, fake_webcomm):
     await hass.async_block_till_done()
     assert state_of(hass, "sensor", "wake_up").state == "2026-11-23T03:12:00+00:00"
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def add_account_for(hass, portal):
+    """Walk through the manual setup for a given fake portal and return the flow result."""
+    result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "manual"})
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"base_url": portal.url, "portal_type": "webcomm", "verify_ssl": True})
+    return await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"username": USERNAME, "password": PASSWORD})
+
+
+async def test_a_roster_only_portal_hides_the_account_sensors(hass, fake_webcomm_roster_only):
+    await add_account_for(hass, fake_webcomm_roster_only)
+    await hass.async_block_till_done()
+    coordinator = entry_of(hass).runtime_data
+    assert "roster" in coordinator.capabilities
+    assert "overtime" not in coordinator.capabilities
+    assert "weekend_points" not in coordinator.capabilities
+
+    # The roster sensors are there, the account sensors the portal cannot fill are not created.
+    assert state_of(hass, "sensor", "next_shift").state == "4711"
+    assert state_of(hass, "sensor", "overtime") is None
+    assert state_of(hass, "sensor", "vacation_remaining") is None
+    assert state_of(hass, "sensor", "weekend_points") is None
+    assert state_of(hass, "binary_sensor", "on_duty") is not None
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)

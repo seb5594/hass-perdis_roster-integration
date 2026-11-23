@@ -24,6 +24,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import PerdisAuthError, PerdisError, PortalClient
+from .capabilities import detect as detect_capabilities
 from .changes import changes_since, describe, detect_changes, keep_recent, texts
 from .const import (
     CHANGE_DISPLAY_DAYS,
@@ -87,6 +88,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
             update_interval=timedelta(minutes=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
         )
         self.client = client
+        self.capabilities: frozenset[str] = frozenset()
         self._store = PerdisStore(hass, entry.entry_id)
         self._stored = StoredState()
         self._timers: list[CALLBACK_TYPE] = []
@@ -128,6 +130,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
     async def _async_setup(self) -> None:
         """Load the cache before the first refresh, so a portal outage does not block the start."""
         self._stored = await self._store.async_load()
+        self.capabilities = self._stored.capabilities
         self.config_entry.async_on_unload(async_track_time_change(self.hass, self._async_tick, second=0))
         self.config_entry.async_on_unload(self._cancel_timers)
         self.config_entry.async_on_unload(self.async_add_listener(self._schedule_timeline))
@@ -161,7 +164,14 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         previous = self._stored.snapshot
         snapshot = self._merge_history(previous, fetched, lookback)
         new_changes = detect_changes(previous, snapshot, now.date())
-        self._stored = StoredState(snapshot, keep_recent([*new_changes, *self._stored.changes], CHANGE_HISTORY_LIMIT))
+        # Which sensors this portal can fill is decided from the pages it served and the values
+        # it returned; it only ever grows, so a temporary empty account does not drop a sensor.
+        self.capabilities |= detect_capabilities(self.client.reachable_pages, snapshot)
+        self._stored = StoredState(
+            snapshot,
+            keep_recent([*new_changes, *self._stored.changes], CHANGE_HISTORY_LIMIT),
+            capabilities=self.capabilities,
+        )
         await self._store.async_save(self._stored)
         if new_changes:
             self._announce_changes(new_changes)

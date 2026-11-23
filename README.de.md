@@ -89,6 +89,8 @@ Diese Unternehmen betreiben ein öffentliches PERDIS-WebComm-Portal. Jede Adress
 | rnv Rhein-Neckar-Verkehr | Mannheim / Heidelberg / Ludwigshafen 🇩🇪 | `https://fahrerauskunft.rnv-online.de/WebComm/` |
 | Salzburg AG Verkehr | Salzburg 🇦🇹 | `https://perdis.salzburg-ag.at/WebComm/` |
 | Transdev / Connexxion | Niederlande 🇳🇱 | `https://diensten1.transdev.nl/WebComm/` |
+| üstra Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
+| VGF Verkehrsgesellschaft Frankfurt | Frankfurt am Main 🇩🇪 | `https://perdis-info.vgf-ffm.de/WebComm/` |
 | WSW mobil | Wuppertal 🇩🇪 | `https://service.wsw-online.de/WebComm/` ¹ |
 
 ¹ Das Portal meldete am Prüftag „vorübergehend nicht verfügbar“.
@@ -160,6 +162,12 @@ Portals; wird eine Seite nicht gefunden (siehe [Fehlersuche](#-fehlersuche)), tr
 ein, z. B. `Dienstplan.aspx`.
 
 ## 📊 Entitäten
+
+> [!NOTE]
+> Es werden nur die Sensoren angelegt, die dein Portal tatsächlich füllen kann. Bei der Einrichtung
+> prüft die Integration, welche Seiten dein Portal ausliefert und welche Kontowerte es zurückgibt;
+> ein Portal ohne WE-Punkte zeigt dann keine WE-Punkte-Sensoren statt einer Reihe „Unbekannt".
+> Nach dem Freischalten einer neuen Funktion die Integration neu laden.
 
 Alle Entitäten gehören zu einem Gerät pro Konto. Die Entitäts-IDs unten gehen von einem Konto
 namens *Rheinbahn (4711)* aus; deine beginnen mit dem Namen deines Kontos. Mit Home Assistant auf

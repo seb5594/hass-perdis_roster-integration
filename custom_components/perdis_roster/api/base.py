@@ -37,6 +37,15 @@ class PortalClient(ABC):
         self.base_url = base_url
         self._username = username
         self._password = password
+        # Data categories the portal actually served on the last fetch, used to decide which
+        # sensors a portal supports (see capabilities.py). A kind is one of "roster", "balances",
+        # "vacation", "weekend_points".
+        self._reachable: set[str] = set()
+
+    @property
+    def reachable_pages(self) -> set[str]:
+        """The data categories the portal served on the last successful fetch."""
+        return set(self._reachable)
 
     @abstractmethod
     async def async_login(self) -> None:
@@ -53,10 +62,17 @@ class PortalClient(ABC):
 
 
 def normalize_base_url(url: str, default_path: str = "") -> str:
-    """`perdis.example.org` becomes `https://perdis.example.org/<default_path>`, always with a final slash.
+    """Turn whatever the user typed into the clean folder address of the portal.
 
-    A link copied from the browser (`.../WebComm/default.aspx?TestingCookie=1`) is reduced to the
-    folder of the application, so it works as well as the bare address.
+    Examples, all with ``default_path="WebComm"``:
+
+    * ``perdis.example.org``                         -> ``https://perdis.example.org/WebComm/``
+    * ``https://perdis.example.org``                 -> ``https://perdis.example.org/WebComm/``
+    * ``https://perdis.example.org/WebComm``         -> ``https://perdis.example.org/WebComm/``
+    * ``.../WebComm/default.aspx?TestingCookie=1``   -> ``https://perdis.example.org/WebComm/``
+
+    The portal always lives in a folder (``/WebComm/`` for the browser portal). When the folder is
+    missing from the address the user pasted, it is appended, so a bare host name is enough.
     """
     cleaned = url.strip()
     if "://" not in cleaned:
@@ -66,9 +82,10 @@ def normalize_base_url(url: str, default_path: str = "") -> str:
     if path.lower().endswith((".aspx", ".html", ".htm")):
         path = path.rsplit("/", 1)[0]
     # Cookieless ASP.NET sessions put their id into the path: /WebComm/(X(1)S(abc))/default.aspx
-    path = "/".join(part for part in path.split("/") if not part.startswith("(")) or "/"
-    if path in {"", "/"} and default_path:
-        path = f"/{default_path.strip('/')}"
-    if not path.endswith("/"):
-        path += "/"
+    segments = [part for part in path.split("/") if part and not part.startswith("(")]
+    # Append the portal folder when it is not already the last segment (case-insensitive).
+    wanted = default_path.strip("/")
+    if wanted and (not segments or segments[-1].lower() != wanted.lower()):
+        segments.append(wanted)
+    path = "/" + "/".join(segments) + "/" if segments else "/"
     return urlunsplit((parts.scheme.lower(), parts.netloc.lower(), path, "", ""))

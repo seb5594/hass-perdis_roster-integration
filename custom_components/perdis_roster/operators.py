@@ -1,7 +1,7 @@
 """Transit operators known to run a public MOBILE-PERDIS portal.
 
-Every entry was checked by opening its login page in November 2026: the address answers with
-the PERDIS WebComm login form (only the WSW portal answered "temporarily unavailable" that day).
+Every entry was checked by opening its login page: the address answers with the PERDIS WebComm
+login form (only the WSW portal once answered "temporarily unavailable").
 Nothing here is endorsed by the operators or by INIT; it only saves people from looking up the
 address of their own portal. An operator that is missing can always be
 added by hand in the setup dialog ("Enter the address myself").
@@ -49,6 +49,10 @@ OPERATORS: tuple[Operator, ...] = (
              "https://perdis.salzburg-ag.at/WebComm/"),
     Operator("transdev_nl", "Transdev / Connexxion", "Nederland", "NL",
              "https://diensten1.transdev.nl/WebComm/"),
+    Operator("uestra", "üstra Hannoversche Verkehrsbetriebe", "Hannover", "DE",
+             "https://wbc.uestra.de/WebComm/"),
+    Operator("vgf", "VGF Verkehrsgesellschaft Frankfurt", "Frankfurt am Main", "DE",
+             "https://perdis-info.vgf-ffm.de/WebComm/"),
     Operator("wsw", "WSW mobil", "Wuppertal", "DE",
              "https://service.wsw-online.de/WebComm/"),
 )

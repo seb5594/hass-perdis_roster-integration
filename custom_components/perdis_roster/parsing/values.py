@@ -124,12 +124,30 @@ def line_numbers(text: str) -> list[str]:
 # Absence codes differ per operator; these are the ones seen in German, Austrian and Dutch
 # portals. A code that is not listed is a duty number when it contains digits or comes with times.
 DUTY_CODES: dict[str, DutyType] = {
-    **dict.fromkeys(("R", "F", "FR", "FREI", "RT", "RUHE", "RUHETAG", "X", "AT", "VRIJ", "RD"), DutyType.FREE),
-    **dict.fromkeys(("U", "UR", "URL", "URLAUB", "EU", "ZU", "SU", "BU", "V", "VERLOF", "VAC"), DutyType.VACATION),
-    **dict.fromkeys(("K", "KR", "KRANK", "AU", "KU", "ZIEK", "SICK"), DutyType.SICK),
-    **dict.fromkeys(("FA", "ZA", "AZV", "FZA", "GLZ", "UA", "ADV", "ÜA", "UEA"), DutyType.COMPENSATION),
-    **dict.fromkeys(("S", "SCH", "SCHUL", "SCHULUNG", "DA", "BA", "UW", "FS", "OPL", "TRAINING"), DutyType.TRAINING),
-    **dict.fromkeys(("B", "BE", "BER", "BEREIT", "RES", "RESERVE", "RS", "BD"), DutyType.RESERVE),
+    **dict.fromkeys(
+        ("R", "F", "FR", "FREI", "RT", "RUHE", "RUHETAG", "X", "AT", "VRIJ", "RD", "AB", "STR"),
+        DutyType.FREE,
+    ),
+    **dict.fromkeys(
+        ("U", "UR", "URL", "URLAUB", "EU", "ZU", "SU", "BU", "V", "VERLOF", "VAC"),
+        DutyType.VACATION,
+    ),
+    **dict.fromkeys(
+        ("K", "KR", "KRANK", "AU", "KU", "ZIEK", "SICK", "KOS"),
+        DutyType.SICK,
+    ),
+    **dict.fromkeys(
+        ("FA", "ZA", "AZV", "FZA", "GLZ", "UA", "ADV", "ÜA", "UEA", "FM", "ET"),
+        DutyType.COMPENSATION,
+    ),
+    **dict.fromkeys(
+        ("S", "SCH", "SCHUL", "SCHULUNG", "DA", "BA", "UW", "FS", "OPL", "TRAINING"),
+        DutyType.TRAINING,
+    ),
+    **dict.fromkeys(
+        ("B", "BE", "BER", "BEREIT", "RES", "RESERVE", "RS", "BD"),
+        DutyType.RESERVE,
+    ),
 }
 REMARK_WORDS: tuple[tuple[tuple[str, ...], DutyType], ...] = (
     (("urlaub", "verlof", "vacation", "holiday"), DutyType.VACATION),

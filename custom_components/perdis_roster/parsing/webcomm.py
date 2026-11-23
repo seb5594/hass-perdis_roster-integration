@@ -10,6 +10,7 @@ import re
 from zoneinfo import ZoneInfo
 
 from ..models import Balances, Duty, Snapshot, WeekendPointEntry, WeekendPoints
+from .calendar import parse_calendar
 from .html import innermost_tables, parse_html, table_rows
 from .tables import DayRow, key_values, lookup, roster_rows
 from .values import (
@@ -51,6 +52,7 @@ class WebCommPages:
     menu: str = ""
     roster: list[str] = field(default_factory=list)
     balances: str = ""
+    vacation: str = ""  # a separate leave-account page (planbals.aspx) when the portal has one
     weekend_points: str = ""
 
 
@@ -66,7 +68,11 @@ class WebCommParser:
         for page in pages.roster:
             for duty in self.parse_roster(page, today):
                 duties[duty.day] = duty  # a later page (next month) wins for overlapping days
-        balance_pairs = key_values(parse_html(pages.balances or pages.menu))
+        # Accounts may live on one page, or split between a time page and a leave page.
+        balance_pairs = {
+            **key_values(parse_html(pages.balances or pages.menu)),
+            **(key_values(parse_html(pages.vacation)) if pages.vacation else {}),
+        }
         weekend_document = parse_html(pages.weekend_points or pages.balances or pages.menu)
         return Snapshot(
             fetched_at=now,
@@ -79,11 +85,16 @@ class WebCommParser:
     # --- Roster ------------------------------------------------------------------------------
 
     def parse_roster(self, html: str, today: date) -> list[Duty]:
+        """Duties of one roster page, read from a data table, or from a calendar as a fallback."""
+        document = parse_html(html)
         rows_by_day: dict[date, list[DayRow]] = defaultdict(list)
-        for row in roster_rows(parse_html(html), today):
+        for row in roster_rows(document, today):
             rows_by_day[row.day].append(row)
-        duties = (self._duty(day, rows) for day, rows in rows_by_day.items())
-        return [duty for duty in duties if duty is not None]
+        duties = [duty for day, rows in rows_by_day.items() if (duty := self._duty(day, rows))]
+        # WebComm often renders the roster as a month calendar, with each day in a cell tooltip.
+        if not duties:
+            return parse_calendar(document, self._zone)
+        return duties
 
     def _duty(self, day: date, rows: list[DayRow]) -> Duty | None:
         code = next((row.cells["duty"] for row in rows if row.cells.get("duty")), "") or _loose_code(rows)

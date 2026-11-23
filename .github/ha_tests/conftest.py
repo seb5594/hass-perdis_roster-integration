@@ -29,18 +29,24 @@ def page(name: str, **values: str) -> str:
 class FakeWebComm:
     """State of the fake portal, so tests can expire the session or count requests."""
 
-    def __init__(self) -> None:
+    def __init__(self, accounts: bool = True) -> None:
         self.sessions: set[str] = set()
         self.logins = 0
+        self.accounts = accounts  # a roster-only portal that serves no account pages
         self.app = web.Application()
         self.app.router.add_get("/WebComm/", self.root)
         self.app.router.add_route("*", "/WebComm/default.aspx", self.default)
         self.app.router.add_route("*", "/WebComm/Dienstplan.aspx", self.roster)
-        self.app.router.add_get("/WebComm/Salden.aspx", self.protected("webcomm_balances.html"))
-        self.app.router.add_get("/WebComm/WEPunkte.aspx", self.protected("webcomm_weekend_points.html"))
+        if accounts:
+            self.app.router.add_get("/WebComm/Salden.aspx", self.protected("webcomm_balances.html"))
+            self.app.router.add_get("/WebComm/WEPunkte.aspx", self.protected("webcomm_weekend_points.html"))
 
     def signed_in(self, request: web.Request) -> bool:
         return request.cookies.get(SESSION_COOKIE) in self.sessions
+
+    @property
+    def menu(self) -> str:
+        return page("webcomm_menu.html" if self.accounts else "webcomm_menu_roster_only.html")
 
     async def root(self, request: web.Request) -> web.Response:
         raise web.HTTPFound("/WebComm/default.aspx?AspxAutoDetectCookieSupport=1")
@@ -52,13 +58,13 @@ class FakeWebComm:
                 self.logins += 1
                 session = f"session-{self.logins}"
                 self.sessions.add(session)
-                response = web.Response(text=page("webcomm_menu.html"), content_type="text/html")
+                response = web.Response(text=self.menu, content_type="text/html")
                 response.set_cookie(SESSION_COOKIE, session)
                 return response
             return web.Response(text=page("webcomm_login.html", error="Anmeldung fehlgeschlagen"),
                                 content_type="text/html")
         if self.signed_in(request):
-            return web.Response(text=page("webcomm_menu.html"), content_type="text/html")
+            return web.Response(text=self.menu, content_type="text/html")
         return web.Response(text=page("webcomm_login.html"), content_type="text/html")
 
     async def roster(self, request: web.Request) -> web.Response:
@@ -93,6 +99,15 @@ async def web_server(hass):
 async def fake_webcomm(socket_enabled, aiohttp_server):
     """The fake portal on 127.0.0.1; Home Assistant's test harness blocks sockets otherwise."""
     portal = FakeWebComm()
+    server = await aiohttp_server(portal.app)
+    portal.url = str(server.make_url("/WebComm/"))
+    return portal
+
+
+@pytest.fixture
+async def fake_webcomm_roster_only(socket_enabled, aiohttp_server):
+    """A portal that only exposes the roster, so the account sensors must stay away."""
+    portal = FakeWebComm(accounts=False)
     server = await aiohttp_server(portal.app)
     portal.url = str(server.make_url("/WebComm/"))
     return portal
