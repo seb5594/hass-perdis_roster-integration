@@ -85,8 +85,19 @@ def parse_shift_detail(html: str, day: date, zone: ZoneInfo) -> ShiftDetail:
         segment = _segment(cells, columns, day, zone)
         if segment is not None:
             segments.append(segment)
+        elif segments and (relief := _relief_marker(cells, columns)):
+            # A row without times that only carries a "+/-" marker: the relief direction of the leg
+            # just above it (take a vehicle over at the start / hand it over at the end).
+            segments[-1].relief = relief
     segments.sort(key=lambda segment: segment.start)
     return ShiftDetail(segments)
+
+
+def _relief_marker(cells: list[str], columns: dict[str, int]) -> str:
+    """A relief marker like "+/-" from a row's description cell, or "" when it is something else."""
+    text = _cell(cells, columns.get("kind"))
+    compact = text.replace(" ", "")
+    return text.strip() if compact and "/" in compact and set(compact) <= set("+-–/") else ""
 
 
 def _detail_table(document: Element) -> Element | None:

@@ -256,11 +256,7 @@ async def test_detail_legs_are_added_even_when_the_roster_already_has_times(hass
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
 
 
-def _posted(form: dict, suffix: str) -> str | None:
-    return next((value for name, value in form.items() if name.endswith(suffix)), None)
-
-
-async def test_duty_swaps_are_listed_and_can_be_acted_on(hass, fake_webcomm):
+async def test_open_duty_swaps_are_listed(hass, fake_webcomm):
     await add_account(hass, fake_webcomm)
     await hass.async_block_till_done()
 
@@ -268,22 +264,8 @@ async def test_duty_swaps_are_listed_and_can_be_acted_on(hass, fake_webcomm):
     swaps = state_of(hass, "sensor", "duty_swaps")
     assert swaps.state == "1"
     assert swaps.attributes["swaps"][0]["id"] == "90201"
+    assert swaps.attributes["swaps"][0]["duty"] == "3095"
     assert swaps.attributes["request_from"] == "2026-11-25"
-
-    # Requesting a swap submits the portal form with the save button and the chosen date.
-    await hass.services.async_call(
-        DOMAIN, "swap_request", {"start_date": "2026-11-26"}, blocking=True)
-    await hass.async_block_till_done()
-    request = fake_webcomm.swap_posts[-1]
-    assert request["RequestEditor"] == "save"
-    assert _posted(request, "txtRequestFrom") == "2026-11-26"
-
-    # Accepting a swap submits the hidden action and the swap's id.
-    await hass.services.async_call(
-        DOMAIN, "swap_accept", {"swap_id": "90201"}, blocking=True)
-    await hass.async_block_till_done()
-    accept = fake_webcomm.swap_posts[-1]
-    assert _posted(accept, "HdnAction") == "accept"
-    assert _posted(accept, "hdnObject") == "90201"
+    assert swaps.attributes["request_to"] == "2026-12-09"
 
     await hass.config_entries.async_unload(entry_of(hass).entry_id)

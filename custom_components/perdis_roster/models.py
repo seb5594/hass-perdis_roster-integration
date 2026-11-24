@@ -54,6 +54,9 @@ class DutySegment:
     line: str | None = None
     kind: str = ""  # the portal's own short code, e.g. a drive, a break or a preparation
     is_break: bool = False
+    # The relief marker the detail page prints for the leg, e.g. "+/-" or "-/-": whether the driver
+    # takes a vehicle over at the start and hands it over at the end, so they know which way to relieve.
+    relief: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -64,6 +67,7 @@ class DutySegment:
             "line": self.line,
             "kind": self.kind,
             "is_break": self.is_break,
+            "relief": self.relief,
         }
 
     @classmethod
@@ -76,6 +80,7 @@ class DutySegment:
             line=data.get("line"),
             kind=data.get("kind", ""),
             is_break=data.get("is_break", False),
+            relief=data.get("relief", ""),
         )
 
 

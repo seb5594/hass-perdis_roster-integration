@@ -67,19 +67,6 @@ class PortalClient(ABC):
         """Pages the client found on its own (kind -> URL), for the diagnostics."""
         return {}
 
-    @property
-    def supports_swaps(self) -> bool:
-        """Whether this portal lets the integration enter and answer shift swaps."""
-        return False
-
-    async def async_request_swap(self, start: date, end: date, partner: str = "", check: bool = False) -> str:
-        """Enter a shift-swap request (or only validate it when `check`); returns the portal's reply."""
-        raise PerdisPortalError("This portal does not support entering shift swaps")
-
-    async def async_resolve_swap(self, action: str, swap_id: str) -> str:
-        """Accept, reject or withdraw a shift swap by its id; returns the portal's reply."""
-        raise PerdisPortalError("This portal does not support answering shift swaps")
-
 
 def normalize_base_url(url: str, default_path: str = "") -> str:
     """Turn whatever the user typed into the clean folder address of the portal.

@@ -28,9 +28,9 @@ DAY_LABELS = {
 }
 DETAIL_LABELS = {
     "en": {"start": "Starts at", "end": "Ends at", "lines": "Lines", "hours": "Paid hours",
-           "split": "Split shift", "parts": "Legs"},
+           "split": "Split shift", "parts": "Legs", "relief": "Relief"},
     "de": {"start": "Beginn in", "end": "Ende in", "lines": "Linien", "hours": "Bezahlte Stunden",
-           "split": "Geteilter Dienst", "parts": "Abschnitte"},
+           "split": "Geteilter Dienst", "parts": "Abschnitte", "relief": "Ablösung"},
 }
 
 
@@ -107,6 +107,7 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
         extra = " ".join(part for part in (
             f"{self._details['lines']} {segment.line}" if segment.line else "",
             f"({segment.kind})" if segment.kind else "",
+            f"{self._details['relief']} {segment.relief}" if segment.relief else "",
         ) if part)
         return "  ".join(part for part in (times, where, extra) if part)
 
