@@ -29,20 +29,30 @@ def page(name: str, **values: str) -> str:
 class FakeWebComm:
     """State of the fake portal, so tests can expire the session or count requests."""
 
-    def __init__(self, accounts: bool = True, calendar: bool = False) -> None:
+    def __init__(self, accounts: bool = True, calendar: bool = False, swaps: bool = True) -> None:
         self.sessions: set[str] = set()
         self.logins = 0
         self.accounts = accounts  # a roster-only portal that serves no account pages
         self.calendar = calendar  # a portal that renders roster.aspx as a month calendar
+        self.swap_posts: list[dict] = []  # every form a test submitted to the duty-swap page
         self.app = web.Application()
         self.app.router.add_get("/WebComm/", self.root)
         self.app.router.add_route("*", "/WebComm/default.aspx", self.default)
         self.app.router.add_route("*", "/WebComm/Dienstplan.aspx", self.roster)
         self.app.router.add_route("*", "/WebComm/roster.aspx", self.calendar_roster)
         self.app.router.add_get("/WebComm/shift.aspx", self.shift)
+        if swaps:
+            self.app.router.add_route("*", "/WebComm/dutyswap.aspx", self.dutyswap)
         if accounts:
             self.app.router.add_get("/WebComm/Salden.aspx", self.protected("webcomm_balances.html"))
             self.app.router.add_get("/WebComm/WEPunkte.aspx", self.protected("webcomm_weekend_points.html"))
+
+    async def dutyswap(self, request: web.Request) -> web.Response:
+        if not self.signed_in(request):
+            raise web.HTTPFound("/WebComm/default.aspx")
+        if request.method == "POST":
+            self.swap_posts.append(dict(await request.post()))
+        return web.Response(text=page("webcomm_dutyswap.html"), content_type="text/html")
 
     def signed_in(self, request: web.Request) -> bool:
         return request.cookies.get(SESSION_COOKIE) in self.sessions

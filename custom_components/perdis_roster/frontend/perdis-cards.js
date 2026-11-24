@@ -15,7 +15,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.24.2";
+const VERSION = "2026.11.24.3";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -893,6 +893,160 @@ const ACCOUNTS_EDITOR = (hass) => [
   section(hass, "sec_behavior", [field.tapAction]),
 ];
 
+// --- Duty-swap card ------------------------------------------------------------------------------
+
+const SWAP_STYLE = `
+  .content { padding: 8px 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .window { color: var(--secondary-text-color); font-size: 0.85em; }
+  .swap { border: 1px solid var(--divider-color); border-radius: 12px; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 6px; border-left: 4px solid var(--accent, var(--primary-color)); }
+  .swap .top { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; }
+  .swap .sub { color: var(--secondary-text-color); font-size: 0.85em;
+    display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .swap .acts, .request .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  button.act { border: 0; border-radius: 10px; padding: 7px 12px; cursor: pointer; font: inherit;
+    display: inline-flex; align-items: center; gap: 6px; color: #fff; }
+  button.accept { background: var(--success-color, #2e7d32); }
+  button.reject { background: var(--error-color, #c62828); }
+  button.withdraw { background: var(--secondary-text-color, #607d8b); }
+  button.request { background: var(--primary-color); }
+  button.check { background: var(--secondary-background-color); color: var(--primary-text-color); }
+  .request { border-top: 1px solid var(--divider-color); padding-top: 10px;
+    display: flex; flex-direction: column; gap: 8px; }
+  .request .inputs { display: flex; flex-wrap: wrap; gap: 8px; }
+  .request input { padding: 7px 10px; border-radius: 10px; border: 1px solid var(--divider-color);
+    background: var(--card-background-color); color: var(--primary-text-color); font: inherit; }
+  .empty { padding: 4px 0; color: var(--secondary-text-color); }
+`;
+
+class PerdisSwapCard extends PerdisCardBase {
+  static defaults() {
+    return { show_request: true };
+  }
+
+  static getConfigElement() {
+    return document.createElement("perdis-swap-card-editor");
+  }
+
+  _entryId() {
+    const deviceId = this._config?.device_id || firstDevice(this._hass);
+    return this._hass?.devices?.[deviceId]?.config_entries?.[0];
+  }
+
+  _call(service, data) {
+    const payload = { ...data };
+    const entry = this._entryId();
+    if (entry) payload.config_entry_id = entry;
+    this._hass.callService("perdis_roster", service, payload);
+  }
+
+  _render() {
+    const de = language(this._hass).startsWith("de");
+    const t = {
+      title: de ? "Diensttausch" : "Duty swaps",
+      none: de ? "Keine offenen Tausche." : "No open swaps.",
+      noCard: de ? "Keine Diensttausch-Daten." : "No duty-swap data.",
+      window: de ? "Wünsche möglich für" : "Requests possible for",
+      accept: de ? "Annehmen" : "Accept",
+      reject: de ? "Ablehnen" : "Reject",
+      withdraw: de ? "Zurückziehen" : "Withdraw",
+      request: de ? "Beantragen" : "Request",
+      check: de ? "Prüfen" : "Check",
+      from: de ? "Von" : "From",
+      to: de ? "Bis" : "Until",
+      partner: de ? "Partner (optional)" : "Partner (optional)",
+      heading: de ? "Tausch beantragen" : "Request a swap",
+    };
+    const title = this._config?.title || t.title;
+    const attrs = this.attributes("dutyswap");
+    if (!attrs) return this.frame(title, `<div class="content"><div class="empty">${escapeHtml(t.noCard)}</div></div>`,
+      SWAP_STYLE, accentOf(this._config, "work"));
+
+    const swaps = Array.isArray(attrs.swaps) ? attrs.swaps : [];
+    const windowLine = attrs.request_from && attrs.request_to
+      ? `<div class="window">${escapeHtml(t.window)} ${escapeHtml(formatDay(this._hass, attrs.request_from))} – ${escapeHtml(formatDay(this._hass, attrs.request_to))}</div>`
+      : "";
+    const rows = swaps.length
+      ? swaps.map((swap) => this._swapRow(swap, t)).join("")
+      : `<div class="empty">${escapeHtml(t.none)}</div>`;
+    const request = this._config?.show_request === false ? "" : this._requestForm(t);
+
+    this.frame(title, `<div class="content">${windowLine}${rows}${request}</div>`,
+      SWAP_STYLE, accentOf(this._config, "work"));
+    this._wire();
+  }
+
+  _swapRow(swap, t) {
+    const day = swap.day ? formatDay(this._hass, swap.day) : "";
+    const headline = [day, swap.duty, swap.time].filter(Boolean).map(escapeHtml).join(" · ");
+    const sub = [swap.partner, swap.status, swap.type].filter(Boolean)
+      .map((text) => `<span>${escapeHtml(text)}</span>`).join("");
+    const id = escapeHtml(swap.id);
+    const button = (cls, service, label, icon) =>
+      `<button class="act ${cls}" data-service="${service}" data-swap="${id}">
+         <ha-icon icon="${icon}" style="--mdc-icon-size:18px"></ha-icon>${escapeHtml(label)}</button>`;
+    return `<div class="swap">
+        <div class="top"><span>${headline}</span></div>
+        <div class="sub">${sub}</div>
+        <div class="acts">
+          ${button("accept", "swap_accept", t.accept, "mdi:check")}
+          ${button("reject", "swap_reject", t.reject, "mdi:close")}
+          ${button("withdraw", "swap_withdraw", t.withdraw, "mdi:undo")}
+        </div>
+      </div>`;
+  }
+
+  _requestForm(t) {
+    return `<div class="request">
+        <div class="top" style="font-weight:600">${escapeHtml(t.heading)}</div>
+        <div class="inputs">
+          <input type="date" class="req-from" aria-label="${escapeHtml(t.from)}" />
+          <input type="date" class="req-to" aria-label="${escapeHtml(t.to)}" />
+          <input type="text" class="req-partner" placeholder="${escapeHtml(t.partner)}" />
+        </div>
+        <div class="acts">
+          <button class="act check" data-check="1"><ha-icon icon="mdi:magnify" style="--mdc-icon-size:18px"></ha-icon>${escapeHtml(t.check)}</button>
+          <button class="act request" data-request="1"><ha-icon icon="mdi:swap-horizontal" style="--mdc-icon-size:18px"></ha-icon>${escapeHtml(t.request)}</button>
+        </div>
+      </div>`;
+  }
+
+  _wire() {
+    const root = this.shadowRoot;
+    root.querySelectorAll("button.act[data-swap]").forEach((element) => {
+      element.addEventListener("click", () =>
+        this._call(element.dataset.service, { swap_id: element.dataset.swap }));
+    });
+    const submit = (validateOnly) => {
+      const from = root.querySelector(".req-from")?.value;
+      const to = root.querySelector(".req-to")?.value;
+      const partner = root.querySelector(".req-partner")?.value;
+      if (!from) return;
+      const data = { start_date: from, validate_only: validateOnly };
+      if (to) data.end_date = to;
+      if (partner) data.partner = partner;
+      this._call("swap_request", data);
+    };
+    root.querySelector("button[data-request]")?.addEventListener("click", () => submit(false));
+    root.querySelector("button[data-check]")?.addEventListener("click", () => submit(true));
+  }
+
+  getCardSize() {
+    return 4;
+  }
+}
+
+const SWAP_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    { name: "show_request", selector: { boolean: {} } },
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+    field.accent,
+  ]),
+];
+
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
@@ -902,6 +1056,8 @@ const CARDS = [
     "The coming days by week, with days off and roster changes marked."],
   ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "Perdis: accounts",
     "Overtime, vacation, weekend points and free weekends at a glance."],
+  ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "Perdis: duty swaps",
+    "Open shift swaps with accept, reject and request, so the app is no longer needed."],
 ];
 
 window.customCards = window.customCards || [];

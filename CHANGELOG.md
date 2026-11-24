@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.24.3
+
+- 🔄 **Duty swaps** on portals that offer them: a new **Open duty swaps** sensor lists the open
+  offers and the period new requests may cover, and a new **Perdis: duty swaps** Lovelace card
+  shows them with one-tap **Accept**, **Reject** and **Withdraw**, plus a small form to **request**
+  a swap (with a **Check** that only validates it first).
+- 🛠️ New services `perdis_roster.swap_request`, `swap_accept`, `swap_reject` and `swap_withdraw`
+  for automations and scripts. Every swap is only ever submitted when you trigger it; nothing is
+  sent to the portal on its own. Portals without a swap page simply do not get the sensor or card.
+
 ## 2026.11.24.2
 
 - 🗓️ The month calendar is read more completely: each day's date comes from its own link, the shift

@@ -21,6 +21,7 @@ CAP_VACATION = "vacation"        # remaining leave days are readable
 CAP_WEEKEND_POINTS = "weekend_points"    # the weekend points balance is readable
 CAP_WEEKEND_AVERAGE = "weekend_average"  # the group average for weekend points is readable
 CAP_WEEKEND_FREE = "weekend_free"        # the count of free weekends is readable
+CAP_SWAP = "dutyswap"            # the shift-swap page is readable (and can be acted on)
 
 ALL_CAPABILITIES: frozenset[str] = frozenset({
     CAP_ROSTER,
@@ -29,6 +30,7 @@ ALL_CAPABILITIES: frozenset[str] = frozenset({
     CAP_WEEKEND_POINTS,
     CAP_WEEKEND_AVERAGE,
     CAP_WEEKEND_FREE,
+    CAP_SWAP,
 })
 
 
@@ -42,6 +44,8 @@ def detect(reachable_pages: set[str], snapshot: Snapshot) -> frozenset[str]:
     capabilities: set[str] = set()
     if "roster" in reachable_pages:
         capabilities.add(CAP_ROSTER)
+    if "dutyswap" in reachable_pages:
+        capabilities.add(CAP_SWAP)
 
     balances = snapshot.balances
     if balances.overtime_minutes is not None:

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 import logging
 from typing import Any
 
@@ -50,7 +50,7 @@ from .const import (
     TimelineEvent,
 )
 from .insights import InsightSettings, RosterInsights
-from .models import Duty, ScheduleChange, Snapshot
+from .models import Duty, DutySwap, ScheduleChange, Snapshot
 from .storage import PerdisStore, StoredState
 
 _LOGGER = logging.getLogger(__name__)
@@ -120,6 +120,33 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
             self._insights = RosterInsights(snapshot, now, self.settings)
             self._insights_source = snapshot
         return self._insights
+
+    @property
+    def _snapshot(self) -> Snapshot | None:
+        return self.data.snapshot if self.data else None
+
+    @property
+    def swaps(self) -> list[DutySwap]:
+        """The open shift swaps the portal listed on the last refresh."""
+        return self._snapshot.swaps if self._snapshot else []
+
+    @property
+    def swap_window(self) -> tuple[date, date] | None:
+        """The period the portal accepts new swap requests for, if it shows one."""
+        return self._snapshot.swap_window if self._snapshot else None
+
+    async def async_request_swap(self, start: date, end: date, partner: str = "", check: bool = False) -> str:
+        """Enter (or only validate) a shift-swap request through the portal, then refresh."""
+        message = await self.client.async_request_swap(start, end, partner, check)
+        if not check:
+            await self.async_request_refresh()
+        return message
+
+    async def async_resolve_swap(self, action: str, swap_id: str) -> str:
+        """Accept, reject or withdraw a shift swap through the portal, then refresh."""
+        message = await self.client.async_resolve_swap(action, swap_id)
+        await self.async_request_refresh()
+        return message
 
     @property
     def device_id(self) -> str | None:

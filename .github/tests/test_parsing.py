@@ -318,3 +318,23 @@ class HolidaysVacationSummary(unittest.TestCase):
         balances = webcomm.WebCommParser(ZONE).parse(pages, at("2026-11-23", 3)).balances
         self.assertEqual(balances.vacation_remaining_days, 3.0)   # Restanspruch of the main account
         self.assertEqual(balances.vacation_entitlement_days, 32.0)  # Urlaubsanspruch
+
+
+class DutySwapPage(unittest.TestCase):
+    """The duty-swap page lists open swap offers and the period new requests may cover."""
+
+    def setUp(self):
+        self.dutyswap = load("parsing.dutyswap")
+
+    def test_open_swaps_without_the_placeholder_row(self):
+        swaps = self.dutyswap.parse_duty_swaps(fixture("webcomm_dutyswap.html"), TODAY)
+        self.assertEqual(len(swaps), 1)  # the empty "-" row is left out
+        swap = swaps[0]
+        self.assertEqual(swap.swap_id, "90201")  # the handle the portal acts on
+        self.assertEqual(swap.day, date(2026, 11, 26))
+        self.assertEqual((swap.duty, swap.time, swap.partner), ("3095", "10:22 - 18:03", "Mustermann"))
+        self.assertEqual((swap.status, swap.kind), ("Angeboten", "Abgabe"))
+
+    def test_request_window_from_the_heading(self):
+        window = self.dutyswap.parse_swap_window(fixture("webcomm_dutyswap.html"), TODAY)
+        self.assertEqual(window, (date(2026, 11, 25), date(2026, 12, 9)))

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="de"><head><title>WebComm</title></head>
+<body>
+<header><h4>Diensttausch - Sie koennen Diensttauschwuensche fuer den Zeitraum vom 25.11.2026 bis 09.12.2026 eintragen.</h4></header>
+<form method="post" action="./dutyswap.aspx" id="aspnetForm">
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="c3dhcA==" />
+<input type="hidden" name="__VIEWSTATEGENERATOR" id="__VIEWSTATEGENERATOR" value="548A4B58" />
+<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="ZXZhbA==" />
+<input name="ctl00$cntMainBody$HdnAction" type="hidden" id="ctl00_cntMainBody_HdnAction" />
+<input name="ctl00$cntMainBody$hdnObject" type="hidden" id="ctl00_cntMainBody_hdnObject" />
+<div id="DiensttauschTable"><div>
+<table class="table" id="ctl00_cntMainBody_lstDiensttausch">
+  <thead>
+    <tr class="header"><th>Von</th><th>Bis</th><th>Tauschpartner</th><th>Dienst</th><th>Zeit</th><th>Ort von</th><th>Ort bis</th><th>Dienstdauer</th><th>Lohnstunden</th><th>Dienstart</th><th>Profil</th><th>Erstellt am</th><th>Verfaellt am</th><th>Status</th><th>Typ</th><th>Auswaehlen</th></tr>
+  </thead>
+  <tbody>
+    <tr class="containsFromToDates">
+      <td>26.11.2026</td><td>26.11.2026</td><td>Mustermann</td><td>3095</td><td>10:22 - 18:03</td><td>Hbf</td><td>Hbf</td><td>07:41</td><td>07:41</td><td>Normaldienst</td><td>Spaet</td><td>24.11.2026</td><td>09.12.2026</td><td>Angeboten</td><td>Abgabe</td>
+      <td><div class="form-check"><input type="radio" name="list" id="90201" onclick="selectRequest(this);" class="form-check-input" title="check"/></div></td>
+    </tr>
+    <tr class="containsFromToDates">
+      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+<div id="collapse" class="collapse">
+  <input name="ctl00$cntMainBody$txtRequestFrom" type="date" id="ctl00_cntMainBody_txtRequestFrom" class="form-control" />
+  <input name="ctl00$cntMainBody$txtRequestTo" type="date" id="ctl00_cntMainBody_txtRequestTo" class="form-control" />
+  <input name="ctl00$cntMainBody$txtSwapPartner" type="text" maxlength="100" id="ctl00_cntMainBody_txtSwapPartner" class="form-control" />
+  <button id="ctl00_cntMainBody_btnRequestCheck" value="check" type="submit" name="RequestEditor">Pruefen</button>
+  <button id="ctl00_cntMainBody_btnRequestSave" value="save" type="submit" name="RequestEditor">Speichern</button>
+</div>
+</form>
+</body></html>
