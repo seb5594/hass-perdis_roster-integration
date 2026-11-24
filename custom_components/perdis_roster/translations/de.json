@@ -282,74 +282,6 @@
           "description": "Letzter Tag; leer bedeutet zwei Wochen nach dem ersten Tag."
         }
       }
-    },
-    "swap_request": {
-      "name": "Diensttausch beantragen",
-      "description": "Trägt im Portal einen Tauschwunsch für einen Dienst ein (oder prüft ihn nur vorab).",
-      "fields": {
-        "config_entry_id": {
-          "name": "Konto",
-          "description": "Das Konto, falls du mehrere hast."
-        },
-        "start_date": {
-          "name": "Von",
-          "description": "Erster Tag des zu tauschenden Dienstes."
-        },
-        "end_date": {
-          "name": "Bis",
-          "description": "Letzter Tag; leer bedeutet gleich dem ersten Tag."
-        },
-        "partner": {
-          "name": "Tauschpartner",
-          "description": "Personalnummer einer bestimmten Kollegin/eines Kollegen, falls nötig."
-        },
-        "validate_only": {
-          "name": "Nur prüfen",
-          "description": "Nur beim Portal nachfragen, ob der Tausch erlaubt ist, ohne ihn einzutragen."
-        }
-      }
-    },
-    "swap_accept": {
-      "name": "Diensttausch annehmen",
-      "description": "Nimmt einen angebotenen Tausch anhand seiner Id an (siehe Sensor „Offene Diensttausche“).",
-      "fields": {
-        "config_entry_id": {
-          "name": "Konto",
-          "description": "Das Konto, falls du mehrere hast."
-        },
-        "swap_id": {
-          "name": "Tausch",
-          "description": "Die Id des anzunehmenden Tauschs."
-        }
-      }
-    },
-    "swap_reject": {
-      "name": "Diensttausch ablehnen",
-      "description": "Lehnt einen angebotenen Tausch anhand seiner Id ab.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Konto",
-          "description": "Das Konto, falls du mehrere hast."
-        },
-        "swap_id": {
-          "name": "Tausch",
-          "description": "Die Id des abzulehnenden Tauschs."
-        }
-      }
-    },
-    "swap_withdraw": {
-      "name": "Diensttausch zurückziehen",
-      "description": "Zieht einen zuvor eingetragenen Tauschwunsch anhand seiner Id zurück.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Konto",
-          "description": "Das Konto, falls du mehrere hast."
-        },
-        "swap_id": {
-          "name": "Tausch",
-          "description": "Die Id des zurückzuziehenden Tauschwunsches."
-        }
-      }
     }
   },
   "exceptions": {
@@ -358,12 +290,6 @@
     },
     "end_before_start": {
       "message": "Der letzte Tag liegt vor dem ersten Tag."
-    },
-    "choose_account": {
-      "message": "Es sind mehrere Konten eingerichtet; gib das Konto für den Tausch an."
-    },
-    "swaps_unsupported": {
-      "message": "Dieses Portal bietet keinen Diensttausch an."
     }
   }
 }

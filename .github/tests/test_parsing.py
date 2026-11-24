@@ -267,6 +267,11 @@ class ShiftDetailPage(unittest.TestCase):
     def test_only_timed_legs_become_segments(self):
         self.assertEqual(len(self.detail.segments), 5)  # the "- / -" separator rows are skipped
 
+    def test_relief_marker_is_attached_to_the_leg_above_it(self):
+        # The driving leg is followed by a "+ / -" row: take a vehicle over, do not hand it over.
+        self.assertEqual(self.detail.segments[1].relief, "+ / -")
+        self.assertEqual(self.detail.segments[0].relief, "- / -")
+
     def test_applying_the_detail_fills_the_duty(self):
         duty = models.Duty(day=date(2026, 11, 24), duty_type=DutyType.WORK, code="3095")
         self.detail.apply_to(duty)

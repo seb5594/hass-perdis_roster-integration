@@ -135,19 +135,6 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         """The period the portal accepts new swap requests for, if it shows one."""
         return self._snapshot.swap_window if self._snapshot else None
 
-    async def async_request_swap(self, start: date, end: date, partner: str = "", check: bool = False) -> str:
-        """Enter (or only validate) a shift-swap request through the portal, then refresh."""
-        message = await self.client.async_request_swap(start, end, partner, check)
-        if not check:
-            await self.async_request_refresh()
-        return message
-
-    async def async_resolve_swap(self, action: str, swap_id: str) -> str:
-        """Accept, reject or withdraw a shift swap through the portal, then refresh."""
-        message = await self.client.async_resolve_swap(action, swap_id)
-        await self.async_request_refresh()
-        return message
-
     @property
     def device_id(self) -> str | None:
         """The id of this account's device, looked up through its config entry."""

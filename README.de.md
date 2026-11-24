@@ -416,8 +416,6 @@ actions:
 | --- | --- |
 | `perdis_roster.refresh` | Fragt das Portal sofort ab, statt auf die nächste Abfrage zu warten. Optional `config_entry_id` |
 | `perdis_roster.get_duties` | Liefert die Dienste zwischen `start_date` und `end_date` (Standard: zwei Wochen ab heute) samt geplanter Stunden – für Skripte und Benachrichtigungen |
-| `perdis_roster.swap_request` | Trägt einen Tauschwunsch für `start_date` (bis `end_date`) ein, optional `partner`; mit `validate_only: true` prüft das Portal ihn nur vorab |
-| `perdis_roster.swap_accept` / `swap_reject` / `swap_withdraw` | Beantwortet einen offenen Tausch anhand seiner `swap_id` (aus dem Sensor **Offene Diensttausche**) |
 
 ```yaml
 action: perdis_roster.get_duties
@@ -430,11 +428,10 @@ response_variable: dienstplan
 ### 🔄 Diensttausch
 
 Bei Portalen mit Diensttausch listet der Sensor **Offene Diensttausche** die offenen Angebote und den
-Zeitraum für neue Wünsche, und die Dashboard-Karte **Perdis: Diensttausch** zeigt sie mit
-**Annehmen**, **Ablehnen** und **Zurückziehen** per Tipp sowie einem kleinen Formular zum
-**Beantragen** – so ist die offizielle App dafür nicht mehr nötig. Ein Tausch wird nur dann ans
-Portal gesendet, wenn du ihn auslöst; von allein passiert nichts. Portale ohne Tausch-Seite
-bekommen Sensor und Karte gar nicht erst.
+Zeitraum für neue Wünsche, und die Dashboard-Karte **Perdis: Diensttausch** zeigt sie übersichtlich.
+Vorerst nur zur Anzeige; das Eintragen und Beantworten von Tauschen aus Home Assistant folgt, sobald
+es gegen ein echtes Portal vollständig getestet ist. Portale ohne Tausch-Seite bekommen Sensor und
+Karte gar nicht erst.
 
 ## 📱 AppComm (Perdis mobil)
 

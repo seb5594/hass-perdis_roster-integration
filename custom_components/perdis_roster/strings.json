@@ -282,74 +282,6 @@
           "description": "Last day; two weeks after the first day when empty."
         }
       }
-    },
-    "swap_request": {
-      "name": "Request a duty swap",
-      "description": "Enters a swap request for a shift in the portal (or only checks it first).",
-      "fields": {
-        "config_entry_id": {
-          "name": "Account",
-          "description": "The account, if you have more than one."
-        },
-        "start_date": {
-          "name": "From",
-          "description": "First day of the shift to swap."
-        },
-        "end_date": {
-          "name": "Until",
-          "description": "Last day; same as the first day when empty."
-        },
-        "partner": {
-          "name": "Swap partner",
-          "description": "Personnel number of a specific colleague, if required."
-        },
-        "validate_only": {
-          "name": "Only check",
-          "description": "Ask the portal whether the swap is allowed without entering it."
-        }
-      }
-    },
-    "swap_accept": {
-      "name": "Accept a duty swap",
-      "description": "Accepts an offered swap by its id (see the Open duty swaps sensor).",
-      "fields": {
-        "config_entry_id": {
-          "name": "Account",
-          "description": "The account, if you have more than one."
-        },
-        "swap_id": {
-          "name": "Swap",
-          "description": "The id of the swap to accept."
-        }
-      }
-    },
-    "swap_reject": {
-      "name": "Reject a duty swap",
-      "description": "Rejects an offered swap by its id.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Account",
-          "description": "The account, if you have more than one."
-        },
-        "swap_id": {
-          "name": "Swap",
-          "description": "The id of the swap to reject."
-        }
-      }
-    },
-    "swap_withdraw": {
-      "name": "Withdraw a duty swap",
-      "description": "Withdraws a swap request you entered earlier, by its id.",
-      "fields": {
-        "config_entry_id": {
-          "name": "Account",
-          "description": "The account, if you have more than one."
-        },
-        "swap_id": {
-          "name": "Swap",
-          "description": "The id of the swap request to withdraw."
-        }
-      }
     }
   },
   "exceptions": {
@@ -358,12 +290,6 @@
     },
     "end_before_start": {
       "message": "The last day lies before the first day."
-    },
-    "choose_account": {
-      "message": "Several accounts are set up; name the account for the swap."
-    },
-    "swaps_unsupported": {
-      "message": "This portal does not offer duty swaps."
     }
   }
 }

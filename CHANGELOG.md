@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.24.4
+
+- 🔀 Each shift leg now shows its **relief direction** (the `+/-` marker from the detail page), so a
+  driver sees where they take a vehicle over and where they hand it off.
+- 👀 Duty swaps are **read-only** for now: the **Open duty swaps** sensor and the **Perdis: duty
+  swaps** card list the open offers and the request window. Entering and answering swaps from Home
+  Assistant will follow once it is fully tested against a live portal.
+
 ## 2026.11.24.3
 
 - 🔄 **Duty swaps** on portals that offer them: a new **Open duty swaps** sensor lists the open

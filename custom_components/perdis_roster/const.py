@@ -69,16 +69,9 @@ EVENT_PERDIS: Final = f"{DOMAIN}_event"  # one event type, the kind is in data["
 
 SERVICE_REFRESH: Final = "refresh"
 SERVICE_GET_DUTIES: Final = "get_duties"
-SERVICE_SWAP_REQUEST: Final = "swap_request"
-SERVICE_SWAP_ACCEPT: Final = "swap_accept"
-SERVICE_SWAP_REJECT: Final = "swap_reject"
-SERVICE_SWAP_WITHDRAW: Final = "swap_withdraw"
 ATTR_CONFIG_ENTRY_ID: Final = "config_entry_id"
 ATTR_START_DATE: Final = "start_date"
 ATTR_END_DATE: Final = "end_date"
-ATTR_PARTNER: Final = "partner"
-ATTR_VALIDATE_ONLY: Final = "validate_only"
-ATTR_SWAP_ID: Final = "swap_id"
 
 
 class TimelineEvent(StrEnum):

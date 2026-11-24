@@ -448,8 +448,6 @@ actions:
 | --- | --- |
 | `perdis_roster.refresh` | Asks the portal now instead of waiting for the next check. Optional `config_entry_id` |
 | `perdis_roster.get_duties` | Returns the duties between `start_date` and `end_date` (default: two weeks from today) and the planned hours, for scripts and notifications |
-| `perdis_roster.swap_request` | Enters a shift-swap request for `start_date` (to `end_date`), optional `partner`; set `validate_only: true` to let the portal check it first |
-| `perdis_roster.swap_accept` / `swap_reject` / `swap_withdraw` | Answers an open swap by its `swap_id` (from the **Open duty swaps** sensor) |
 
 ```yaml
 action: perdis_roster.get_duties
@@ -462,10 +460,9 @@ response_variable: roster
 ### 🔄 Duty swaps
 
 On portals that offer shift swaps, an **Open duty swaps** sensor lists the open offers and the
-period new requests may cover, and the **Perdis: duty swaps** dashboard card shows them with
-one-tap **Accept**, **Reject** and **Withdraw** and a small form to **request** a swap — so the
-official app is no longer needed for it. A swap is only ever sent to the portal when you trigger it;
-nothing is submitted on its own. Portals without a swap page simply do not get the sensor or card.
+period new requests may cover, and the **Perdis: duty swaps** dashboard card shows them at a glance.
+This is read-only for now; entering and answering swaps from Home Assistant will follow once it is
+fully tested against a live portal. Portals without a swap page simply do not get the sensor or card.
 
 ## 📱 AppComm (Perdis mobile)
 
