@@ -30,7 +30,7 @@ SPLIT_GAP_MINUTES = 60
 MAX_CODE_LENGTH = 12
 
 OVERTIME_LABELS = ("überstunden", "ueberstunden", "mehrarbeit", "arbeitszeitkonto", "zeitkonto", "gleitzeit",
-                   "stundenkonto", "plus/minus", "plusminus", "overtime", "overuren", "saldo")
+                   "stundenkonto", "plus/minus", "plusminus", "overtime", "overuren", "saldo", "differenz")
 TARGET_LABELS = ("sollzeit", "soll", "target", "norm")
 ACTUAL_LABELS = ("istzeit", "ist", "actual", "gewerkt")
 VACATION_REMAINING_LABELS = ("resturlaub", "urlaub rest", "resturlaubstage", "verbleibender urlaub", "urlaubsrest",
@@ -52,7 +52,7 @@ class WebCommPages:
     menu: str = ""
     roster: list[str] = field(default_factory=list)
     balances: str = ""
-    vacation: str = ""  # a separate leave-account page (planbals.aspx) when the portal has one
+    vacation: str = ""  # a separate leave-account page (holidays.aspx) when the portal has one
     weekend_points: str = ""
 
 

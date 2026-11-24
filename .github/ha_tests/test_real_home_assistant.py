@@ -61,6 +61,16 @@ async def test_setup_dialog_offers_the_known_operators(hass):
     assert {"rheinbahn", "bogestra", "rnv"} <= {option["value"] for option in options}
 
 
+def test_surname_is_read_from_any_header_order():
+    from custom_components.perdis_roster.config_flow import employee_surname
+
+    assert employee_surname("Max Mustermann (4711)") == "Mustermann"
+    assert employee_surname("Mustermann,Max") == "Mustermann"
+    assert employee_surname("12345 Mustermann,Max") == "Mustermann"
+    assert employee_surname("4711") is None  # a bare number is not a name
+    assert employee_surname(None) is None
+
+
 async def test_wrong_password_is_reported_in_the_dialog(hass, fake_webcomm):
     result = await add_account(hass, fake_webcomm, password="wrong")
     assert result["type"] == "form"
@@ -70,8 +80,8 @@ async def test_wrong_password_is_reported_in_the_dialog(hass, fake_webcomm):
 async def test_account_is_set_up_and_reads_the_roster(hass, fake_webcomm):
     result = await add_account(hass, fake_webcomm)
     assert result["type"] == "create_entry"
-    # The entry is titled "<operator> - <employee name>", read from the portal header.
-    assert result["title"].endswith("- Max Mustermann")
+    # The entry is titled "<personnel number> - <surname>", read from login and the portal header.
+    assert result["title"] == "4711 - Mustermann"
     assert result["data"]["base_url"] == fake_webcomm.url
     await hass.async_block_till_done()
     assert entry_of(hass).state is ConfigEntryState.LOADED

@@ -49,8 +49,8 @@ PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "rooster", "dienstrooster", "planung",
     ),
     "balances": (
-        "salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto",
-        "balances", "accounts", "tegoeden", "saldi",
+        "salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto", "summen", "tageswerte",
+        "balances", "accounts", "tegoeden", "saldi", "totals",
     ),
     "vacation": (
         "urlaub", "resturlaub", "urlaubskonto", "plansalden", "leave", "vacation", "verlof",
@@ -65,7 +65,7 @@ PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
 CANONICAL_PAGES: dict[str, str] = {
     "roster": "roster.aspx",
     "balances": "balances.aspx",
-    "vacation": "planbals.aspx",
+    "vacation": "holidays.aspx",
     "weekend_points": "wepunkte.aspx",
 }
 # The roster page accepts the month as a query string, e.g. roster.aspx?2026-11-01.

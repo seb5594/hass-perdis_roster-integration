@@ -161,6 +161,17 @@ class WebCommAccounts(unittest.TestCase):
         self.assertEqual(restored, self.snapshot)
 
 
+class BalancesAccountsTable(unittest.TestCase):
+    """Some portals list the accounts as a "Konto | Von | Bis | Wert" table, value in the last column."""
+
+    def test_time_account_is_read_from_the_value_column(self):
+        pages = webcomm.WebCommPages(balances=fixture("webcomm_balances_accounts.html"))
+        snapshot = webcomm.WebCommParser(ZONE).parse(pages, at("2026-11-23", 3))
+        # "Differenz Verf. J" is the running time-account balance; -10:17 means 10 h 17 min short.
+        self.assertEqual(snapshot.balances.overtime_minutes, -(10 * 60 + 17))
+        self.assertEqual(snapshot.balances.raw["Differenz Verf. J"], "-10:17")
+
+
 class AppComm(unittest.TestCase):
     def test_any_layout_with_the_usual_field_names(self):
         answers = appcomm.AppCommAnswers(

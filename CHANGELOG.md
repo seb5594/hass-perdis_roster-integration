@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.24.1
+
+- 🏷️ The account is now named "&lt;personnel number&gt; - &lt;surname&gt;" (e.g. `12345 - Mustermann`),
+  read from the login and the portal header, in whichever order the header writes the name.
+- 🗂️ The portal pages are matched to the standard WebComm filenames and more menu labels
+  (`Summen`, `Tageswerte`, `Urlaubswunsch` …), so page discovery works on more portals.
+- ⏱️ The time-account balance is also read when the accounts page lists it as a
+  "Konto / Von / Bis / Wert" table with the value in the last column.
+
 ## 2026.11.24
 
 - 🧩 The calendar now always shows the leg-by-leg breakdown of a shift (preparation, driving legs
