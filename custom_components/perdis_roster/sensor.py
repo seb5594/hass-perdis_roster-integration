@@ -25,6 +25,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .capabilities import (
     CAP_OVERTIME,
     CAP_ROSTER,
+    CAP_SWAP,
     CAP_VACATION,
     CAP_WEEKEND_AVERAGE,
     CAP_WEEKEND_FREE,
@@ -169,6 +170,15 @@ def _changes_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
     ]}
 
 
+def _swap_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
+    window = coordinator.swap_window
+    return {
+        "swaps": [swap.to_dict() for swap in coordinator.swaps],
+        "request_from": window[0].isoformat() if window else None,
+        "request_to": window[1].isoformat() if window else None,
+    }
+
+
 def _snapshot(coordinator: PerdisCoordinator):
     return coordinator.data.snapshot
 
@@ -301,6 +311,11 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=_changes_attributes,
     ),
     PerdisSensorDescription(
+        key="duty_swaps", role="dutyswap", state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: len(c.swaps),
+        attributes_fn=_swap_attributes,
+    ),
+    PerdisSensorDescription(
         key="last_refresh", device_class=SensorDeviceClass.TIMESTAMP, entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.data.last_success,
         attributes_fn=lambda c: {"online": c.data.online, "last_error": c.data.last_error,
@@ -317,6 +332,7 @@ SENSOR_CAPABILITY: dict[str, str | None] = {
     "weekend_points": CAP_WEEKEND_POINTS,
     "weekend_points_difference": CAP_WEEKEND_AVERAGE,
     "free_weekends_year": CAP_WEEKEND_FREE,
+    "duty_swaps": CAP_SWAP,
     "last_refresh": None,
 }
 

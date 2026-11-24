@@ -25,6 +25,7 @@ from urllib.parse import urljoin
 import aiohttp
 
 from ..models import DutyType, Snapshot
+from ..parsing.dutyswap import parse_duty_swaps, parse_swap_window
 from ..parsing.html import Element, PostBack, links, login_form, parse_forms, parse_html
 from ..parsing.values import normalize_label
 from ..parsing.shift_detail import parse_shift_detail
@@ -59,6 +60,10 @@ PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "we-punkte", "we punkte", "wochenendpunkte", "wochenende", "punkte",
         "weekend points", "weekendpunten",
     ),
+    "dutyswap": (
+        "dienst tauschen", "diensttausch", "tauschen", "tausch", "swap", "duty swap",
+        "shift swap", "dienstruil", "ruilen",
+    ),
 }
 # Filenames WebComm uses regardless of the portal's menu language. They are tried when the menu
 # did not reveal a page of that kind, so a portal whose menu labels we do not recognise still works.
@@ -67,11 +72,21 @@ CANONICAL_PAGES: dict[str, str] = {
     "balances": "balances.aspx",
     "vacation": "holidays.aspx",
     "weekend_points": "wepunkte.aspx",
+    "dutyswap": "dutyswap.aspx",
 }
 # The roster page accepts the month as a query string, e.g. roster.aspx?2026-11-01.
 CANONICAL_ROSTER = "roster.aspx"
 # Each shift's detail page (its legs with real times) answers at shift.aspx?YYYY-MM-DD.
 CANONICAL_SHIFT = "shift.aspx"
+CANONICAL_SWAP = "dutyswap.aspx"
+# The portal's own word for each swap action, set in its hidden "HdnAction" field on submit.
+SWAP_ACTIONS: dict[str, str] = {"accept": "accept", "reject": "reject", "withdraw": "delete"}
+# Field ids on the swap page (matched by the end of the ASP.NET control id, which the prefix varies).
+SWAP_FIELD_FROM = "txtRequestFrom"
+SWAP_FIELD_TO = "txtRequestTo"
+SWAP_FIELD_PARTNER = "txtSwapPartner"
+SWAP_FIELD_ACTION = "HdnAction"
+SWAP_FIELD_OBJECT = "hdnObject"
 MAX_DETAIL_FETCHES = 16  # a hard ceiling on detail pages fetched per refresh
 # When the month roster already carries the times but a working day's detail page serves no leg
 # table, the portal simply has no per-shift breakdown: stop probing after this many such misses so
@@ -196,7 +211,69 @@ class WebCommClient(PortalClient):
                 self._reachable.add(kind)
             snapshot = self._parser.parse(pages, now)
             await self._enrich_with_details(snapshot, now.date())
+            await self._read_swaps(snapshot, now.date())
         return snapshot
+
+    async def _read_swaps(self, snapshot: Snapshot, today: date) -> None:
+        """Read the open shift swaps and the period the portal accepts swap requests for."""
+        url = self._pages.get("dutyswap")
+        if not url:
+            return
+        try:
+            page = await self._get_signed_in(url)
+        except (PerdisConnectionError, PerdisPortalError) as error:  # the portal has no swap page
+            _LOGGER.debug("Duty-swap page unavailable: %s", error)
+            return
+        snapshot.swaps = parse_duty_swaps(page.html, today)
+        snapshot.swap_window = parse_swap_window(page.html, today)
+        self._reachable.add("dutyswap")
+
+    @property
+    def supports_swaps(self) -> bool:
+        return True
+
+    async def async_request_swap(self, start: date, end: date, partner: str = "", check: bool = False) -> str:
+        """Enter a swap request for the shift(s) between `start` and `end` (or only validate it)."""
+        async with self._lock:
+            page, fields, action_url = await self._open_swap_form()
+            self._set_swap_field(page, fields, SWAP_FIELD_FROM, start.isoformat())
+            self._set_swap_field(page, fields, SWAP_FIELD_TO, end.isoformat())
+            if partner:
+                self._set_swap_field(page, fields, SWAP_FIELD_PARTNER, partner)
+            fields["RequestEditor"] = "check" if check else "save"
+            answer = await self._post(action_url, fields)
+        return _error_text(answer.document)
+
+    async def async_resolve_swap(self, action: str, swap_id: str) -> str:
+        """Accept, reject or withdraw the swap the portal knows by `swap_id`."""
+        if action not in SWAP_ACTIONS:
+            raise PerdisPortalError(f"Unknown swap action {action!r}")
+        async with self._lock:
+            page, fields, action_url = await self._open_swap_form()
+            self._set_swap_field(page, fields, SWAP_FIELD_ACTION, SWAP_ACTIONS[action])
+            self._set_swap_field(page, fields, SWAP_FIELD_OBJECT, swap_id)
+            answer = await self._post(action_url, fields)
+        return _error_text(answer.document)
+
+    async def _open_swap_form(self) -> tuple[_Page, dict[str, str], str]:
+        """Fetch the swap page and return it with the form fields a browser would resubmit."""
+        if not self._signed_in:
+            await self.async_login()
+        url = self._pages.get("dutyswap") or urljoin(self.base_url, CANONICAL_SWAP)
+        page = await self._get_signed_in(url)
+        form = next(iter(parse_forms(page.document)), None)
+        if form is None:
+            raise PerdisPortalError("The duty-swap page has no form to submit")
+        return page, dict(form.fields), urljoin(page.url, form.action or page.url)
+
+    @staticmethod
+    def _set_swap_field(page: _Page, fields: dict[str, str], id_suffix: str, value: str) -> None:
+        """Set a form field by the end of its ASP.NET id, whose control-prefix differs per portal."""
+        control = page.document.find(
+            where=lambda e: e.tag in {"input", "select", "textarea"} and e.get("id").endswith(id_suffix))
+        if control is None or not control.get("name"):
+            raise PerdisPortalError(f"The duty-swap page has no {id_suffix} field")
+        fields[control.get("name")] = value
 
     async def _enrich_with_details(self, snapshot: Snapshot, today: date) -> None:
         """Add the leg-by-leg breakdown of the upcoming shifts from their detail pages.

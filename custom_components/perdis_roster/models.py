@@ -246,6 +246,48 @@ class WeekendPoints:
 
 
 @dataclass(slots=True)
+class DutySwap:
+    """One shift-swap offer or request listed on the portal's duty-swap page."""
+
+    swap_id: str  # the id the portal uses to accept, reject or withdraw this entry
+    day: date | None = None  # the shift's date (the "from" column), when it reads as a date
+    end_day: date | None = None
+    duty: str = ""
+    time: str = ""  # the shift's clock time as the portal prints it, e.g. "10:22 - 18:03"
+    partner: str = ""
+    status: str = ""  # e.g. "offen", "angeboten", "angenommen"
+    kind: str = ""  # the "Typ" column: whether it is offered to or by the driver
+    fields: dict[str, str] = field(default_factory=dict)  # every column, for a detailed view
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.swap_id,
+            "day": self.day.isoformat() if self.day else None,
+            "end_day": self.end_day.isoformat() if self.end_day else None,
+            "duty": self.duty,
+            "time": self.time,
+            "partner": self.partner,
+            "status": self.status,
+            "type": self.kind,
+            "details": self.fields,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DutySwap:
+        return cls(
+            swap_id=data["id"],
+            day=date.fromisoformat(data["day"]) if data.get("day") else None,
+            end_day=date.fromisoformat(data["end_day"]) if data.get("end_day") else None,
+            duty=data.get("duty", ""),
+            time=data.get("time", ""),
+            partner=data.get("partner", ""),
+            status=data.get("status", ""),
+            kind=data.get("type", ""),
+            fields=data.get("details") or {},
+        )
+
+
+@dataclass(slots=True)
 class Snapshot:
     """Everything one refresh read from the portal."""
 
@@ -254,6 +296,8 @@ class Snapshot:
     balances: Balances = field(default_factory=Balances)
     weekend_points: WeekendPoints = field(default_factory=WeekendPoints)
     employee_name: str | None = None
+    swaps: list[DutySwap] = field(default_factory=list)
+    swap_window: tuple[date, date] | None = None  # the period the portal accepts swap requests for
 
     def duty_on(self, day: date) -> Duty | None:
         return next((duty for duty in self.duties if duty.day == day), None)
@@ -265,16 +309,21 @@ class Snapshot:
             "balances": self.balances.to_dict(),
             "weekend_points": self.weekend_points.to_dict(),
             "employee_name": self.employee_name,
+            "swaps": [swap.to_dict() for swap in self.swaps],
+            "swap_window": [day.isoformat() for day in self.swap_window] if self.swap_window else None,
         }
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Snapshot:
+        window = data.get("swap_window")
         return cls(
             fetched_at=datetime.fromisoformat(data["fetched_at"]),
             duties=[Duty.from_dict(item) for item in data.get("duties", [])],
             balances=Balances.from_dict(data.get("balances") or {}),
             weekend_points=WeekendPoints.from_dict(data.get("weekend_points") or {}),
             employee_name=data.get("employee_name"),
+            swaps=[DutySwap.from_dict(item) for item in data.get("swaps", [])],
+            swap_window=(date.fromisoformat(window[0]), date.fromisoformat(window[1])) if window else None,
         )
 
 
