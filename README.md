@@ -147,6 +147,9 @@ so the company can be added to the list.
 3. Enter your **user name / personnel number** and **password**. The dialog signs in once to check
    them, then the roster appears within a few seconds.
 
+The account is named after your personnel number and surname, e.g. **12345 - Mustermann** (the
+surname is read from the portal header); when the portal shows no name, the number alone is used.
+
 Several accounts (for example of a couple who both drive) can be added side by side; each gets
 its own device with its own entities.
 

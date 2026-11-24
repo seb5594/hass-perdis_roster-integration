@@ -92,6 +92,8 @@ _LOGGER = logging.getLogger(__name__)
 
 # A personnel number the portal header often appends in brackets, e.g. "Max Mustermann (4711)".
 _TRAILING_ID = re.compile(r"\s*[(\[]\s*\d{2,}\s*[)\]]\s*$")
+# A personnel number some headers put first instead, e.g. "12345 Mustermann,Max".
+_LEADING_ID = re.compile(r"^\s*\d[\d.\-/]*\s+")
 
 
 def clean_employee_name(raw: str | None) -> str | None:
@@ -100,6 +102,20 @@ def clean_employee_name(raw: str | None) -> str | None:
         return None
     name = _TRAILING_ID.sub("", raw).strip()
     return name or None
+
+
+def employee_surname(raw: str | None) -> str | None:
+    """The surname from a portal header, in whichever order the portal writes the name.
+
+    Handles "Mustermann,Max", "Max Mustermann" and "12345 Mustermann,Max": an optional personnel
+    number comes first, the surname is the part before a comma, otherwise the last word.
+    """
+    name = clean_employee_name(raw)
+    if not name:
+        return None
+    name = _LEADING_ID.sub("", name).strip()
+    surname = (name.split(",", 1)[0] if "," in name else (name.split()[-1] if name.split() else "")).strip()
+    return surname if surname and not surname.isdigit() else None
 
 
 async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> tuple[str | None, str | None]:
@@ -201,9 +217,10 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             error, employee = await async_check_login(self.hass, data)
             if not error:
-                # Title: "Verkehrsunternehmen - Mitarbeitername", or the personnel number as a fallback.
-                suffix = employee or username
-                return self.async_create_entry(title=f"{self._operator_name()} - {suffix}", data=data)
+                # Title: "<personnel number> - <surname>", or just the number when no name is shown.
+                surname = employee_surname(employee)
+                title = f"{username} - {surname}" if surname else username
+                return self.async_create_entry(title=title, data=data)
             errors["base"] = error
         schema = vol.Schema({vol.Required(CONF_USERNAME): USERNAME, vol.Required(CONF_PASSWORD): PASSWORD})
         entered = {CONF_USERNAME: (user_input or {}).get(CONF_USERNAME)}  # keep the name after an error

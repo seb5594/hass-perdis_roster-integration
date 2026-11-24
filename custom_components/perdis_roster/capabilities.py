@@ -3,7 +3,7 @@
 Every portal is an INIT installation configured by its transit operator, and operators unlock
 different parts of the API. One portal shows the weekend points account, another does not; one
 exposes the time and leave accounts, another only the roster. Creating a sensor that the portal
-can never fill would only show "unknown" forever (see the user report for VGF Frankfurt).
+can never fill would only show "unknown" forever.
 
 At setup the integration therefore probes the portal: the client records which pages it could
 read (`reachable_pages`), and `detect` combines that with the values the first snapshot actually
