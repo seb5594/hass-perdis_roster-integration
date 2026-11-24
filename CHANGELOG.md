@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.24.2
+
+- 🗓️ The month calendar is read more completely: each day's date comes from its own link, the shift
+  times, reporting point and paid hours come straight from the day's tooltip, and the faded days of
+  the neighbouring months are ignored. Absence codes (free day, vacation, sick) are recognised.
+- 🏖️ Remaining vacation is read from the leave page's summary ("Restanspruch"), including the
+  layout that lists several leave accounts side by side in one row.
+
 ## 2026.11.24.1
 
 - 🏷️ The account is now named "&lt;personnel number&gt; - &lt;surname&gt;" (e.g. `12345 - Mustermann`),

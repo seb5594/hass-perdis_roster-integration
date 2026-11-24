@@ -281,3 +281,40 @@ class ShiftDetailPage(unittest.TestCase):
         self.detail.apply_to(duty)
         restored = models.Duty.from_dict(json.loads(json.dumps(duty.to_dict())))
         self.assertEqual(restored, duty)
+
+
+class CalendarTooltipRoster(unittest.TestCase):
+    """A month calendar whose day cells carry the shift in a bullet-separated tooltip."""
+
+    def setUp(self):
+        duties = webcomm.WebCommParser(ZONE).parse_roster(
+            fixture("webcomm_roster_calendar_tooltip.html"), TODAY)
+        self.duties = {duty.day: duty for duty in duties}
+
+    def test_neighbouring_month_cells_are_left_out(self):
+        # The faded 30/31 October cells link to October dates but must not be dated into November.
+        self.assertNotIn(date(2026, 10, 30), self.duties)
+        self.assertEqual(min(self.duties), date(2026, 11, 1))
+
+    def test_times_place_and_paid_hours_from_the_tooltip(self):
+        duty = self.duties[date(2026, 11, 26)]
+        self.assertEqual((duty.start, duty.end), (at("2026-11-26", 10, 22), at("2026-11-26", 18, 3)))
+        self.assertEqual(duty.code, "3095")
+        self.assertEqual(duty.start_location, "Hbf, Hauptbahnhof")
+        self.assertEqual(duty.paid_minutes, 7 * 60 + 11)  # "Lohnstunden: 07:11 Std."
+        self.assertEqual(duty.duty_type, DutyType.WORK)
+
+    def test_absence_codes_are_classified(self):
+        self.assertEqual(self.duties[date(2026, 11, 23)].duty_type, DutyType.FREE)   # FREI
+        self.assertEqual(self.duties[date(2026, 11, 24)].duty_type, DutyType.SICK)   # k
+        self.assertEqual(self.duties[date(2026, 11, 25)].duty_type, DutyType.VACATION)  # u
+
+
+class HolidaysVacationSummary(unittest.TestCase):
+    """The leave page lists remaining vacation in a key-value table of several accounts per row."""
+
+    def test_remaining_and_entitlement_days(self):
+        pages = webcomm.WebCommPages(vacation=fixture("webcomm_holidays.html"))
+        balances = webcomm.WebCommParser(ZONE).parse(pages, at("2026-11-23", 3)).balances
+        self.assertEqual(balances.vacation_remaining_days, 3.0)   # Restanspruch of the main account
+        self.assertEqual(balances.vacation_entitlement_days, 32.0)  # Urlaubsanspruch

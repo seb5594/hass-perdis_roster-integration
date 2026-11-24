@@ -20,11 +20,13 @@ from zoneinfo import ZoneInfo
 
 from ..models import Duty
 from .html import Element
-from .values import classify_duty, is_weekday_name, line_numbers, shift_times, time_ranges
+from .values import classify_duty, is_weekday_name, line_numbers, parse_duration, shift_times, time_ranges
 
-# The tooltip is a list of "Label: value" parts separated by bullets, pipes or line breaks.
-TOOLTIP_SEPARATORS = re.compile(r"\s*[•·|▪●•]\s*|\s{2,}|\n")
-TOOLTIP_PAIR = re.compile(r"^\s*([^:]{1,40}?)\s*:\s*(.+?)\s*$")
+# The tooltip is a run of "Label: value" fields. Portals separate and pad them differently: a single
+# bullet ("Dienst: 4711 • Zeit: ..."), or a label whose value sits after one or two bullets
+# ("Anfangsort:  •  • Hbf"). This reads a field's value as everything up to the next bullet, pipe or
+# line break, after skipping the bullets a portal may insert between the label and its value.
+TOOLTIP_FIELD = re.compile(r"([^:•·|\n]{2,40}?)\s*:\s*[•·\s]*([^•·|\n]+?)\s*(?=[•·|\n]|$)")
 ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 GERMAN_DATE = re.compile(r"\b(\d{1,2})\.(\d{1,2})\.(\d{4})\b")
 DAY_NUMBER = re.compile(r"\b([0-3]?\d)\b")
@@ -86,15 +88,21 @@ REMARK_LABELS = (
     "omschrijving",
     "text",
 )
+PAID_LABELS = (
+    "lohnstunden",
+    "bezahlt",
+    "bezahlte zeit",
+    "paid",
+    "paid hours",
+    "loonuren",
+)
 
 
 def _tooltip_fields(title: str) -> dict[str, str]:
     """The ``Label: value`` pairs of a tooltip, keyed by the lower-cased label."""
     fields: dict[str, str] = {}
-    for part in TOOLTIP_SEPARATORS.split(title):
-        pair = TOOLTIP_PAIR.match(part)
-        if pair:
-            fields.setdefault(pair.group(1).strip().lower(), pair.group(2).strip())
+    for label, value in TOOLTIP_FIELD.findall(title):
+        fields.setdefault(label.strip().lower(), value.strip())
     return fields
 
 
@@ -109,9 +117,15 @@ def _cell_title(cell: Element) -> str:
     return next((link.get("title") for link in cell.find_all("a") if link.get("title")), "")
 
 
+def _cell_hrefs(cell: Element) -> list[str]:
+    """Every link target on the cell or an element inside it, e.g. ``roster.aspx?2026-11-24``."""
+    carriers = [cell, *cell.find_all({"a", "span", "strong"})]
+    return [href for element in carriers if (href := element.get("href"))]
+
+
 def _cell_date(cell: Element) -> date | None:
-    """A full date carried by the cell: in a link, its text or its tooltip. None when absent."""
-    haystacks = [_cell_title(cell), *(link.get("href") for link in cell.find_all("a")), cell.text()]
+    """A full date carried by the cell: in a link target, its text or its tooltip. None when absent."""
+    haystacks = [_cell_title(cell), *_cell_hrefs(cell), cell.text()]
     for text in haystacks:
         iso = ISO_DATE.search(text)
         if iso:
@@ -148,7 +162,11 @@ def _cell_code(cell: Element, day_number: int | None) -> str:
 
 
 def _is_day_cell(cell: Element) -> bool:
-    """A calendar day cell: it has a day number and either a tooltip, a code span or a code text."""
+    """A calendar day cell: it has a day number and either a tooltip, a code span or a code text.
+
+    The faded cells of the neighbouring months carry only a day number (no shift and no absence),
+    so they produce no duty and need no special casing here.
+    """
     number = _day_number(cell)
     if number is None or is_weekday_name(cell.text()):
         return False
@@ -213,6 +231,8 @@ def _dates_from_month(cells: list[Element], month: date) -> list[tuple[Element, 
 def _duty_from_cell(cell: Element, day: date, zone: ZoneInfo) -> Duty | None:
     title = _cell_title(cell)
     fields = _tooltip_fields(title)
+    # The start and end come from the tooltip's time ranges ("10:22 - 18:03"); a duration such as
+    # "Dienstdauer: 08:15" is a single time, not a range, so it is never mistaken for them.
     ranges = time_ranges(title)
     # The code is the tooltip's duty field, otherwise the cell text without the day number (which
     # may sit in its own span) and without any date.
@@ -225,6 +245,7 @@ def _duty_from_cell(cell: Element, day: date, zone: ZoneInfo) -> Duty | None:
         duty.start_location = _pick(fields, LOCATION_LABELS) or None
         duty.end_location = duty.start_location
         duty.lines = tuple(line_numbers(_pick(fields, LINE_LABELS)))
+        duty.paid_minutes = parse_duration(_pick(fields, PAID_LABELS)) or None
         duty.split = len(ranges) > 1
         duty.duty_type = classify_duty(duty.code, remark or "", has_times=True)
         return duty
