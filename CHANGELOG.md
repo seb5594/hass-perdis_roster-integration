@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.24
+
+- 🧩 The calendar now always shows the leg-by-leg breakdown of a shift (preparation, driving legs
+  with their line, breaks), not only its start and end. The detail page is read for every working
+  day in the window that still lacks the breakdown, even on portals whose month roster already
+  shows the times. Portals that serve no detail page are detected and left alone.
+
 ## 2026.11.23.5
 
 - 🕐 Exact shift times, reporting points, lines and a leg-by-leg breakdown are now read from each

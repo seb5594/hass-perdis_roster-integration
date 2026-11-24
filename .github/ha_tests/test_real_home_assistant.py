@@ -219,4 +219,28 @@ async def test_calendar_portal_gets_real_times_from_shift_detail(hass, fake_webc
     assert nxt.attributes["end"] == "2026-11-24T18:03:00+01:00"
     assert nxt.attributes["start_location"] == "HB"
     assert "21" in nxt.attributes["lines"] and "16" in nxt.attributes["lines"]
+
+    # The calendar event must carry the leg-by-leg breakdown, not only the start and end.
+    events = await hass.services.async_call(
+        "calendar", "get_events",
+        {"entity_id": state_of(hass, "calendar", "duties").entity_id,
+         "start_date_time": "2026-11-24T00:00:00", "end_date_time": "2026-11-25T00:00:00"},
+        blocking=True, return_response=True)
+    description = next(iter(events.values()))["events"][0]["description"]
+    assert "10:32-14:32" in description  # the first driving leg
+    assert "21" in description and "16" in description  # both lines
+    assert description.count("\n") >= 5  # several legs, each on its own line
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_detail_legs_are_added_even_when_the_roster_already_has_times(hass, fake_webcomm):
+    """A table roster shows the shift's times; its legs must still come from the detail page."""
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    response = await hass.services.async_call(
+        DOMAIN, "get_duties", {"start_date": "2026-11-24", "end_date": "2026-11-24"}, blocking=True,
+        return_response=True)
+    duty = response["accounts"][0]["duties"][0]
+    assert duty["start"] and duty["end"]  # the roster already carried the times
+    assert len(duty["segments"]) >= 4  # the legs were added from the detail page regardless
     await hass.config_entries.async_unload(entry_of(hass).entry_id)

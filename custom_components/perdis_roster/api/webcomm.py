@@ -73,6 +73,10 @@ CANONICAL_ROSTER = "roster.aspx"
 # Each shift's detail page (its legs with real times) answers at shift.aspx?YYYY-MM-DD.
 CANONICAL_SHIFT = "shift.aspx"
 MAX_DETAIL_FETCHES = 16  # a hard ceiling on detail pages fetched per refresh
+# When the month roster already carries the times but a working day's detail page serves no leg
+# table, the portal simply has no per-shift breakdown: stop probing after this many such misses so
+# we do not fetch a detail page for every working day on every refresh.
+MAX_DETAIL_MISSES = 2
 NEXT_PERIOD_SYMBOLS = (">", ">>", "»", "›", "→")
 NEXT_PERIOD_WORDS = ("vor", "weiter", "nächste", "naechste", "next", "volgende", "später")
 NEXT_PERIOD_TARGETS = ("next", "vor", "weiter", "nextmonth", "btnnext")
@@ -195,21 +199,23 @@ class WebCommClient(PortalClient):
         return snapshot
 
     async def _enrich_with_details(self, snapshot: Snapshot, today: date) -> None:
-        """Fill in the real times of the upcoming shifts from their detail pages.
+        """Add the leg-by-leg breakdown of the upcoming shifts from their detail pages.
 
-        The month roster often lists only a duty number. For working days in the detail window the
-        shift's own page is fetched and gives the real start, end, places, lines and legs. Days off
-        and days that already have times (tooltip calendars) are left untouched.
+        The month roster gives at most a duty number and a start and end; the shift's own page adds
+        the real reporting points, lines and every leg. For each working day in the detail window
+        that does not have that breakdown yet the detail page is fetched, whether or not the roster
+        already showed times. Days off are left untouched, and a portal that serves no detail page
+        at all is detected and left alone after a couple of attempts.
         """
         if self._detail_days <= 0 or "roster" not in self._pages:
             return
         detail_url = urljoin(self._pages["roster"], CANONICAL_SHIFT)
-        fetched = 0
+        window_end = today + timedelta(days=self._detail_days)
+        fetched = misses = 0
         for duty in snapshot.duties:
-            if fetched >= MAX_DETAIL_FETCHES:
+            if fetched >= MAX_DETAIL_FETCHES or misses >= MAX_DETAIL_MISSES:
                 break
-            if duty.is_off or duty.has_times or not (today - timedelta(days=1) <= duty.day <= today
-                                                     + timedelta(days=self._detail_days)):
+            if duty.is_off or duty.segments or not (today - timedelta(days=1) <= duty.day <= window_end):
                 continue
             try:
                 page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")
@@ -222,6 +228,10 @@ class WebCommClient(PortalClient):
                 detail.apply_to(duty)
                 if duty.duty_type is DutyType.UNKNOWN:
                     duty.duty_type = DutyType.WORK
+            elif duty.has_times:
+                # The roster listed times for this working day, yet its detail page has no legs:
+                # the portal offers no per-shift breakdown, so stop probing it.
+                misses += 1
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
         """The roster HTML for the needed months: by month query string, or by paging through it."""
