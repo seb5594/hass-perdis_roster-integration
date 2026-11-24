@@ -34,7 +34,7 @@ OVERTIME_LABELS = ("überstunden", "ueberstunden", "mehrarbeit", "arbeitszeitkon
 TARGET_LABELS = ("sollzeit", "soll", "target", "norm")
 ACTUAL_LABELS = ("istzeit", "ist", "actual", "gewerkt")
 VACATION_REMAINING_LABELS = ("resturlaub", "urlaub rest", "resturlaubstage", "verbleibender urlaub", "urlaubsrest",
-                             "remaining leave", "resterend verlof", "verlofsaldo", "verlof saldo")
+                             "restanspruch", "remaining leave", "resterend verlof", "verlofsaldo", "verlof saldo")
 VACATION_PLANNED_LABELS = ("geplanter urlaub", "urlaub geplant", "genehmigter urlaub", "verplant", "planned leave",
                            "gepland verlof")
 VACATION_ENTITLEMENT_LABELS = ("urlaubsanspruch", "jahresurlaub", "anspruch", "entitlement", "verlofrecht")

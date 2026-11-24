@@ -117,14 +117,35 @@ def _day_row(cells: list[str], mapping: dict[int, str], today: date) -> DayRow |
     return row
 
 
+def _has_digit(text: str) -> bool:
+    return any(char.isdigit() for char in text)
+
+
+def _row_pairs(filled: list[str]) -> list[tuple[str, str]]:
+    """The label/value pairs carried by one table row, in whichever shape the portal uses.
+
+    * ``Label | value`` — a plain two-column row.
+    * ``Label | value | Label | value | ...`` — a "key-value table" that packs several accounts
+      into one row (every even cell is a label, every odd cell its value).
+    * ``Account | from | to | value | ...`` — a record row whose value is the last column; the
+      first cell labels it and the columns in between (dates, ids) are ignored.
+    """
+    if len(filled) < 2 or _has_digit(filled[0]):
+        return []
+    labels, values = filled[0::2], filled[1::2]
+    if len(filled) >= 4 and len(filled) % 2 == 0 \
+            and not any(_has_digit(label) for label in labels) and all(_has_digit(value) for value in values):
+        return list(zip(labels, values, strict=True))
+    return [(filled[0], filled[-1])]
+
+
 def key_values(document: Element) -> dict[str, str]:
-    """Label -> value pairs of a page: two-column table rows and `Label: value` texts."""
+    """Label -> value pairs of a page: label/value table rows and `Label: value` texts."""
     pairs: dict[str, str] = {}
     for table in innermost_tables(document):
         for _, cells in table_rows(table):
-            filled = [cell for cell in cells if cell]
-            if len(filled) >= 2 and not any(char.isdigit() for char in filled[0]):
-                pairs.setdefault(filled[0].rstrip(":").strip(), filled[-1])
+            for label, value in _row_pairs([cell for cell in cells if cell]):
+                pairs.setdefault(label.rstrip(":").strip(), value.strip())
     for element in document.find_all({"span", "div", "p", "li", "label", "dd", "td"}):
         text = element.text()
         found = LABEL_AND_VALUE.fullmatch(text)
