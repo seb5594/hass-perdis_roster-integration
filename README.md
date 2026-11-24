@@ -200,7 +200,7 @@ All entities belong to one device per account. The entity IDs below assume an ac
 | --- | --- | --- |
 | `sensor.…_next_shift` | `4711` | Running or next shift. Attributes: date, start, end, places, lines, hours, category, minutes until start/end, wake-up and leave-home time, rest before |
 | `sensor.…_next_shift_start` / `_end` | timestamp | Show as relative time ("in 5 hours") |
-| `sensor.…_next_shift_location` | `Betriebshof Lierenfeld` | Reporting point |
+| `sensor.…_next_shift_location` | `Betriebshof Musterstadt` | Reporting point |
 | `sensor.…_next_shift_type` | `early` | early, day, late, night or split |
 | `sensor.…_wake_up_time` | timestamp | Shift start minus your wake-up lead |
 | `sensor.…_leave_home` | timestamp | Shift start minus your way to work |
@@ -223,6 +223,7 @@ All entities belong to one device per account. The entity IDs below assume an ac
 | Entity | Example | Notes |
 | --- | --- | --- |
 | `sensor.…_overtime_balance` | `14.5 h` | Attributes: target and actual hours, every balance the portal shows |
+| `sensor.…_time_account_today` | `-0.5 h` | Today's day on the daily-values page; attributes: target, actual and running account hours, plus the last ten days |
 | `sensor.…_vacation_left` | `12.5 d` | Attributes: planned days, entitlement, days left after the planned vacation |
 | `sensor.…_weekend_points` | `38.5 pts` | Attributes: group average, recent entries |
 | `sensor.…_weekend_points_vs_average` | `-3.5 pts` | Negative: fewer points than your group |
@@ -255,6 +256,15 @@ The cards are part of the integration and register themselves – there is **no 
 Edit a dashboard, click **Add card** and search for **Perdis**. Every card has a **visual editor**
 with grouped sections (*Content*, *Appearance*, *Behaviour*), so you never need to write YAML.
 Without settings a card shows the first Perdis account.
+
+> **Not finding the cards in the picker?** They load as a frontend module, so they never appear
+> under *Settings → Dashboards → Resources* – that list is only for resources you add by hand.
+> After installing or updating, **reload the browser with the cache cleared** (Ctrl/Cmd + Shift + R),
+> because Home Assistant and the browser cache frontend modules. Still nothing? Reload the
+> integration under *Settings → Devices & services*, check the log for the line
+> `Perdis dashboard cards served from …`, and – only as a last resort – add the resource by hand
+> under *Settings → Dashboards → Resources*: URL `/perdis_roster_static/perdis-cards.js`, type
+> *JavaScript Module*.
 
 | Card | Shows |
 | --- | --- |

@@ -9,7 +9,15 @@ from datetime import date, datetime
 import re
 from zoneinfo import ZoneInfo
 
-from ..models import Balances, Duty, Snapshot, WeekendPointEntry, WeekendPoints
+from ..models import (
+    Balances,
+    DailyValue,
+    DailyValues,
+    Duty,
+    Snapshot,
+    WeekendPointEntry,
+    WeekendPoints,
+)
 from .calendar import parse_calendar
 from .html import innermost_tables, parse_html, table_rows
 from .tables import DayRow, key_values, lookup, roster_rows
@@ -18,6 +26,7 @@ from .values import (
     clock_minutes,
     is_weekday_name,
     line_numbers,
+    normalize_label,
     parse_date,
     parse_duration,
     parse_number,
@@ -42,6 +51,15 @@ POINTS_LABELS = ("we-punkte", "we punkte", "wochenendpunkte", "wochenend-punkte"
                  "weekend points", "punkte")
 AVERAGE_LABELS = ("durchschnitt", "mittelwert", "gruppenschnitt", "average", "gemiddelde")
 FREE_WEEKENDS_LABELS = ("freie wochenenden", "freie we", "free weekends", "vrije weekenden")
+# Columns of the daily-values table ("Tageswerte"). The day's balance is told apart from a running
+# total by the running-total words, which are checked first.
+DAILY_DATE_LABELS = ("datum", "date", "tag", "dag")
+DAILY_TARGET_LABELS = ("sollzeit", "soll", "target", "norm", "planzeit", "plan")
+DAILY_ACTUAL_LABELS = ("istzeit", "ist", "actual", "gewerkt", "gearbeitet", "worked")
+DAILY_BALANCE_LABELS = ("saldo", "differenz", "diff", "plus/minus", "plusminus", "+/-", "tagessaldo",
+                        "bilanz", "balance", "verschil", "abweichung")
+DAILY_RUNNING_LABELS = ("kumuliert", "kumul", "fortlaufend", "laufend", "gesamt", "summe", "total",
+                        "kontostand", "stand", "endsaldo", "cumulatief", "running")
 EMPLOYEE_ELEMENT = re.compile(r"(lbl(user|name|mitarbeiter|benutzer)|mitarbeitername|username|employee)", re.I)
 
 
@@ -52,6 +70,7 @@ class WebCommPages:
     menu: str = ""
     roster: list[str] = field(default_factory=list)
     balances: str = ""
+    daily_values: str = ""  # the day-by-day account page (dailybal.aspx) when the portal has one
     vacation: str = ""  # a separate leave-account page (holidays.aspx) when the portal has one
     weekend_points: str = ""
 
@@ -78,6 +97,7 @@ class WebCommParser:
             fetched_at=now,
             duties=sorted(duties.values(), key=lambda duty: duty.day),
             balances=self.parse_balances(balance_pairs),
+            daily_values=parse_daily_values(pages.daily_values, today),
             weekend_points=self.parse_weekend_points(weekend_document, today),
             employee_name=self.parse_employee_name(pages.menu),
         )
@@ -165,6 +185,98 @@ class WebCommParser:
             where=lambda e: e.tag not in {"input", "label"} and EMPLOYEE_ELEMENT.search(e.get("id")))
         name = element.text() if element else ""
         return name or None
+
+
+def parse_daily_values(html: str, today: date) -> DailyValues:
+    """The day-by-day account values from a Tageswerte page (``dailybal.aspx``).
+
+    The page is a table of one row per day with a date column and a few time columns (planned,
+    worked, the day's balance and, often, the running total). Columns are found by their header
+    text, so a portal that labels them differently still works, and a day whose column the portal
+    does not show simply stays ``None``.
+    """
+    if not html:
+        return DailyValues()
+    document = parse_html(html)
+    for table in innermost_tables(document):
+        rows = table_rows(table)
+        columns, headers = _daily_columns(rows, today)
+        if "date" not in columns:
+            continue
+        entries = [entry for is_header, cells in rows if not is_header
+                   and (entry := _daily_entry(cells, columns, headers, today)) is not None]
+        if entries:
+            entries.sort(key=lambda entry: entry.day)
+            return DailyValues(entries=entries, columns=headers)
+    return DailyValues()
+
+
+# Daily-values columns are searched running-total first, then balance, then target and actual, so a
+# "Saldo kumuliert" column is read as the running total rather than the day's balance.
+_DAILY_COLUMN_LABELS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("date", DAILY_DATE_LABELS),
+    ("cumulative", DAILY_RUNNING_LABELS),
+    ("balance", DAILY_BALANCE_LABELS),
+    ("target", DAILY_TARGET_LABELS),
+    ("actual", DAILY_ACTUAL_LABELS),
+)
+
+
+def _daily_columns(rows: list[tuple[bool, list[str]]], today: date) -> tuple[dict[str, int], tuple[str, ...]]:
+    """Map from field name to column index and the raw header texts, read from the header row."""
+    for is_header, cells in rows:
+        labels = [normalize_label(cell) for cell in cells]
+        if not (is_header or _looks_like_daily_header(labels, cells, today)):
+            continue
+        columns: dict[str, int] = {}
+        for index, label in enumerate(labels):
+            for key, keywords in _DAILY_COLUMN_LABELS:
+                if key not in columns and _has_word(label, keywords):
+                    columns[key] = index
+                    break
+        return columns, tuple(cell.strip() for cell in cells)
+    return {}, ()
+
+
+def _looks_like_daily_header(labels: list[str], cells: list[str], today: date) -> bool:
+    """A daily-values header marked with `td`: a date column and at least one time column, no dates."""
+    has_date = any(_has_word(label, DAILY_DATE_LABELS) for label in labels)
+    value_labels = DAILY_TARGET_LABELS + DAILY_ACTUAL_LABELS + DAILY_BALANCE_LABELS + DAILY_RUNNING_LABELS
+    has_value = any(_has_word(label, value_labels) for label in labels)
+    return has_date and has_value and not any(parse_date(cell, today) for cell in cells)
+
+
+def _has_word(label: str, keywords: tuple[str, ...]) -> bool:
+    """Whether a normalised label carries one of the keywords; short ones must match a whole word."""
+    tokens = label.split()
+    return any(keyword in tokens if len(keyword) <= 4 else keyword in label for keyword in keywords)
+
+
+def _daily_entry(cells: list[str], columns: dict[str, int], headers: tuple[str, ...],
+                 today: date) -> DailyValue | None:
+    day = parse_date(_text(cells, columns.get("date")), today)
+    if day is None:
+        return None
+    detail = {headers[index]: cells[index].strip()
+              for index in range(min(len(headers), len(cells)))
+              if headers[index] and cells[index].strip()}
+    return DailyValue(
+        day=day,
+        target_minutes=_text_duration(cells, columns.get("target")),
+        actual_minutes=_text_duration(cells, columns.get("actual")),
+        balance_minutes=_text_duration(cells, columns.get("balance")),
+        cumulative_minutes=_text_duration(cells, columns.get("cumulative")),
+        cells=detail,
+    )
+
+
+def _text(cells: list[str], index: int | None) -> str:
+    return cells[index].strip() if index is not None and index < len(cells) else ""
+
+
+def _text_duration(cells: list[str], index: int | None) -> int | None:
+    value = _text(cells, index)
+    return parse_duration(value) if value else None
 
 
 def _segments(row: DayRow) -> list[tuple[int, int]]:

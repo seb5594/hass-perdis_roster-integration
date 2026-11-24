@@ -23,7 +23,7 @@ from ..const import (
     DEFAULT_APPCOMM_ROSTER_PATH,
     DEFAULT_APPCOMM_WEEKEND_POINTS_PATH,
 )
-from ..models import Snapshot
+from ..models import Duty, Snapshot
 from ..parsing.appcomm import AppCommAnswers, AppCommParser, pick
 from .base import REQUEST_TIMEOUT, PerdisAuthError, PerdisConnectionError, PerdisPortalError, PortalClient
 
@@ -82,7 +82,9 @@ class AppCommClient(PortalClient):
             self._headers["Authorization"] = f"Bearer {token}"
         self._signed_in = True
 
-    async def async_fetch(self, start: date, end: date, now: datetime) -> Snapshot:
+    async def async_fetch(self, start: date, end: date, now: datetime,
+                          known: dict[date, Duty] | None = None) -> Snapshot:
+        # The app portal already returns full shift times, so it needs no detail carry-over.
         async with self._lock:
             if not self._signed_in:
                 await self.async_login()

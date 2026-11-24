@@ -17,6 +17,7 @@ from .models import Snapshot
 # Capability keys. A sensor declares the one it needs; it is created only when the key is present.
 CAP_ROSTER = "roster"            # the duty roster / calendar is readable
 CAP_OVERTIME = "overtime"        # a working-time balance (Zeitkonto) is readable
+CAP_DAILY_VALUES = "daily_values"  # the day-by-day account values (Tageswerte) are readable
 CAP_VACATION = "vacation"        # remaining leave days are readable
 CAP_WEEKEND_POINTS = "weekend_points"    # the weekend points balance is readable
 CAP_WEEKEND_AVERAGE = "weekend_average"  # the group average for weekend points is readable
@@ -26,6 +27,7 @@ CAP_SWAP = "dutyswap"            # the shift-swap page is readable (and can be a
 ALL_CAPABILITIES: frozenset[str] = frozenset({
     CAP_ROSTER,
     CAP_OVERTIME,
+    CAP_DAILY_VALUES,
     CAP_VACATION,
     CAP_WEEKEND_POINTS,
     CAP_WEEKEND_AVERAGE,
@@ -52,6 +54,9 @@ def detect(reachable_pages: set[str], snapshot: Snapshot) -> frozenset[str]:
         capabilities.add(CAP_OVERTIME)
     if balances.vacation_remaining_days is not None:
         capabilities.add(CAP_VACATION)
+
+    if snapshot.daily_values.entries:
+        capabilities.add(CAP_DAILY_VALUES)
 
     weekend = snapshot.weekend_points
     if weekend.points is not None:

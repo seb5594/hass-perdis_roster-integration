@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 from typing import Final
+
+try:  # StrEnum is in the standard library from Python 3.11; older cores ship a backport.
+    from enum import StrEnum
+except ImportError:  # pragma: no cover - only on Home Assistant cores before 2024
+    from homeassistant.backports.enum import StrEnum
 
 DOMAIN: Final = "perdis_roster"
 MANUFACTURER: Final = "INIT Mobility Software Solutions (unofficial)"
@@ -54,7 +58,7 @@ DEFAULT_COMMUTE: Final = 30  # minutes from home to the reporting point
 DEFAULT_MINIMUM_REST: Final = 11  # hours, the daily rest of EU regulation 561/2006
 DEFAULT_LOOKAHEAD_DAYS: Final = 42
 DEFAULT_LOOKBACK_DAYS: Final = 7
-DEFAULT_DETAIL_DAYS: Final = 10  # how many days ahead to fetch each shift's detail page for times
+DEFAULT_DETAIL_DAYS: Final = 42  # how many days ahead to detail each shift; matches the lookahead
 DEFAULT_NOTIFY_CHANGES: Final = True
 
 # AppComm does not publish its API. These paths are a reasonable starting point and can be
@@ -92,3 +96,16 @@ FRONTEND_SCRIPT: Final = "perdis-cards.js"
 # How many changes the storage keeps, and how long the change sensor shows them.
 CHANGE_HISTORY_LIMIT: Final = 50
 CHANGE_DISPLAY_DAYS: Final = 14
+
+
+def default_time_zone():
+    """Home Assistant's configured default time zone, across core versions.
+
+    ``dt_util.get_default_time_zone()`` only exists from Home Assistant 2024.6; older cores expose
+    the same value as the module attribute ``DEFAULT_TIME_ZONE``. Imported lazily so this module
+    stays free of Home Assistant for the parser unit tests.
+    """
+    from homeassistant.util import dt as dt_util
+
+    getter = getattr(dt_util, "get_default_time_zone", None)
+    return getter() if getter else dt_util.DEFAULT_TIME_ZONE

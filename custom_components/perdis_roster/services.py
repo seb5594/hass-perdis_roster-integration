@@ -20,6 +20,7 @@ from .const import (
     SERVICE_GET_DUTIES,
     SERVICE_REFRESH,
 )
+from .coordinator import coordinator_of
 from .insights import shift_category
 
 if TYPE_CHECKING:
@@ -41,7 +42,7 @@ def _coordinators(hass: HomeAssistant, entry_id: str | None) -> list[PerdisCoord
                if entry.state is ConfigEntryState.LOADED and (entry_id is None or entry.entry_id == entry_id)]
     if not entries:
         raise ServiceValidationError(translation_domain=DOMAIN, translation_key="no_loaded_entry")
-    return [entry.runtime_data for entry in entries]
+    return [coordinator_of(hass, entry) for entry in entries]
 
 
 @callback

@@ -80,7 +80,7 @@
           "commute_minutes": "Ergibt die Losfahrzeit und ihren Auslöser.",
           "minimum_rest_hours": "Eine kürzere Ruhezeit schaltet die Warnung ein (EU-Vorgabe: 11 Stunden).",
           "scan_interval": "Dienstpläne ändern sich selten minütlich; 30 Minuten reichen völlig.",
-          "detail_days": "Nur der Monatsplan ist kostenlos; die genauen Zeiten je Dienst kosten eine zusätzliche Abfrage pro Tag. 0 schaltet es aus.",
+          "detail_days": "Nur der Monatsplan ist kostenlos; die genauen Zeiten je Dienst kosten beim ersten Mal eine zusätzliche Abfrage und werden dann wiederverwendet, bis sich der Dienst ändert. Pro Aktualisierung werden nur wenige geladen. 0 schaltet es aus.",
           "person": "Dient als Kontext und wird an einen unten gesetzten Dienst/ein Skript übergeben.",
           "notify_target": "Ein Dienst wie notify.mobile_app_handy oder ein script.mein_skript, der bei einer Änderung aufgerufen wird. Leer lassen für nur die Standardbenachrichtigung."
         },
@@ -192,6 +192,9 @@
       },
       "overtime": {
         "name": "Zeitkonto"
+      },
+      "daily_balance": {
+        "name": "Tageskonto heute"
       },
       "vacation_remaining": {
         "name": "Resturlaub"

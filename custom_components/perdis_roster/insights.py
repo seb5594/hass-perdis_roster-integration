@@ -12,8 +12,12 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from enum import StrEnum
 from functools import cached_property
+
+try:  # StrEnum is in the standard library from Python 3.11; older cores ship a backport.
+    from enum import StrEnum
+except ImportError:  # pragma: no cover - only on Home Assistant cores before 2024
+    from homeassistant.backports.enum import StrEnum
 
 from .models import Duty, Snapshot
 

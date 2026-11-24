@@ -23,6 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .capabilities import (
+    CAP_DAILY_VALUES,
     CAP_OVERTIME,
     CAP_ROSTER,
     CAP_SWAP,
@@ -32,7 +33,7 @@ from .capabilities import (
     CAP_WEEKEND_POINTS,
 )
 from .changes import describe
-from .coordinator import PerdisConfigEntry, PerdisCoordinator
+from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import ATTR_ROLE, PerdisEntity
 from .insights import ShiftCategory, shift_category
 from .models import Duty, DutyType
@@ -119,6 +120,34 @@ def _overtime_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
         "target_hours": _hours(balances.target_minutes),
         "actual_hours": _hours(balances.actual_minutes),
         "all_balances": balances.raw,
+    }
+
+
+def _daily_entry_hours(entry) -> dict[str, Any]:
+    """One day of the Tageswerte page as hours, plus every raw column the portal showed."""
+    return {
+        "date": entry.day.isoformat(),
+        "target_hours": _hours(entry.target_minutes),
+        "actual_hours": _hours(entry.actual_minutes),
+        "balance_hours": _hours(entry.balance_minutes),
+        "account_hours": _hours(entry.cumulative_minutes),
+        "cells": entry.cells,
+    }
+
+
+def _daily_balance_value(coordinator: PerdisCoordinator) -> float | None:
+    current = _snapshot(coordinator).daily_values.current(coordinator.insights.today)
+    return _hours(current.balance_minutes) if current else None
+
+
+def _daily_values_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
+    daily = _snapshot(coordinator).daily_values
+    current = daily.current(coordinator.insights.today)
+    attributes = _daily_entry_hours(current) if current else {}
+    return {
+        **attributes,
+        "columns": list(daily.columns),
+        "recent": [_daily_entry_hours(entry) for entry in daily.entries[-LEDGER_ENTRIES:]],
     }
 
 
@@ -279,6 +308,13 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=_overtime_attributes,
     ),
     PerdisSensorDescription(
+        key="daily_balance", role="daily_values", device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT, native_unit_of_measurement=UnitOfTime.HOURS,
+        suggested_display_precision=1,
+        value_fn=_daily_balance_value,
+        attributes_fn=_daily_values_attributes,
+    ),
+    PerdisSensorDescription(
         key="vacation_remaining", role="vacation", state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.DAYS,
         value_fn=lambda c: _snapshot(c).balances.vacation_remaining_days,
@@ -328,6 +364,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
 # is a diagnostic that is always created (capability None).
 SENSOR_CAPABILITY: dict[str, str | None] = {
     "overtime": CAP_OVERTIME,
+    "daily_balance": CAP_DAILY_VALUES,
     "vacation_remaining": CAP_VACATION,
     "weekend_points": CAP_WEEKEND_POINTS,
     "weekend_points_difference": CAP_WEEKEND_AVERAGE,
@@ -346,7 +383,7 @@ def _supported(description: PerdisSensorDescription, capabilities: frozenset[str
 async def async_setup_entry(
     hass: HomeAssistant, entry: PerdisConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator = entry.runtime_data
+    coordinator = coordinator_of(hass, entry)
     async_add_entities(
         PerdisSensor(coordinator, description)
         for description in SENSORS
@@ -360,7 +397,7 @@ class PerdisSensor(PerdisEntity, SensorEntity):
     entity_description: PerdisSensorDescription
     # Long lists belong on the dashboard, not into the recorder database.
     _unrecorded_attributes = frozenset({
-        "days", "changes", "recent_entries", "all_balances", "all", "pages",
+        "days", "changes", "recent_entries", "recent", "all_balances", "all", "pages",
         "minutes_until_start", "minutes_until_end",  # change every minute
     })
 

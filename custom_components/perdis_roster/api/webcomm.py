@@ -24,11 +24,11 @@ from urllib.parse import urljoin
 
 import aiohttp
 
-from ..models import DutyType, Snapshot
+from ..models import Duty, DutyType, Snapshot
 from ..parsing.dutyswap import parse_duty_swaps, parse_swap_window
 from ..parsing.html import Element, PostBack, links, login_form, parse_forms, parse_html
 from ..parsing.values import normalize_label
-from ..parsing.shift_detail import parse_shift_detail
+from ..parsing.shift_detail import ShiftDetail, parse_shift_detail
 from ..parsing.webcomm import WebCommPages, WebCommParser
 from .base import (
     REQUEST_TIMEOUT,
@@ -50,8 +50,12 @@ PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
         "rooster", "dienstrooster", "planung",
     ),
     "balances": (
-        "salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto", "summen", "tageswerte",
+        "salden", "saldo", "konten", "konto", "zeitkonten", "stundenkonto", "summen",
         "balances", "accounts", "tegoeden", "saldi", "totals",
+    ),
+    "daily_values": (
+        "tageswerte", "tageskonto", "tagesbilanz", "tagessalden", "tagesübersicht",
+        "daily", "daily values", "dagwaarden", "dagoverzicht",
     ),
     "vacation": (
         "urlaub", "resturlaub", "urlaubskonto", "plansalden", "leave", "vacation", "verlof",
@@ -70,6 +74,7 @@ PAGE_KEYWORDS: dict[str, tuple[str, ...]] = {
 CANONICAL_PAGES: dict[str, str] = {
     "roster": "roster.aspx",
     "balances": "balances.aspx",
+    "daily_values": "dailybal.aspx",
     "vacation": "holidays.aspx",
     "weekend_points": "wepunkte.aspx",
     "dutyswap": "dutyswap.aspx",
@@ -176,7 +181,8 @@ class WebCommClient(PortalClient):
 
     # --- Reading -----------------------------------------------------------------------------
 
-    async def async_fetch(self, start: date, end: date, now: datetime) -> Snapshot:
+    async def async_fetch(self, start: date, end: date, now: datetime,
+                          known: dict[date, Duty] | None = None) -> Snapshot:
         async with self._lock:  # one portal session, one request sequence at a time
             if not self._signed_in:
                 await self.async_login()
@@ -190,7 +196,7 @@ class WebCommClient(PortalClient):
             else:
                 pages.roster = roster
                 self._reachable.add("roster")
-            for kind in ("balances", "vacation", "weekend_points"):
+            for kind in ("balances", "daily_values", "vacation", "weekend_points"):
                 if kind not in self._pages:
                     continue
                 try:
@@ -201,7 +207,7 @@ class WebCommClient(PortalClient):
                 setattr(pages, kind, page.html)
                 self._reachable.add(kind)
             snapshot = self._parser.parse(pages, now)
-            await self._enrich_with_details(snapshot, now.date())
+            await self._enrich_with_details(snapshot, now.date(), known or {})
             await self._read_swaps(snapshot, now.date())
         return snapshot
 
@@ -219,24 +225,35 @@ class WebCommClient(PortalClient):
         snapshot.swap_window = parse_swap_window(page.html, today)
         self._reachable.add("dutyswap")
 
-    async def _enrich_with_details(self, snapshot: Snapshot, today: date) -> None:
-        """Add the leg-by-leg breakdown of the upcoming shifts from their detail pages.
+    async def _enrich_with_details(self, snapshot: Snapshot, today: date, known: dict[date, Duty]) -> None:
+        """Add the leg-by-leg breakdown of every upcoming shift from its detail page.
 
         The month roster gives at most a duty number and a start and end; the shift's own page adds
-        the real reporting points, lines and every leg. For each working day in the detail window
-        that does not have that breakdown yet the detail page is fetched, whether or not the roster
-        already showed times. Days off are left untouched, and a portal that serves no detail page
-        at all is detected and left alone after a couple of attempts.
+        the real reporting points, lines, courses and every leg. For each working day in the detail
+        window that does not have that breakdown yet, it is first reused from the previous refresh
+        when the shift is unchanged, and otherwise fetched from the detail page. The reuse lets the
+        whole window (next month included) stay detailed while only genuinely new or changed days
+        cost a request, and a per-refresh ceiling spreads the first fill over a few refreshes. Days
+        off are left untouched, and a portal that serves no detail page at all is detected and left
+        alone after a couple of attempts.
         """
         if self._detail_days <= 0 or "roster" not in self._pages:
             return
         detail_url = urljoin(self._pages["roster"], CANONICAL_SHIFT)
+        start_day = today - timedelta(days=1)
         window_end = today + timedelta(days=self._detail_days)
         fetched = misses = 0
         for duty in snapshot.duties:
+            if duty.is_off or duty.segments or not (start_day <= duty.day <= window_end):
+                continue
+            previous = known.get(duty.day)
+            if previous is not None and previous.segments and previous.code == duty.code:
+                # The same shift was already broken down on an earlier refresh: reuse it, no request.
+                ShiftDetail(list(previous.segments)).apply_to(duty)
+                if duty.duty_type is DutyType.UNKNOWN:
+                    duty.duty_type = DutyType.WORK
+                continue
             if fetched >= MAX_DETAIL_FETCHES or misses >= MAX_DETAIL_MISSES:
-                break
-            if duty.is_off or duty.segments or not (today - timedelta(days=1) <= duty.day <= window_end):
                 continue
             try:
                 page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")

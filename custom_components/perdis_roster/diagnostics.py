@@ -8,13 +8,13 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .coordinator import PerdisConfigEntry
+from .coordinator import PerdisConfigEntry, coordinator_of
 
 TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "employee_name", "title", "raw"}
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: PerdisConfigEntry) -> dict[str, Any]:
-    coordinator = entry.runtime_data
+    coordinator = coordinator_of(hass, entry)
     data = coordinator.data
     snapshot = data.snapshot if data else None
     return async_redact_data({

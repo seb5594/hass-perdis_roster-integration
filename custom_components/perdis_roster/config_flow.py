@@ -20,10 +20,18 @@ from typing import Any
 import aiohttp
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigFlow, OptionsFlow
+
+try:  # ConfigFlowResult replaced FlowResult as the flow return type in Home Assistant 2024.4.
+    from homeassistant.config_entries import ConfigFlowResult
+except ImportError:  # pragma: no cover - older cores still call it FlowResult
+    from homeassistant.data_entry_flow import FlowResult as ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import section
+try:  # Collapsible form sections arrived in Home Assistant 2024.3.
+    from homeassistant.data_entry_flow import section
+except ImportError:  # pragma: no cover - only on older cores, where options stay flat
+    section = None
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.selector import (
     BooleanSelector,
@@ -40,7 +48,6 @@ from homeassistant.helpers.selector import (
     TextSelectorConfig,
     TextSelectorType,
 )
-from homeassistant.util import dt as dt_util
 
 from .api import (
     PerdisAuthError,
@@ -84,6 +91,7 @@ from .const import (
     OPERATOR_CUSTOM,
     SECTION_ADVANCED,
     PortalType,
+    default_time_zone,
 )
 from .operators import OPERATORS, OPERATORS_BY_KEY, find_operator_by_url
 
@@ -127,7 +135,7 @@ async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> tup
     session = async_create_clientsession(hass, verify_ssl=data.get(CONF_VERIFY_SSL, True), auto_cleanup=False,
                                          cookie_jar=aiohttp.CookieJar(unsafe=True))
     client = create_client(PortalType(data[CONF_PORTAL_TYPE]), session, data[CONF_BASE_URL], data[CONF_USERNAME],
-                           data[CONF_PASSWORD], dt_util.get_default_time_zone())
+                           data[CONF_PASSWORD], default_time_zone())
     try:
         await client.async_login()
     except PerdisAuthError:
@@ -241,7 +249,9 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
         return await self.async_step_reauth_confirm()
 
     async def async_step_reauth_confirm(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
-        entry = self._get_reauth_entry()
+        # `_get_reauth_entry()` only exists from Home Assistant 2024.12; the reauth context carries
+        # the entry id on every core, so look the entry up through it instead.
+        entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
         errors: dict[str, str] = {}
         if user_input is not None:
             data = {**entry.data, CONF_PASSWORD: user_input[CONF_PASSWORD]}
@@ -259,16 +269,21 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry) -> PerdisOptionsFlow:
-        return PerdisOptionsFlow()
+        return PerdisOptionsFlow(config_entry)
 
 
 class PerdisOptionsFlow(OptionsFlow):
     """Personal times and, folded away, the pages of unusual portals."""
 
+    def __init__(self, config_entry) -> None:
+        # Keep our own reference instead of `self.config_entry`: that attribute is only filled in
+        # automatically from Home Assistant 2024.4, and assigning to it is deprecated on newer cores.
+        self._entry = config_entry
+
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
+        portal_type = PortalType(self._entry.data[CONF_PORTAL_TYPE])
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-        portal_type = PortalType(self.config_entry.data[CONF_PORTAL_TYPE])
+            return self.async_create_entry(title="", data=_fold_advanced(user_input, portal_type))
         schema = vol.Schema({
             vol.Required(CONF_WAKE_UP_LEAD, default=DEFAULT_WAKE_UP_LEAD): _number(0, 360, unit="min"),
             vol.Required(CONF_COMMUTE, default=DEFAULT_COMMUTE): _number(0, 240, unit="min"),
@@ -277,17 +292,49 @@ class PerdisOptionsFlow(OptionsFlow):
             vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _number(10, 360, unit="min"),
             vol.Required(CONF_LOOKAHEAD_DAYS, default=DEFAULT_LOOKAHEAD_DAYS): _number(7, 120, unit="d"),
             vol.Required(CONF_LOOKBACK_DAYS, default=DEFAULT_LOOKBACK_DAYS): _number(0, 60, unit="d"),
-            vol.Required(CONF_DETAIL_DAYS, default=DEFAULT_DETAIL_DAYS): _number(0, 31, unit="d"),
+            vol.Required(CONF_DETAIL_DAYS, default=DEFAULT_DETAIL_DAYS): _number(0, 120, unit="d"),
             vol.Optional(CONF_PERSON): EntitySelector(EntitySelectorConfig(domain="person")),
             vol.Optional(CONF_NOTIFY_TARGET): TextSelector(),
-            vol.Required(SECTION_ADVANCED): section(_advanced_schema(portal_type), {"collapsed": True}),
+            **_advanced_part(portal_type),
         })
         return self.async_show_form(
-            step_id="init", data_schema=self.add_suggested_values_to_schema(schema, self.config_entry.options)
+            step_id="init",
+            data_schema=self.add_suggested_values_to_schema(schema, _unfold_advanced(self._entry.options)),
         )
 
 
-def _advanced_schema(portal_type: PortalType) -> vol.Schema:
-    """Page overrides of WebComm, or the endpoints of AppComm."""
-    keys = APPCOMM_ADVANCED if portal_type is PortalType.APPCOMM else WEBCOMM_ADVANCED
-    return vol.Schema({vol.Optional(key): TextSelector() for key in keys})
+def _advanced_keys(portal_type: PortalType) -> tuple[str, ...]:
+    return APPCOMM_ADVANCED if portal_type is PortalType.APPCOMM else WEBCOMM_ADVANCED
+
+
+def _advanced_fields(portal_type: PortalType) -> dict[Any, Any]:
+    """The page/endpoint override fields of a portal, as plain optional text inputs."""
+    return {vol.Optional(key): TextSelector() for key in _advanced_keys(portal_type)}
+
+
+def _advanced_part(portal_type: PortalType) -> dict[Any, Any]:
+    """The advanced inputs, folded into a collapsible section where the core supports one."""
+    if section is not None:
+        return {vol.Required(SECTION_ADVANCED): section(vol.Schema(_advanced_fields(portal_type)),
+                                                        {"collapsed": True})}
+    return _advanced_fields(portal_type)  # older cores: the same inputs, just not collapsed
+
+
+def _fold_advanced(user_input: dict[str, Any], portal_type: PortalType) -> dict[str, Any]:
+    """On a core without sections, gather the flat advanced inputs back under their section key."""
+    if section is not None or SECTION_ADVANCED in user_input:
+        return user_input
+    keys = _advanced_keys(portal_type)
+    folded = {key: value for key, value in user_input.items() if key not in keys}
+    advanced = {key: user_input[key] for key in keys if key in user_input}
+    if advanced:
+        folded[SECTION_ADVANCED] = advanced
+    return folded
+
+
+def _unfold_advanced(options: Mapping[str, Any]) -> dict[str, Any]:
+    """Suggested values: on a core without sections, surface the stored advanced values flat."""
+    merged = dict(options)
+    if section is None and isinstance(merged.get(SECTION_ADVANCED), dict):
+        merged.update(merged.pop(SECTION_ADVANCED))
+    return merged

@@ -80,7 +80,7 @@
           "commute_minutes": "Sets the leave-home time and its trigger.",
           "minimum_rest_hours": "A shorter rest switches on the short rest warning (EU rule: 11 hours).",
           "scan_interval": "Rosters rarely change by the minute; 30 minutes is plenty.",
-          "detail_days": "Only the month roster is free; each shift's exact times need one extra request per day. 0 turns it off.",
+          "detail_days": "Only the month roster is free; a shift's exact times cost one extra request the first time, then are reused until the shift changes. A few are fetched per refresh. 0 turns it off.",
           "person": "Used as context and passed to a notification/script you set below.",
           "notify_target": "A service such as notify.mobile_app_phone or a script.my_script to call on a roster change. Leave empty to use only the repair-style notification."
         },
@@ -192,6 +192,9 @@
       },
       "overtime": {
         "name": "Overtime balance"
+      },
+      "daily_balance": {
+        "name": "Time account today"
       },
       "vacation_remaining": {
         "name": "Vacation left"

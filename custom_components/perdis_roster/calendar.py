@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .capabilities import CAP_ROSTER
-from .coordinator import PerdisConfigEntry, PerdisCoordinator
+from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import PerdisEntity
 from .models import Duty, DutyType
 
@@ -27,17 +27,17 @@ DAY_LABELS = {
            DutyType.WORK: "Dienst", DutyType.UNKNOWN: "Dienstplan"},
 }
 DETAIL_LABELS = {
-    "en": {"start": "Starts at", "end": "Ends at", "lines": "Lines", "hours": "Paid hours",
-           "split": "Split shift", "parts": "Legs", "relief": "Relief"},
-    "de": {"start": "Beginn in", "end": "Ende in", "lines": "Linien", "hours": "Bezahlte Stunden",
-           "split": "Geteilter Dienst", "parts": "Abschnitte", "relief": "Ablösung"},
+    "en": {"start": "Starts at", "hours": "Paid hours", "split": "Split shift", "parts": "Legs",
+           "line": "Line", "course": "Course", "break": "Break"},
+    "de": {"start": "Beginn in", "hours": "Bezahlte Stunden", "split": "Geteilter Dienst",
+           "parts": "Abschnitte", "line": "Linie", "course": "Kurs", "break": "Pause"},
 }
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: PerdisConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator = entry.runtime_data
+    coordinator = coordinator_of(hass, entry)
     if CAP_ROSTER in coordinator.capabilities:
         async_add_entities([PerdisCalendar(coordinator, CALENDAR)])
 
@@ -83,33 +83,36 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
 
     def _description(self, duty: Duty) -> str:
         words = self._details
-        moves_on = duty.end_location and duty.end_location != duty.start_location
-        lines = [
-            f"{words['start']}: {duty.start_location}" if duty.start_location else None,
-            f"{words['end']}: {duty.end_location}" if moves_on else None,
-            f"{words['lines']}: {', '.join(duty.lines)}" if duty.lines else None,
+        header = [
             f"{words['hours']}: {duty.worked_minutes / 60:.2f}" if duty.worked_minutes else None,
             words["split"] if duty.split else None,
             duty.remark,
         ]
+        lines = [line for line in header if line]
         if duty.segments:
-            lines.append("")
+            if lines:
+                lines.append("")
             lines.append(f"{words['parts']}:")
             lines.extend(self._segment_line(segment) for segment in duty.segments)
-        return "\n".join(line for line in lines if line is not None)
+        elif duty.start_location:  # a timed duty whose detail legs are not (yet) available
+            lines.insert(0, f"{words['start']}: {duty.start_location}")
+        return "\n".join(lines)
 
     def _segment_line(self, segment) -> str:
-        """One leg of the shift, e.g. '10:32-14:32  Hbf→Hbf  Line 21  (Lei)'."""
-        times = f"{segment.start:%H:%M}-{segment.end:%H:%M}"
+        """One leg of the shift: the relief place and time first, then the line, course and, in
+        parentheses, the relief direction, e.g. 'Hbf 10:32-14:32 · Line 21 · Course 11 (+/-)'.
+        """
         where = segment.start_location or ""
-        if segment.end_location and segment.end_location != segment.start_location:
-            where = f"{where}→{segment.end_location}"
-        extra = " ".join(part for part in (
-            f"{self._details['lines']} {segment.line}" if segment.line else "",
-            f"({segment.kind})" if segment.kind else "",
-            f"{self._details['relief']} {segment.relief}" if segment.relief else "",
+        head = f"{where} {segment.start:%H:%M}-{segment.end:%H:%M}".strip()
+        if segment.is_break:
+            minutes = max(round((segment.end - segment.start).total_seconds() / 60), 0)
+            return f"{head} · {self._details['break']} {minutes} min"
+        details = " · ".join(part for part in (
+            f"{self._details['line']} {segment.line}" if segment.line else "",
+            f"{self._details['course']} {segment.course}" if segment.course else "",
         ) if part)
-        return "  ".join(part for part in (times, where, extra) if part)
+        relief = f" ({segment.relief.replace(' ', '')})" if segment.relief else ""
+        return f"{head}{(' · ' + details) if details else ''}{relief}"
 
 
 def _overlaps(event: CalendarEvent, start: datetime, end: datetime) -> bool:

@@ -26,6 +26,7 @@ TIME_FROM_LABELS = ("von", "from", "beginn", "van")
 TIME_TO_LABELS = ("bis", "to", "ende", "tot")
 PLACE_LABELS = ("ort", "location", "plaats")
 LINE_LABELS = ("linie", "line", "lijn")
+COURSE_LABELS = ("kurs", "course", "koers")
 KIND_LABELS = ("art", "beschr", "tätig", "taetig", "beschreibung", "description")
 
 # Leg kinds that do not count as paid working time: unpaid breaks and transitions between duty
@@ -133,6 +134,8 @@ def _columns(rows: list[tuple[bool, list[str]]]) -> dict[str, int]:
                 columns["from"] = index
             elif "to" not in columns and any(word == label or word in label for word in TIME_TO_LABELS):
                 columns["to"] = index
+            elif any(word in label for word in COURSE_LABELS):
+                columns.setdefault("course", index)
             elif any(word in label for word in LINE_LABELS):
                 columns.setdefault("line", index)
             elif any(word in label for word in KIND_LABELS):
@@ -159,6 +162,7 @@ def _segment(cells: list[str], columns: dict[str, int], day: date, zone: ZoneInf
         start_location=_cell(cells, columns.get("from_place")) or None,
         end_location=_cell(cells, columns.get("to_place")) or None,
         line=_cell(cells, columns.get("line")) or None,
+        course=_cell(cells, columns.get("course")) or None,
         kind=kind,
         is_break=any(word in kind.lower() for word in BREAK_KINDS),
     )

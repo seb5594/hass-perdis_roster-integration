@@ -1,5 +1,22 @@
 # Changelog
 
+## 2026.11.24.5
+
+- ⏱️ New **Time account today** sensor, read from the daily-values page ("Tageswerte"): the day's
+  balance at a glance, with the planned and worked hours, the running account and the last ten days
+  in its attributes. Portals that do not offer the page simply do not get the sensor.
+- 🧮 Upcoming shifts are now broken down for the **whole roster ahead**, next month included — not
+  only the first few days. A shift keeps its breakdown until it actually changes, so only genuinely
+  new days ever cost an extra request.
+- 📖 The calendar reads a shift more clearly: every leg leads with its **place and time**, then its
+  **line and course**, with the relief direction in parentheses (e.g. `Hbf 10:32–14:32 · Line 21 ·
+  Course 11 (+/-)`). Breaks are shown as breaks, and the old summary line at the top is gone.
+- 🧰 Runs on **much older Home Assistant versions** (down to 2024.3): the time-zone lookup, the
+  options section, the card path, the coordinator setup and the re-authentication all fall back
+  gracefully on cores that predate the newer APIs.
+- 🃏 The readme now explains what to do when the **dashboard cards do not appear** in the card
+  picker — almost always a cached frontend that a reload clears.
+
 ## 2026.11.24.4
 
 - 🔀 Each shift leg now shows its **relief direction** (the `+/-` marker from the detail page), so a

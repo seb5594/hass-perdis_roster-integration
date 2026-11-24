@@ -89,7 +89,7 @@ class WebCommRoster(unittest.TestCase):
         self.assertEqual(duty.code, "4711")
         self.assertEqual(duty.duty_type, DutyType.WORK)
         self.assertEqual((duty.start, duty.end), (at("2026-11-23", 5, 12), at("2026-11-23", 13, 40)))
-        self.assertEqual((duty.start_location, duty.end_location), ("Betriebshof Lierenfeld", "Hbf"))
+        self.assertEqual((duty.start_location, duty.end_location), ("Betriebshof Musterstadt", "Hbf"))
         self.assertEqual(duty.lines, ("705", "U79"))
         self.assertEqual(duty.paid_minutes, 7 * 60 + 58)
 
@@ -98,7 +98,7 @@ class WebCommRoster(unittest.TestCase):
         self.assertTrue(duty.split)
         self.assertEqual((duty.start, duty.end), (at("2026-11-25", 6), at("2026-11-25", 18, 15)))
         self.assertEqual(duty.paid_minutes, 4 * 60 + 3 * 60 + 45)
-        self.assertEqual(duty.end_location, "Betriebshof Heerdt")
+        self.assertEqual(duty.end_location, "Betriebshof Beispielheim")
 
     def test_night_shift_ends_on_the_next_calendar_day(self):
         duty = self.duties[date(2026, 11, 27)]
@@ -130,6 +130,7 @@ class WebCommAccounts(unittest.TestCase):
             menu=fixture("webcomm_menu.html"),
             roster=[fixture("webcomm_roster_november.html"), fixture("webcomm_roster_december.html")],
             balances=fixture("webcomm_balances.html"),
+            daily_values=fixture("webcomm_daily_values.html"),
             weekend_points=fixture("webcomm_weekend_points.html"),
         )
         self.snapshot = webcomm.WebCommParser(ZONE).parse(pages, at("2026-11-23", 3))
@@ -152,6 +153,19 @@ class WebCommAccounts(unittest.TestCase):
         points = self.snapshot.weekend_points
         self.assertEqual((points.points, points.group_average, points.free_weekends), (38.5, 42.0, 7))
         self.assertEqual([entry.points for entry in points.entries], [1.0, 1.5])
+
+    def test_daily_values_are_read_per_day(self):
+        daily = self.snapshot.daily_values
+        self.assertEqual([entry.day for entry in daily.entries],
+                         [date(2026, 11, 23), date(2026, 11, 24), date(2026, 11, 25)])
+        monday = daily.entries[0]
+        self.assertEqual((monday.target_minutes, monday.actual_minutes), (7 * 60 + 42, 8 * 60 + 12))
+        self.assertEqual((monday.balance_minutes, monday.cumulative_minutes), (30, 15 * 60))
+        self.assertEqual(daily.columns[0], "Datum")
+
+    def test_daily_values_current_day_is_todays_row(self):
+        current = self.snapshot.daily_values.current(date(2026, 11, 24))
+        self.assertEqual((current.day, current.balance_minutes), (date(2026, 11, 24), -30))
 
     def test_employee_name_from_the_header(self):
         self.assertEqual(self.snapshot.employee_name, "Max Mustermann (4711)")
@@ -211,7 +225,7 @@ class CalendarRoster(unittest.TestCase):
         self.assertEqual(duty.code, "4711")
         self.assertEqual(duty.duty_type, DutyType.WORK)
         self.assertEqual((duty.start, duty.end), (at("2026-11-23", 5, 12), at("2026-11-23", 13, 40)))
-        self.assertEqual(duty.start_location, "Betriebshof Lierenfeld")
+        self.assertEqual(duty.start_location, "Betriebshof Musterstadt")
         self.assertEqual(duty.lines, ("705", "U79"))
 
     def test_two_time_ranges_make_a_split_shift(self):
@@ -229,7 +243,7 @@ class CalendarRoster(unittest.TestCase):
     def test_a_table_roster_still_wins_over_the_calendar_fallback(self):
         # The November table fixture must parse as a table, not fall through to the calendar reader.
         duties = webcomm.WebCommParser(ZONE).parse_roster(fixture("webcomm_roster_november.html"), TODAY)
-        self.assertTrue(any(duty.start_location == "Betriebshof Lierenfeld" for duty in duties))
+        self.assertTrue(any(duty.start_location == "Betriebshof Musterstadt" for duty in duties))
 
 
 class CalendarCodes(unittest.TestCase):
@@ -271,6 +285,10 @@ class ShiftDetailPage(unittest.TestCase):
         # The driving leg is followed by a "+ / -" row: take a vehicle over, do not hand it over.
         self.assertEqual(self.detail.segments[1].relief, "+ / -")
         self.assertEqual(self.detail.segments[0].relief, "- / -")
+
+    def test_line_and_course_of_a_driving_leg(self):
+        leg = self.detail.segments[1]
+        self.assertEqual((leg.line, leg.course), ("21", "11"))
 
     def test_applying_the_detail_fills_the_duty(self):
         duty = models.Duty(day=date(2026, 11, 24), duty_type=DutyType.WORK, code="3095")
