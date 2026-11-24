@@ -10,8 +10,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date, datetime
-from enum import StrEnum
 from typing import Any
+
+try:  # StrEnum is in the standard library from Python 3.11; older cores ship a backport.
+    from enum import StrEnum
+except ImportError:  # pragma: no cover - only on Home Assistant cores before 2024
+    from homeassistant.backports.enum import StrEnum
 
 
 class DutyType(StrEnum):
@@ -52,6 +56,7 @@ class DutySegment:
     start_location: str | None = None
     end_location: str | None = None
     line: str | None = None
+    course: str | None = None  # the "Kurs" of the leg: which run on the line the driver takes
     kind: str = ""  # the portal's own short code, e.g. a drive, a break or a preparation
     is_break: bool = False
     # The relief marker the detail page prints for the leg, e.g. "+/-" or "-/-": whether the driver
@@ -65,6 +70,7 @@ class DutySegment:
             "start_location": self.start_location,
             "end_location": self.end_location,
             "line": self.line,
+            "course": self.course,
             "kind": self.kind,
             "is_break": self.is_break,
             "relief": self.relief,
@@ -78,6 +84,7 @@ class DutySegment:
             start_location=data.get("start_location"),
             end_location=data.get("end_location"),
             line=data.get("line"),
+            course=data.get("course"),
             kind=data.get("kind", ""),
             is_break=data.get("is_break", False),
             relief=data.get("relief", ""),
@@ -205,6 +212,72 @@ class Balances:
 
 
 @dataclass(slots=True)
+class DailyValue:
+    """One line of the daily-values page ("Tageswerte"): a day with its target, actual and balance.
+
+    The totals page ("Summen") shows the accounts rolled up; this is their day-by-day breakdown, so
+    the driver sees how a single day moved the time account. `cells` keeps every column the portal
+    showed, for a detailed table on the dashboard.
+    """
+
+    day: date
+    target_minutes: int | None = None       # the day's planned ("Soll") working time
+    actual_minutes: int | None = None        # the time actually credited ("Ist")
+    balance_minutes: int | None = None       # how much this day changed the account (its +/-)
+    cumulative_minutes: int | None = None     # the running account total after this day
+    cells: dict[str, str] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "day": self.day.isoformat(),
+            "target_minutes": self.target_minutes,
+            "actual_minutes": self.actual_minutes,
+            "balance_minutes": self.balance_minutes,
+            "cumulative_minutes": self.cumulative_minutes,
+            "cells": dict(self.cells),
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DailyValue:
+        return cls(
+            day=date.fromisoformat(data["day"]),
+            target_minutes=data.get("target_minutes"),
+            actual_minutes=data.get("actual_minutes"),
+            balance_minutes=data.get("balance_minutes"),
+            cumulative_minutes=data.get("cumulative_minutes"),
+            cells=dict(data.get("cells") or {}),
+        )
+
+
+@dataclass(slots=True)
+class DailyValues:
+    """The day-by-day account values ("Tageswerte"); `columns` keeps the page's own headers."""
+
+    entries: list[DailyValue] = field(default_factory=list)
+    columns: tuple[str, ...] = ()
+
+    def current(self, today: date) -> DailyValue | None:
+        """The day in focus: today if it is listed, otherwise the most recent day up to today."""
+        if not self.entries:
+            return None
+        exact = next((entry for entry in self.entries if entry.day == today), None)
+        if exact is not None:
+            return exact
+        past = [entry for entry in self.entries if entry.day <= today]
+        return past[-1] if past else self.entries[-1]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"entries": [entry.to_dict() for entry in self.entries], "columns": list(self.columns)}
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> DailyValues:
+        return cls(
+            entries=[DailyValue.from_dict(item) for item in data.get("entries", [])],
+            columns=tuple(data.get("columns", ())),
+        )
+
+
+@dataclass(slots=True)
 class WeekendPointEntry:
     """One line of the weekend points ledger (a worked Saturday, Sunday or holiday)."""
 
@@ -299,6 +372,7 @@ class Snapshot:
     fetched_at: datetime
     duties: list[Duty] = field(default_factory=list)
     balances: Balances = field(default_factory=Balances)
+    daily_values: DailyValues = field(default_factory=DailyValues)
     weekend_points: WeekendPoints = field(default_factory=WeekendPoints)
     employee_name: str | None = None
     swaps: list[DutySwap] = field(default_factory=list)
@@ -312,6 +386,7 @@ class Snapshot:
             "fetched_at": self.fetched_at.isoformat(),
             "duties": [duty.to_dict() for duty in self.duties],
             "balances": self.balances.to_dict(),
+            "daily_values": self.daily_values.to_dict(),
             "weekend_points": self.weekend_points.to_dict(),
             "employee_name": self.employee_name,
             "swaps": [swap.to_dict() for swap in self.swaps],
@@ -325,6 +400,7 @@ class Snapshot:
             fetched_at=datetime.fromisoformat(data["fetched_at"]),
             duties=[Duty.from_dict(item) for item in data.get("duties", [])],
             balances=Balances.from_dict(data.get("balances") or {}),
+            daily_values=DailyValues.from_dict(data.get("daily_values") or {}),
             weekend_points=WeekendPoints.from_dict(data.get("weekend_points") or {}),
             employee_name=data.get("employee_name"),
             swaps=[DutySwap.from_dict(item) for item in data.get("swaps", [])],

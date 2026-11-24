@@ -11,8 +11,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
+import inspect
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
@@ -48,6 +49,7 @@ from .const import (
     DOMAIN,
     EVENT_PERDIS,
     TimelineEvent,
+    default_time_zone,
 )
 from .insights import InsightSettings, RosterInsights
 from .models import Duty, DutySwap, ScheduleChange, Snapshot
@@ -73,7 +75,13 @@ class PerdisData:
         return changes_since(self.changes, dt_util.now() - timedelta(days=CHANGE_DISPLAY_DAYS))
 
 
-type PerdisConfigEntry = ConfigEntry[PerdisCoordinator]
+# A typed config entry whose `runtime_data` is the coordinator. The subscripted form needs Home
+# Assistant 2024.5 and Python 3.12, so it is only used for type checkers; at runtime the plain
+# ConfigEntry is kept, which keeps the integration importable on much older cores.
+if TYPE_CHECKING:
+    PerdisConfigEntry = ConfigEntry["PerdisCoordinator"]
+else:
+    PerdisConfigEntry = ConfigEntry
 
 
 class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
@@ -82,13 +90,15 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
     config_entry: PerdisConfigEntry
 
     def __init__(self, hass: HomeAssistant, entry: PerdisConfigEntry, client: PortalClient) -> None:
-        super().__init__(
-            hass,
-            _LOGGER,
-            config_entry=entry,
-            name=f"{DOMAIN} {entry.title}",
-            update_interval=timedelta(minutes=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
-        )
+        # Home Assistant 2024.8 added the `config_entry` argument of the coordinator; older cores set
+        # `self.config_entry` from the setup context instead, so it is only passed where it is known.
+        kwargs: dict[str, Any] = {
+            "name": f"{DOMAIN} {entry.title}",
+            "update_interval": timedelta(minutes=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)),
+        }
+        if "config_entry" in inspect.signature(DataUpdateCoordinator.__init__).parameters:
+            kwargs["config_entry"] = entry
+        super().__init__(hass, _LOGGER, **kwargs)
         self.client = client
         self.capabilities: frozenset[str] = frozenset()
         self._store = PerdisStore(hass, entry.entry_id)
@@ -143,6 +153,13 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
 
     # --- Life cycle --------------------------------------------------------------------------
 
+    async def async_config_entry_first_refresh(self) -> None:
+        # The `_async_setup` hook is only run by the coordinator itself from Home Assistant 2024.8;
+        # on older cores invoke it here, so the cache and the timers are ready before the first fetch.
+        if not hasattr(DataUpdateCoordinator, "_async_setup"):
+            await self._async_setup()
+        await super().async_config_entry_first_refresh()
+
     async def _async_setup(self) -> None:
         """Load the cache before the first refresh, so a portal outage does not block the start."""
         self._stored = await self._store.async_load()
@@ -163,9 +180,13 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         now = dt_util.now()
         lookahead = self.option(CONF_LOOKAHEAD_DAYS, DEFAULT_LOOKAHEAD_DAYS)
         lookback = self.option(CONF_LOOKBACK_DAYS, DEFAULT_LOOKBACK_DAYS)
+        # Hand the client the shifts it already broke down, so an unchanged one is reused instead of
+        # fetched again: only genuinely new or changed days then cost a detail request each refresh.
+        known = {duty.day: duty for duty in self._stored.snapshot.duties if duty.segments} \
+            if self._stored.snapshot else None
         try:
             fetched = await self.client.async_fetch(now.date() - timedelta(days=lookback),
-                                                    now.date() + timedelta(days=lookahead), now)
+                                                    now.date() + timedelta(days=lookahead), now, known)
         except PerdisAuthError as error:
             raise ConfigEntryAuthFailed(str(error)) from error
         except PerdisError as error:
@@ -281,7 +302,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
                 (duty.start, TimelineEvent.SHIFT_STARTED, duty),
                 (duty.end, TimelineEvent.SHIFT_ENDED, duty),
             ]
-        zone = dt_util.get_default_time_zone()
+        zone = default_time_zone()
         for saturday in insights.free_weekends:
             moments.append((datetime.combine(saturday, datetime.min.time(), zone), TimelineEvent.FREE_WEEKEND_STARTED,
                             insights.duty_on(saturday)))
@@ -299,3 +320,19 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
     def _cancel_timers(self) -> None:
         while self._timers:
             self._timers.pop()()
+
+
+# --- Where the platforms find the coordinator ------------------------------------------------
+# ConfigEntry.runtime_data would do this on Home Assistant 2024.5 and newer; a plain hass.data store
+# does the same on every older core, so the integration stays compatible for years back.
+
+def store_coordinator(hass: HomeAssistant, entry: PerdisConfigEntry, coordinator: PerdisCoordinator) -> None:
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+
+
+def coordinator_of(hass: HomeAssistant, entry: PerdisConfigEntry) -> PerdisCoordinator:
+    return hass.data[DOMAIN][entry.entry_id]
+
+
+def discard_coordinator(hass: HomeAssistant, entry: PerdisConfigEntry) -> None:
+    hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)

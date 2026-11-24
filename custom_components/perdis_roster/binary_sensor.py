@@ -15,7 +15,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .capabilities import CAP_ROSTER
-from .coordinator import PerdisConfigEntry, PerdisCoordinator
+from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import PerdisEntity
 
 
@@ -56,7 +56,7 @@ BINARY_SENSORS: tuple[PerdisBinarySensorDescription, ...] = (
 async def async_setup_entry(
     hass: HomeAssistant, entry: PerdisConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator = entry.runtime_data
+    coordinator = coordinator_of(hass, entry)
     # Every binary sensor reads the roster, except the diagnostic "portal online" one.
     async_add_entities(
         PerdisBinarySensor(coordinator, description)

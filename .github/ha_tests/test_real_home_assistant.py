@@ -24,12 +24,23 @@ DOMAIN = next((Path(__file__).resolve().parents[2] / "custom_components").iterdi
 # Two o'clock in the night before the first duty of the fixtures (Monday 23 November 2026, 05:12).
 NIGHT_BEFORE = "2026-11-23T01:00:00+00:00"
 
+try:  # The options form folds the page overrides into a collapsible section where the core has one.
+    from homeassistant.data_entry_flow import section as _section  # noqa: F401
+
+    ADVANCED_OPTIONS = {"advanced": {}}
+except ImportError:  # older cores show the same overrides as flat, optional fields
+    ADVANCED_OPTIONS = {}
+
 
 @pytest.fixture(autouse=True)
 async def berlin(hass, freezer):
     """The fixtures are a roster in Europe/Berlin around 23 November 2026."""
     freezer.move_to(NIGHT_BEFORE)
-    await hass.config.async_set_time_zone("Europe/Berlin")
+    # async_set_time_zone arrived in Home Assistant 2024.6; older cores set it synchronously.
+    if hasattr(hass.config, "async_set_time_zone"):
+        await hass.config.async_set_time_zone("Europe/Berlin")
+    else:
+        await hass.async_add_executor_job(hass.config.set_time_zone, "Europe/Berlin")
 
 
 async def add_account(hass, portal, password=PASSWORD):
@@ -156,9 +167,9 @@ async def test_new_password_through_reauth(hass, fake_webcomm):
 
 async def test_client_signs_in_again_when_the_session_expires(hass, fake_webcomm):
     from custom_components.perdis_roster.api import PerdisAuthError, create_client
-    from custom_components.perdis_roster.const import PortalType
+    from custom_components.perdis_roster.const import PortalType, default_time_zone
 
-    zone = dt_util.get_default_time_zone()
+    zone = default_time_zone()
     now = dt_util.now()
     async with aiohttp.ClientSession(cookie_jar=aiohttp.CookieJar(unsafe=True)) as session:
         client = create_client(PortalType.WEBCOMM, session, fake_webcomm.url, USERNAME, PASSWORD, zone)
@@ -184,7 +195,7 @@ async def test_options_are_saved_and_reload_the_account(hass, fake_webcomm):
     assert result["step_id"] == "init"
     result = await hass.config_entries.options.async_configure(result["flow_id"], {
         "wake_up_lead_minutes": 60, "commute_minutes": 20, "minimum_rest_hours": 11, "notify_changes": False,
-        "scan_interval": 30, "lookahead_days": 42, "lookback_days": 7, "advanced": {},
+        "scan_interval": 30, "lookahead_days": 42, "lookback_days": 7, **ADVANCED_OPTIONS,
     })
     assert result["type"] == "create_entry"
     await hass.async_block_till_done()
@@ -205,7 +216,7 @@ async def add_account_for(hass, portal):
 async def test_a_roster_only_portal_hides_the_account_sensors(hass, fake_webcomm_roster_only):
     await add_account_for(hass, fake_webcomm_roster_only)
     await hass.async_block_till_done()
-    coordinator = entry_of(hass).runtime_data
+    coordinator = hass.data[DOMAIN][entry_of(hass).entry_id]
     assert "roster" in coordinator.capabilities
     assert "overtime" not in coordinator.capabilities
     assert "weekend_points" not in coordinator.capabilities

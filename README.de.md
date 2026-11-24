@@ -191,7 +191,7 @@ Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
 | --- | --- | --- |
 | Nächster Dienst | `4711` | Laufender oder nächster Dienst. Attribute: Datum, Beginn, Ende, Orte, Linien, Stunden, Dienstart, Minuten bis Beginn/Ende, Weck- und Losfahrzeit, Ruhezeit davor |
 | Nächster Dienstbeginn / Nächstes Dienstende | Zeitstempel | Als relative Zeit anzeigbar („in 5 Stunden“) |
-| Nächster Dienstantrittsort | `Betriebshof Lierenfeld` | Meldeort |
+| Nächster Dienstantrittsort | `Betriebshof Musterstadt` | Meldeort |
 | Art des nächsten Dienstes | `Frühdienst` | Früh-, Mittel-, Spät-, Nacht- oder geteilter Dienst |
 | Weckzeit | Zeitstempel | Dienstbeginn minus Vorlaufzeit |
 | Losfahren | Zeitstempel | Dienstbeginn minus Arbeitsweg |
@@ -214,6 +214,7 @@ Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
 | Name | Beispiel | Hinweis |
 | --- | --- | --- |
 | Zeitkonto | `14,5 h` | Attribute: Soll- und Iststunden, alle Salden, die das Portal zeigt |
+| Tageskonto heute | `-0,5 h` | Der heutige Tag der Tageswerte-Seite; Attribute: Soll-, Ist- und laufende Kontostunden sowie die letzten zehn Tage |
 | Resturlaub | `12,5 d` | Attribute: verplante Tage, Anspruch, Rest nach dem verplanten Urlaub |
 | WE-Punkte | `38,5 pts` | Attribute: Gruppendurchschnitt, letzte Einträge |
 | WE-Punkte zum Durchschnitt | `-3,5 pts` | Negativ: weniger Punkte als deine Gruppe |
@@ -246,6 +247,15 @@ Die Karten gehören zur Integration und registrieren sich selbst – **keine Res
 Dashboard bearbeiten, **Karte hinzufügen** und nach **Perdis** suchen. Jede Karte hat einen
 **visuellen Editor** mit Abschnitten (*Inhalt*, *Darstellung*, *Verhalten*) – du musst kein YAML
 schreiben. Ohne Einstellungen zeigt eine Karte das erste Perdis-Konto.
+
+> **Karten nicht in der Auswahl?** Sie werden als Frontend-Modul geladen und erscheinen deshalb
+> **nicht** unter *Einstellungen → Dashboards → Ressourcen* – diese Liste ist nur für von Hand
+> hinzugefügte Ressourcen. Nach dem Installieren oder Aktualisieren den **Browser mit geleertem
+> Cache neu laden** (Strg/Cmd + Umschalt + R), denn Home Assistant und der Browser cachen
+> Frontend-Module. Immer noch nichts? Die Integration unter *Einstellungen → Geräte & Dienste*
+> neu laden, im Log auf die Zeile `Perdis dashboard cards served from …` achten und – nur als
+> letzten Ausweg – die Ressource von Hand hinzufügen unter *Einstellungen → Dashboards →
+> Ressourcen*: URL `/perdis_roster_static/perdis-cards.js`, Typ *JavaScript-Modul*.
 
 | Karte | Zeigt |
 | --- | --- |

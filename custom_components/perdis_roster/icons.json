@@ -80,6 +80,9 @@
       "overtime": {
         "default": "mdi:timer-sand"
       },
+      "daily_balance": {
+        "default": "mdi:clock-time-four-outline"
+      },
       "vacation_remaining": {
         "default": "mdi:island"
       },

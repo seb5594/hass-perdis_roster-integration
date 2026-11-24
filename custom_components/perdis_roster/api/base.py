@@ -8,7 +8,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import aiohttp
 
-from ..models import Snapshot
+from ..models import Duty, Snapshot
 
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10)
 
@@ -59,8 +59,13 @@ class PortalClient(ABC):
         """Sign in; raises `PerdisAuthError` for wrong credentials."""
 
     @abstractmethod
-    async def async_fetch(self, start: date, end: date, now: datetime) -> Snapshot:
-        """Read the roster between `start` and `end` and the current accounts."""
+    async def async_fetch(self, start: date, end: date, now: datetime,
+                          known: dict[date, Duty] | None = None) -> Snapshot:
+        """Read the roster between `start` and `end` and the current accounts.
+
+        `known` carries the duties of the previous refresh keyed by day, so a client that enriches
+        shifts from a detail page can reuse an unchanged breakdown instead of fetching it again.
+        """
 
     @property
     def discovered_pages(self) -> dict[str, str]:

@@ -14,7 +14,6 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.loader import async_get_integration
-from homeassistant.util import dt as dt_util
 
 from .api import create_client
 from .const import (
@@ -27,8 +26,9 @@ from .const import (
     PLATFORMS,
     SECTION_ADVANCED,
     PortalType,
+    default_time_zone,
 )
-from .coordinator import PerdisConfigEntry, PerdisCoordinator
+from .coordinator import PerdisConfigEntry, PerdisCoordinator, discard_coordinator, store_coordinator
 from .frontend import async_register_cards
 from .services import async_register_services
 from .storage import PerdisStore
@@ -56,13 +56,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PerdisConfigEntry) -> bo
         entry.data[CONF_BASE_URL],
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
-        dt_util.get_default_time_zone(),
+        default_time_zone(),
         entry.options.get(SECTION_ADVANCED),
         detail_days=entry.options.get(CONF_DETAIL_DAYS, DEFAULT_DETAIL_DAYS),
     )
     coordinator = PerdisCoordinator(hass, entry, client)
     await coordinator.async_config_entry_first_refresh()
-    entry.runtime_data = coordinator
+    store_coordinator(hass, entry, coordinator)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_options_changed))
     return True
@@ -73,7 +73,10 @@ async def _async_options_changed(hass: HomeAssistant, entry: PerdisConfigEntry) 
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: PerdisConfigEntry) -> bool:
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        discard_coordinator(hass, entry)
+    return unloaded
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: PerdisConfigEntry) -> None:
