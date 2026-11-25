@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.25.13
+
+- 🧩 New **all-in-one card** (`PERDIS · All-in-one`): one mobile-first card with a tab bar that
+  switches between your next shift, the roster, your accounts and the calendar — like the app. Pick
+  which tabs to show in the editor. It reuses the standalone cards, so everything (the tap pop-up,
+  the shift browser, the calendar) works inside it too. The individual cards stay available.
+
 ## 2026.11.25.12
 
 - 👆 Tapping a day in the roster list now opens a **pop-up with that day's full shift breakdown** —

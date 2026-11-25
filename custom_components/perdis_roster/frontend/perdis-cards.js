@@ -1,6 +1,7 @@
 /**
  * Dashboard cards of the Perdis Duty Roster integration.
  *
+ *   perdis-card               all-in-one: a tab bar over the cards below, mobile-first like the app
  *   perdis-shift-card         the next shift: times, place, countdown, wake-up and leave-home time
  *   perdis-roster-card        the coming days, grouped by week, with days off and changes marked
  *   perdis-accounts-card      overtime, vacation, weekend points and free weekends at a glance
@@ -18,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.12";
+const VERSION = "2026.11.25.13";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -75,6 +76,8 @@ const TEXTS = {
       break: "Break", min: "min", noDetail: "No leg-by-leg breakdown for this shift yet.", dayOff: "No shift on this day.",
     },
     calendar: "Calendar",
+    swaps: "Swaps",
+    allInOne: "All-in-one",
     views: { dayGridMonth: "Month", listWeek: "Week list", listMonth: "Month list" },
     editor: {
       // Common
@@ -107,6 +110,7 @@ const TEXTS = {
       show_breaks: "Show the breaks",
       // Calendar card
       initial_view: "Start view",
+      tabs: "Tabs to show",
       // Section headers
       sec_content: "Content",
       sec_appearance: "Appearance",
@@ -170,6 +174,8 @@ const TEXTS = {
       break: "Pause", min: "Min.", noDetail: "Für diesen Dienst liegt noch keine Aufschlüsselung vor.", dayOff: "An diesem Tag kein Dienst.",
     },
     calendar: "Kalender",
+    swaps: "Tausch",
+    allInOne: "Alles-in-einem",
     views: { dayGridMonth: "Monat", listWeek: "Wochenliste", listMonth: "Monatsliste" },
     editor: {
       device_id: "Perdis-Konto",
@@ -196,6 +202,7 @@ const TEXTS = {
       show_relief: "Spalte Ablösung anzeigen",
       show_breaks: "Pausen anzeigen",
       initial_view: "Startansicht",
+      tabs: "Angezeigte Reiter",
       sec_content: "Inhalt",
       sec_appearance: "Darstellung",
       sec_behavior: "Verhalten",
@@ -410,6 +417,7 @@ function numericState(hass, entityId) {
 const BASE_STYLE = `
   :host { display: block; }
   ha-card { height: 100%; overflow: hidden; }
+  .embedded { display: block; }
   .header { display: flex; align-items: center; gap: 10px; padding: 16px 16px 4px; }
   .header .title { font-size: 1.15rem; font-weight: 500; flex: 1; }
   .header ha-icon { color: var(--accent, var(--primary-color)); }
@@ -485,6 +493,14 @@ class PerdisCardBase extends HTMLElement {
            <span class="title">${escapeHtml(title)}</span></div>`
       : "";
     const style = accent ? `--accent:${accent};` : "";
+    // Embedded in the all-in-one card, a panel drops its own ha-card so there is no card-in-a-card;
+    // the master card provides the single frame around it.
+    if (this._embedded) {
+      this.shadowRoot.innerHTML = `
+        <style>${BASE_STYLE}${extraStyle}</style>
+        <div class="embedded ${showHeader ? "" : "no-header"}" style="${style}">${header}${offline}${body}</div>`;
+      return;
+    }
     this.shadowRoot.innerHTML = `
       <style>${BASE_STYLE}${extraStyle}</style>
       <ha-card style="${style}" class="${showHeader ? "" : "no-header"}">
@@ -1346,9 +1362,122 @@ const CALENDAR_EDITOR = (hass) => [
   ]),
 ];
 
+// --- All-in-one card (a tab bar over the other cards) -------------------------------------------
+
+const MASTER_STYLE = `
+  .tabbar { display: flex; gap: 2px; padding: 6px 6px 0; overflow-x: auto; scrollbar-width: none;
+            border-bottom: 1px solid var(--divider-color); }
+  .tabbar::-webkit-scrollbar { display: none; }
+  .tab { flex: 1 0 auto; display: inline-flex; flex-direction: column; align-items: center; gap: 3px;
+         padding: 8px 14px; border: none; background: none; cursor: pointer; font: inherit;
+         font-size: 0.78rem; color: var(--secondary-text-color); border-bottom: 2px solid transparent;
+         transition: color 120ms ease; }
+  .tab:hover { color: var(--primary-text-color); }
+  .tab.on { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
+  .tab ha-icon { --mdc-icon-size: 22px; }
+  .panel { min-height: 40px; }
+`;
+
+// The panels the all-in-one card switches between: each one simply reuses the matching standalone
+// card, embedded without its own frame. One entry here is all a new panel needs.
+const PANELS = {
+  shift: { type: "perdis-shift-card", icon: "mdi:bus-clock", label: (t) => t.nextShift },
+  roster: { type: "perdis-roster-card", icon: "mdi:calendar-text", label: (t) => t.roster },
+  detail: { type: "perdis-shift-detail-card", icon: "mdi:table-clock", label: (t) => t.shiftDetail.title },
+  accounts: { type: "perdis-accounts-card", icon: "mdi:scale-balance", label: (t) => t.accounts },
+  calendar: { type: "perdis-calendar-card", icon: "mdi:calendar-month", label: (t) => t.calendar },
+  swaps: { type: "perdis-swap-card", icon: "mdi:swap-horizontal", label: (t) => t.swaps },
+};
+const PANEL_KEYS = Object.keys(PANELS);
+
+class PerdisMasterCard extends PerdisCardBase {
+  static defaults() {
+    return { tabs: ["shift", "roster", "accounts", "calendar"] };
+  }
+
+  static getConfigElement() {
+    return document.createElement("perdis-card-editor");
+  }
+
+  _activeTabs() {
+    const wanted = (this._config.tabs || []).filter((key) => PANELS[key]);
+    return wanted.length ? wanted : this.constructor.defaults().tabs;
+  }
+
+  /** The live child card for a tab, created once and kept so its state survives tab switches. */
+  _panel(key) {
+    this._cards = this._cards || {};
+    if (!this._cards[key]) {
+      const card = document.createElement(PANELS[key].type);
+      card._embedded = true;  // render without its own ha-card; the master provides the one frame
+      const config = { show_header: false };
+      if (this._config.device_id) config.device_id = this._config.device_id;
+      card.setConfig(config);
+      this._cards[key] = card;
+    }
+    this._cards[key].hass = this._hass;
+    return this._cards[key];
+  }
+
+  _render() {
+    if (!this._hass || !this._config) return;
+    const t = texts(this._hass);
+    const tabs = this._activeTabs();
+    if (!this._active || !tabs.includes(this._active)) this._active = tabs[0];
+    const titled = this._config.show_header !== false && this._config.title;
+    const header = titled
+      ? `<div class="header"><ha-icon icon="${escapeHtml(this._config.icon || DEFAULT_HEADER_ICON)}"></ha-icon>
+           <span class="title">${escapeHtml(this._config.title)}</span></div>`
+      : "";
+    const bar = tabs.map((key) => {
+      const panel = PANELS[key];
+      return `<button class="tab${key === this._active ? " on" : ""}" data-tab="${key}">`
+        + `<ha-icon icon="${panel.icon}"></ha-icon><span>${escapeHtml(panel.label(t))}</span></button>`;
+    }).join("");
+    this.shadowRoot.innerHTML = `<style>${BASE_STYLE}${MASTER_STYLE}</style>
+      <ha-card>
+        ${header}
+        <div class="tabbar" role="tablist">${bar}</div>
+        <div class="panel"></div>
+      </ha-card>`;
+    this.shadowRoot.querySelector(".panel").appendChild(this._panel(this._active));
+    this.shadowRoot.querySelectorAll(".tab").forEach((button) =>
+      button.addEventListener("click", () => {
+        this._active = button.dataset.tab;
+        this._render();
+      }));
+  }
+
+  getCardSize() {
+    return 8;
+  }
+
+  getGridOptions() {
+    return { columns: 12, rows: "auto" };
+  }
+}
+
+function tabOptions(hass) {
+  const t = texts(hass);
+  return PANEL_KEYS.map((value) => ({ value, label: PANELS[value].label(t) }));
+}
+
+const CARD_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    field.select("tabs", tabOptions(hass), true),
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+  ]),
+];
+
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
+  ["perdis-card", PerdisMasterCard, CARD_EDITOR, "PERDIS · All-in-one",
+    "Everything in one card: a tab bar switches between your next shift, the roster, your accounts "
+    + "and the calendar. Mobile-first, like the app."],
   ["perdis-shift-card", PerdisShiftCard, SHIFT_EDITOR, "PERDIS · Next shift",
     "Your next shift with a countdown, reporting point, wake-up and leave-home time."],
   ["perdis-roster-card", PerdisRosterCard, ROSTER_EDITOR, "PERDIS · Roster list",
