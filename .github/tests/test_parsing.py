@@ -246,6 +246,26 @@ class CalendarRoster(unittest.TestCase):
         self.assertTrue(any(duty.start_location == "Betriebshof Musterstadt" for duty in duties))
 
 
+class CalendarWithAMissingDateLink(unittest.TestCase):
+    """A day next to the selected one can render without its date link; it must not be dropped."""
+
+    def setUp(self):
+        self.duties = {
+            duty.day: duty
+            for duty in webcomm.WebCommParser(ZONE).parse_roster(fixture("webcomm_roster_calendar_gap.html"), TODAY)
+        }
+
+    def test_the_undated_day_is_recovered_from_its_neighbours(self):
+        # The 26th carries only "3095" and no date link, between the dated 25th and 27th.
+        self.assertIn(date(2026, 11, 26), self.duties)
+        self.assertEqual(self.duties[date(2026, 11, 26)].code, "3095")
+        self.assertEqual(self.duties[date(2026, 11, 26)].duty_type, DutyType.WORK)
+
+    def test_the_dated_neighbours_keep_their_own_days(self):
+        self.assertEqual(self.duties[date(2026, 11, 27)].code, "SF Neu")
+        self.assertEqual(self.duties[date(2026, 11, 30)].code, "3088")
+
+
 class CalendarCodes(unittest.TestCase):
     """A month calendar that shows only a duty code per day (times live on the detail page)."""
 

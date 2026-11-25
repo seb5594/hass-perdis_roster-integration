@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.25.9
+
+- 🩹 Fix a day going missing from a calendar roster: the day next to the selected one is often
+  rendered without its own date link, which dropped it entirely (so tomorrow's shift could vanish).
+  Such a day is now dated from its neighbours and kept.
+
 ## 2026.11.25.8
 
 - 🔵 The shift browser gained a **Today** button that jumps straight back to today (or the next
