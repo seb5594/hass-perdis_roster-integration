@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.13";
+const VERSION = "2026.11.25.14";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -677,7 +677,15 @@ class PerdisShiftCard extends PerdisCardBase {
         </div>
         ${facts ? `<div class="facts">${facts}</div>` : ""}
       </div>`, SHIFT_STYLE, accent);
-    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.runTap("next_shift"));
+    // Tapping the shift opens the same full breakdown pop-up as a roster day; the next-shift sensor
+    // already carries everything the pop-up needs (date, code, times, place, lines, legs).
+    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => {
+      if (config.tap_action) {
+        this.runTap("next_shift");
+        return;
+      }
+      openDayDialog(this._hass, shift, texts(this._hass));
+    });
   }
 
   getGridOptions() {
@@ -764,15 +772,17 @@ class PerdisRosterCard extends PerdisCardBase {
       const typeName = t.types[day.duty_type] || day.duty_type;
       // An unrecognised entry shows its own code ("SF Neu"), not the generic "Unknown" label.
       const label = day.duty_type === "unknown" && day.duty ? day.duty : typeName;
-      // An absence reads as just its name ("Krank", "Frei"); the code is dropped there.
+      // An absence reads as just its name ("Krank", "Frei"), with no code and no times — exactly as
+      // the calendar shows it. Even when the portal keeps the planned times on a sick day, the day
+      // is still "Krank", never its duty code. Only a real shift carries a number, times and lines.
       const absence = OFF_TYPES.includes(day.duty_type) || day.duty_type === "sick";
-      const hasTimes = day.start && day.end;
-      const heading = hasTimes
-        ? `${escapeHtml(day.duty || label)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
-        : escapeHtml(absence
-            ? typeName
-            : (day.duty && day.duty.toUpperCase() !== label.toUpperCase() ? `${label} (${day.duty})` : label));
-      const subParts = [
+      const hasTimes = !absence && day.start && day.end;
+      const heading = absence
+        ? escapeHtml(typeName)
+        : hasTimes
+          ? `${escapeHtml(day.duty || label)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
+          : escapeHtml(day.duty && day.duty.toUpperCase() !== label.toUpperCase() ? `${label} (${day.duty})` : label);
+      const subParts = absence ? [day.remark] : [
         config.show_location ? day.start_location : null,
         config.show_lines ? (day.lines || []).join(", ") : null,
         day.remark,
@@ -780,8 +790,8 @@ class PerdisRosterCard extends PerdisCardBase {
       const sub = subParts.filter(Boolean).join(" · ");
       const tags = config.show_tags ? [
         day.changed ? `<span class="tag changed">${escapeHtml(t.changed)}</span>` : "",
-        day.split_shift ? `<span class="tag">${escapeHtml(t.split)}</span>` : "",
-        day.category && hasTimes ? `<span class="tag">${escapeHtml(t.categories[day.category] || "")}</span>` : "",
+        !absence && day.split_shift ? `<span class="tag">${escapeHtml(t.split)}</span>` : "",
+        !absence && hasTimes && day.category ? `<span class="tag">${escapeHtml(t.categories[day.category] || "")}</span>` : "",
       ].join("") : "";
       const [weekday, ...rest] = formatDay(this._hass, day.date).split(/,?\s+/);
       const today = config.highlight_today && day.date === todayIso ? " today" : "";
@@ -1064,6 +1074,7 @@ const DETAIL_STYLE = `
   table.legs tr.break td { color: var(--secondary-text-color); font-style: italic; }
   .leg-line { display: inline-block; background: color-mix(in srgb, var(--accent) 22%, var(--card-background-color));
               border-radius: 6px; padding: 1px 7px; font-weight: 600; }
+  table.legs .to { color: var(--secondary-text-color); padding: 0 1px; }
   .browse { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
   .browse .nav { flex: 0 0 auto; border: none; border-radius: 10px; width: 36px; height: 36px; cursor: pointer;
     background: var(--secondary-background-color); color: var(--primary-text-color);
@@ -1108,8 +1119,13 @@ function legsTable(hass, legs, options, t) {
       return `<tr class="break"><td>${escapeHtml(leg.location || "")}</td><td class="num">${time}</td>`
         + `<td colspan="${columns.length - 2}">${escapeHtml(t.shiftDetail.break)} ${minutes} ${escapeHtml(t.shiftDetail.min)}</td></tr>`;
     }
+    // Show the leg's destination too, not only its start: "HB → Hbf". The last leg's end is the
+    // shift's final destination, which the start-only column never revealed.
+    const place = leg.end_location && leg.end_location !== leg.location
+      ? `${escapeHtml(leg.location || "–")} <span class="to">→</span> ${escapeHtml(leg.end_location)}`
+      : escapeHtml(leg.location || "–");
     const cells = [
-      `<td>${escapeHtml(leg.location || "–")}</td>`,
+      `<td>${place}</td>`,
       `<td class="num">${time}</td>`,
       `<td>${leg.line ? `<span class="leg-line">${escapeHtml(leg.line)}</span>` : "–"}</td>`,
     ];
@@ -1123,13 +1139,21 @@ function legsTable(hass, legs, options, t) {
 
 /** One day's pop-up body: the shift summary and, when there is one, its leg table. */
 function dayDetailBody(hass, day, t) {
-  const working = Boolean(day.start && day.end);
   const typeName = t.types[day.duty_type] || day.duty_type;
-  const code = day.duty_type === "unknown" && day.duty ? day.duty : (working ? (day.duty || typeName) : typeName);
+  // An absence ("Krank", "Frei") shows its name, never its duty code, even with planned times.
+  const absence = OFF_TYPES.includes(day.duty_type) || day.duty_type === "sick";
+  const working = !absence && Boolean(day.start && day.end);
+  const code = absence ? typeName
+    : (day.duty_type === "unknown" && day.duty ? day.duty : (working ? (day.duty || typeName) : typeName));
   const when = working ? `${formatTime(hass, day.start)}–${formatTime(hass, day.end)}` : "";
-  const meta = [day.start_location, working ? (day.lines || []).join(", ") : "", day.remark]
+  // The shift's start and its final destination, e.g. "HB → Betriebshof".
+  const place = !absence && day.start_location
+    ? (day.end_location && day.end_location !== day.start_location
+        ? `${day.start_location} → ${day.end_location}` : day.start_location)
+    : "";
+  const meta = [place, working ? (day.lines || []).join(", ") : "", day.remark]
     .filter(Boolean).map((text) => `<span>${escapeHtml(text)}</span>`).join('<span class="dot">·</span>');
-  const legs = day.legs || [];
+  const legs = absence ? [] : (day.legs || []);
   const body = legs.length
     ? legsTable(hass, legs, {}, t)
     : `<div class="detail-msg">${escapeHtml(working ? t.shiftDetail.noDetail : t.shiftDetail.dayOff)}</div>`;
@@ -1231,8 +1255,10 @@ class PerdisShiftDetailCard extends PerdisCardBase {
       return `<button class="nav" data-step="${step}"${disabled ? " disabled" : ""}>`
         + `<ha-icon icon="${icon}"></ha-icon></button>`;
     };
+    const destination = day.end_location && day.end_location !== day.start_location
+      ? ` → ${escapeHtml(day.end_location)}` : "";
     const place = working && day.start_location
-      ? `<div class="detail-place"><ha-icon icon="mdi:map-marker" style="--mdc-icon-size:16px"></ha-icon>${escapeHtml(day.start_location)}</div>`
+      ? `<div class="detail-place"><ha-icon icon="mdi:map-marker" style="--mdc-icon-size:16px"></ha-icon>${escapeHtml(day.start_location)}${destination}</div>`
       : "";
     const legs = (day.legs || []).filter((leg) => config.show_breaks !== false || !leg.is_break);
     const body = legs.length
@@ -1457,25 +1483,120 @@ class PerdisMasterCard extends PerdisCardBase {
   }
 }
 
-function tabOptions(hass) {
-  const t = texts(hass);
-  return PANEL_KEYS.map((value) => ({ value, label: PANELS[value].label(t) }));
-}
+const EDITOR_STYLE = `
+  .tabs-editor { margin-top: 14px; }
+  .tabs-editor .hdr { font-size: 0.95rem; font-weight: 500; margin: 4px 2px 8px; }
+  .trow { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 10px;
+          background: var(--secondary-background-color); margin-bottom: 6px; }
+  .trow.off { opacity: 0.5; }
+  .trow .lbl { flex: 1; }
+  .trow input { width: 18px; height: 18px; accent-color: var(--primary-color); cursor: pointer; }
+  .trow button { border: none; background: none; cursor: pointer; color: var(--primary-text-color);
+                 display: inline-flex; padding: 2px; border-radius: 6px; }
+  .trow button:not([disabled]):hover { background: var(--divider-color); }
+  .trow button[disabled] { opacity: 0.3; cursor: default; }
+  .trow ha-icon { --mdc-icon-size: 20px; }
+`;
 
-const CARD_EDITOR = (hass) => [
-  field.device, field.title,
-  section(hass, "sec_content", [
-    field.select("tabs", tabOptions(hass), true),
-  ]),
-  section(hass, "sec_appearance", [
-    { type: "grid", schema: [field.showHeader, field.icon] },
-  ]),
-];
+// The all-in-one card's editor: the plain fields through ha-form, plus a tab list the user can
+// switch on and off and reorder with the arrows — a plain multi-select cannot set an order.
+class PerdisMasterEditor extends HTMLElement {
+  setConfig(config) {
+    this._config = { ...config };
+    this._render();
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._render();
+  }
+
+  _emit(patch) {
+    const config = { ...this._config, ...patch };
+    for (const key of Object.keys(config)) {
+      const value = config[key];
+      if (value === "" || value === undefined || value === null || (Array.isArray(value) && !value.length)) {
+        delete config[key];
+      }
+    }
+    this._config = config;
+    fireEvent(this, "config-changed", { config });
+    this._render();
+  }
+
+  _enabled() {
+    const tabs = (this._config.tabs || []).filter((key) => PANELS[key]);
+    return tabs.length ? tabs : [...PerdisMasterCard.defaults().tabs];
+  }
+
+  _toggle(key) {
+    const tabs = this._enabled();
+    this._emit({ tabs: tabs.includes(key) ? tabs.filter((other) => other !== key) : [...tabs, key] });
+  }
+
+  _move(key, delta) {
+    const tabs = this._enabled();
+    const index = tabs.indexOf(key);
+    const target = index + delta;
+    if (index < 0 || target < 0 || target >= tabs.length) return;
+    [tabs[index], tabs[target]] = [tabs[target], tabs[index]];
+    this._emit({ tabs });
+  }
+
+  _render() {
+    if (!this._hass || !this._config) return;
+    const t = texts(this._hass);
+    if (!this._form) {
+      this._form = document.createElement("ha-form");
+      this._form.addEventListener("value-changed", (event) => {
+        const value = { ...event.detail.value };
+        delete value.tabs;  // the tabs are set by the list below, not the form
+        this._emit(value);
+      });
+      this.appendChild(this._form);
+      this._list = document.createElement("div");
+      this._list.className = "tabs-editor";
+      this.appendChild(this._list);
+    }
+    const formData = { ...this._config };
+    delete formData.tabs;
+    this._form.hass = this._hass;
+    this._form.data = formData;
+    this._form.schema = [field.device, field.title, { type: "grid", schema: [field.showHeader, field.icon] }];
+    this._form.computeLabel = (schema) => t.editor[schema.name] || schema.name;
+    this._form.computeHelper = (schema) => t.helper[schema.name] || "";
+
+    const enabled = this._enabled();
+    const enabledSet = new Set(enabled);
+    const ordered = [...enabled, ...PANEL_KEYS.filter((key) => !enabledSet.has(key))];
+    this._list.innerHTML = `<style>${EDITOR_STYLE}</style>
+      <div class="hdr">${escapeHtml(t.editor.tabs)}</div>
+      ${ordered.map((key) => {
+        const on = enabledSet.has(key);
+        const pos = enabled.indexOf(key);
+        return `<div class="trow${on ? "" : " off"}">
+          <input type="checkbox" data-toggle="${key}" ${on ? "checked" : ""}>
+          <span class="lbl">${escapeHtml(PANELS[key].label(t))}</span>
+          <button data-up="${key}"${on && pos > 0 ? "" : " disabled"}><ha-icon icon="mdi:chevron-up"></ha-icon></button>
+          <button data-down="${key}"${on && pos >= 0 && pos < enabled.length - 1 ? "" : " disabled"}><ha-icon icon="mdi:chevron-down"></ha-icon></button>
+        </div>`;
+      }).join("")}`;
+    this._list.querySelectorAll("[data-toggle]").forEach((box) =>
+      box.addEventListener("change", () => this._toggle(box.dataset.toggle)));
+    this._list.querySelectorAll("[data-up]").forEach((button) =>
+      button.addEventListener("click", () => this._move(button.dataset.up, -1)));
+    this._list.querySelectorAll("[data-down]").forEach((button) =>
+      button.addEventListener("click", () => this._move(button.dataset.down, 1)));
+  }
+}
+if (!customElements.get("perdis-card-editor")) {
+  customElements.define("perdis-card-editor", PerdisMasterEditor);
+}
 
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
-  ["perdis-card", PerdisMasterCard, CARD_EDITOR, "PERDIS · All-in-one",
+  ["perdis-card", PerdisMasterCard, null, "PERDIS · All-in-one",
     "Everything in one card: a tab bar switches between your next shift, the roster, your accounts "
     + "and the calendar. Mobile-first, like the app."],
   ["perdis-shift-card", PerdisShiftCard, SHIFT_EDITOR, "PERDIS · Next shift",

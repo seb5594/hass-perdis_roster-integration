@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.25.14
+
+- 👆 Tapping the **next shift** (its own card and the all-in-one card's shift tab) now opens the same
+  full breakdown pop-up as a roster day.
+- 🧭 The shift detail now shows each leg's **destination**, not only its start — "HB → Hbf" — so the
+  final arrival point is no longer missing.
+- 🩹 An absence that the portal keeps planned times on (a sick day) now reads as **"Krank"** in the
+  roster, never its duty code "k", matching the calendar.
+- 🔀 The all-in-one card's editor lets you **switch tabs on and off and reorder them** with arrows.
+
 ## 2026.11.25.13
 
 - 🧩 New **all-in-one card** (`PERDIS · All-in-one`): one mobile-first card with a tab bar that
