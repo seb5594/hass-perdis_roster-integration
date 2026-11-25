@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.25.11
+
+- 🩹 Recover a shift the portal drops from its month overview. WebComm now and then renders one day
+  without its cell, so a shift — tomorrow's, typically — went missing from the roster and the
+  calendar entirely. Each upcoming day is now opened the way clicking it in the browser does
+  (`roster.aspx?<day>` then `shift.aspx?<day>`), which lists the day again and fills in its real
+  times, so it no longer vanishes.
+
 ## 2026.11.25.10
 
 - 🗓️ New **Perdis: calendar** card draws a month calendar of your roster and finds your calendar
