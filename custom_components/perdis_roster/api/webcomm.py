@@ -264,7 +264,9 @@ class WebCommClient(PortalClient):
                 continue
             month = duty.day.replace(day=1)
             if month != active_month:
-                await self._open_roster_month(roster_url, month)
+                # Navigate the roster to this day first, exactly as clicking "next" in the browser
+                # does: the portal only serves a shift's detail once its month's roster is open.
+                await self._open_roster_month(roster_url, duty.day)
                 active_month = month
             try:
                 page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")
@@ -281,12 +283,12 @@ class WebCommClient(PortalClient):
                 # per-shift breakdown, so stop probing it after a couple of such misses.
                 misses += 1
 
-    async def _open_roster_month(self, roster_url: str, month: date) -> None:
-        """Open a month's roster so its shifts' detail pages are served in the right context."""
+    async def _open_roster_month(self, roster_url: str, day: date) -> None:
+        """Open the roster on `day` (roster.aspx?YYYY-MM-DD) so that day's shift detail is served."""
         try:
-            await self._get_signed_in(f"{roster_url}?{month.isoformat()}")
+            await self._get_signed_in(f"{roster_url}?{day.isoformat()}")
         except (PerdisConnectionError, PerdisPortalError) as error:
-            _LOGGER.debug("Could not open the roster for %s before reading its shifts: %s", month, error)
+            _LOGGER.debug("Could not open the roster on %s before reading its shift: %s", day, error)
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
         """The roster HTML for the needed months: by month query string, or by paging through it."""

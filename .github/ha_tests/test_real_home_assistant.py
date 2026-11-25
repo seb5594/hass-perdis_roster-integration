@@ -287,6 +287,21 @@ async def test_detail_legs_are_added_even_when_the_roster_already_has_times(hass
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
 
 
+async def test_a_navigation_based_portal_details_next_month_shifts(hass, fake_webcomm_navigated):
+    """A portal that only serves a shift's legs while its month is open must still detail next month."""
+    await add_account_for(hass, fake_webcomm_navigated)
+    await hass.async_block_till_done()
+    response = await hass.services.async_call(
+        DOMAIN, "get_duties", {"start_date": "2026-11-23", "end_date": "2026-12-06"}, blocking=True,
+        return_response=True)
+    by_day = {duty["day"]: duty for duty in response["accounts"][0]["duties"]}
+    # A shift this month and one next month both get their legs, because the roster is re-opened on
+    # the right month before each detail page is read.
+    assert by_day["2026-11-23"]["segments"]
+    assert by_day["2026-12-01"]["segments"]
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
 async def test_open_duty_swaps_are_listed(hass, fake_webcomm):
     await add_account(hass, fake_webcomm)
     await hass.async_block_till_done()
