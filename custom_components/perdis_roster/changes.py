@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
+from .labels import type_label
 from .models import ChangeKind, Duty, ScheduleChange, Snapshot
 
 
@@ -56,24 +57,29 @@ def changes_since(history: list[ScheduleChange], since: datetime) -> list[Schedu
 TEXTS = {
     "en": {
         "title": "Your roster has changed",
-        ChangeKind.ADDED: "{day}: new duty {after}",
-        ChangeKind.REMOVED: "{day}: duty {before} was removed",
-        ChangeKind.TIMES: "{day}: duty {after} now {after_times} (was {before_times})",
-        ChangeKind.DUTY: "{day}: {before} became {after}",
-        ChangeKind.LOCATION: "{day}: duty {after} now starts at {after_location}",
-        "date_format": "%a %d %b",
+        # A day that turns into an absence (a day off, vacation, sick day) reads as "entered";
+        # a new or changed shift keeps its number.
+        "entered": "{type} entered for {day}",
+        "added_work": "New duty {after} on {day}",
+        "changed_work": "Duty {after} instead of {before} on {day}",
+        ChangeKind.REMOVED: "Duty {before} dropped on {day}",
+        ChangeKind.TIMES: "Duty {after} now {after_times} (was {before_times}) on {day}",
+        ChangeKind.LOCATION: "Duty {after} now starts at {after_location} on {day}",
+        "weekdays": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
+        "date_format": "%d %b",
     },
     "de": {
         "title": "Dein Dienstplan hat sich geändert",
-        ChangeKind.ADDED: "{day}: neuer Dienst {after}",
-        ChangeKind.REMOVED: "{day}: Dienst {before} wurde gestrichen",
-        ChangeKind.TIMES: "{day}: Dienst {after} jetzt {after_times} (vorher {before_times})",
-        ChangeKind.DUTY: "{day}: aus {before} wurde {after}",
-        ChangeKind.LOCATION: "{day}: Dienst {after} beginnt jetzt in {after_location}",
+        "entered": "{type} eingetragen für {day}",
+        "added_work": "Neuer Dienst {after} am {day}",
+        "changed_work": "Dienst {after} statt {before} am {day}",
+        ChangeKind.REMOVED: "Dienst {before} entfällt am {day}",
+        ChangeKind.TIMES: "Dienst {after} jetzt {after_times} (vorher {before_times}) am {day}",
+        ChangeKind.LOCATION: "Dienst {after} beginnt jetzt in {after_location} am {day}",
+        "weekdays": ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"),
         "date_format": "%d.%m.",
     },
 }
-WEEKDAYS_DE = ("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 
 def texts(language: str) -> dict:
@@ -81,19 +87,29 @@ def texts(language: str) -> dict:
 
 
 def describe(change: ScheduleChange, language: str = "en") -> str:
-    """One line such as `Mo 23.11.: Dienst 4711 jetzt 05:12-13:40 (vorher 06:02-14:10)`."""
+    """One readable line, e.g. `Frei eingetragen für Montag, 30.11.` or
+    `Dienst 4711 jetzt 05:12–13:40 (vorher 06:02–14:10) am Montag, 23.11.`."""
     words = texts(language)
-    day = change.day.strftime(words["date_format"])
-    if words is TEXTS["de"]:
-        day = f"{WEEKDAYS_DE[change.day.weekday()]} {day}"
-    return words[change.kind].format(
-        day=day,
-        before=change.before.label if change.before else "–",
-        after=change.after.label if change.after else "–",
-        before_times=_times(change.before),
-        after_times=_times(change.after),
-        after_location=(change.after.start_location if change.after else None) or "–",
-    )
+    day = f"{words['weekdays'][change.day.weekday()]}, {change.day.strftime(words['date_format'])}"
+    after, before = change.after, change.before
+    fields = {
+        "day": day,
+        "before": before.label if before else "–",
+        "after": after.label if after else "–",
+        "before_times": _times(before),
+        "after_times": _times(after),
+        "after_location": (after.start_location if after else None) or "–",
+    }
+    if change.kind is ChangeKind.ADDED:
+        template = "added_work" if after and after.is_working else "entered"
+    elif change.kind is ChangeKind.DUTY:
+        # Turning into an absence reads as "entered"; a swap between real shifts keeps both numbers.
+        template = "changed_work" if after and after.is_working else "entered"
+    else:
+        template = change.kind
+    if template == "entered":
+        fields["type"] = type_label(after.duty_type, language) if after else fields["after"]
+    return words[template].format(**fields)
 
 
 def _times(duty: Duty | None) -> str:

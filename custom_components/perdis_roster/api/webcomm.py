@@ -244,14 +244,15 @@ class WebCommClient(PortalClient):
         window_end = today + timedelta(days=self._detail_days)
         fetched = misses = 0
         for duty in snapshot.duties:
-            if duty.is_off or duty.segments or not (start_day <= duty.day <= window_end):
+            # Only driving duties have a per-leg detail page. Days off and, above all, absences such
+            # as sick days (which the roster still lists with times) are skipped, so they neither
+            # cost a request nor count as a "no detail page" miss that would stop the probing early.
+            if not duty.is_working or duty.segments or not (start_day <= duty.day <= window_end):
                 continue
             previous = known.get(duty.day)
             if previous is not None and previous.segments and previous.code == duty.code:
                 # The same shift was already broken down on an earlier refresh: reuse it, no request.
                 ShiftDetail(list(previous.segments)).apply_to(duty)
-                if duty.duty_type is DutyType.UNKNOWN:
-                    duty.duty_type = DutyType.WORK
                 continue
             if fetched >= MAX_DETAIL_FETCHES or misses >= MAX_DETAIL_MISSES:
                 continue
@@ -264,11 +265,9 @@ class WebCommClient(PortalClient):
             detail = parse_shift_detail(page.html, duty.day, self._zone)
             if detail.has_times:
                 detail.apply_to(duty)
-                if duty.duty_type is DutyType.UNKNOWN:
-                    duty.duty_type = DutyType.WORK
-            elif duty.has_times:
-                # The roster listed times for this working day, yet its detail page has no legs:
-                # the portal offers no per-shift breakdown, so stop probing it.
+            elif duty.duty_type is DutyType.WORK and duty.has_times:
+                # A real shift with times whose detail page carries no legs: the portal offers no
+                # per-shift breakdown, so stop probing it after a couple of such misses.
                 misses += 1
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:

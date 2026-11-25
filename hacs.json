@@ -1,6 +1,6 @@
 {
   "name": "Perdis Duty Roster",
-  "homeassistant": "2024.2.0",
+  "homeassistant": "2023.8.0",
   "render_readme": true,
   "zip_release": true,
   "filename": "perdis_roster.zip"

@@ -109,8 +109,14 @@ class Changes(unittest.TestCase):
         change = models.ScheduleChange(date(2026, 11, 24), models.ChangeKind.TIMES, at("2026-11-23", 2),
                                        ROSTER[2], shift("2026-11-24", (14, 10), (22, 45), "5104"))
         self.assertEqual(changes.describe(change, "de"),
-                         "Di 24.11.: Dienst 5104 jetzt 14:10–22:45 (vorher 13:10–21:45)")
-        self.assertIn("now 14:10–22:45 (was 13:10–21:45)", changes.describe(change, "en"))
+                         "Dienst 5104 jetzt 14:10–22:45 (vorher 13:10–21:45) am Dienstag, 24.11.")
+        self.assertIn("now 14:10–22:45 (was 13:10–21:45) on Tuesday", changes.describe(change, "en"))
+
+    def test_turning_into_a_day_off_reads_as_entered(self):
+        change = models.ScheduleChange(date(2026, 11, 30), models.ChangeKind.DUTY, at("2026-11-23", 2),
+                                       Duty(date(2026, 11, 30), DutyType.UNKNOWN), off("2026-11-30"))
+        self.assertEqual(changes.describe(change, "de"), "Frei eingetragen für Montag, 30.11.")
+        self.assertEqual(changes.describe(change, "en"), "Day off entered for Monday, 30 Nov")
 
 
 if __name__ == "__main__":

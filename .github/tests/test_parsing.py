@@ -361,3 +361,13 @@ class DutySwapPage(unittest.TestCase):
     def test_request_window_from_the_heading(self):
         window = self.dutyswap.parse_swap_window(fixture("webcomm_dutyswap.html"), TODAY)
         self.assertEqual(window, (date(2026, 11, 25), date(2026, 12, 9)))
+
+
+class OperatorShortName(unittest.TestCase):
+    """The operator's short name seeds the account title "<short> - <personnel number>"."""
+
+    def test_short_name_is_the_first_word_of_the_name(self):
+        operators = load("operators")
+        shorts = {operator.key: operator.short for operator in operators.OPERATORS}
+        self.assertEqual(shorts["dvg_duisburg"], "DVG")
+        self.assertEqual(shorts["rheinbahn"], "Rheinbahn")

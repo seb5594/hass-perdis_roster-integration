@@ -33,6 +33,11 @@ class Operator:
         """Text shown in the setup dialog, e.g. "Rheinbahn · Düsseldorf (DE)"."""
         return f"{self.name} · {self.region} ({self.country})"
 
+    @property
+    def short(self) -> str:
+        """The operator's short name, e.g. "VGF", "DVG" or "Rheinbahn": the first word of the name."""
+        return self.name.split()[0]
+
 
 OPERATORS: tuple[Operator, ...] = (
     Operator("bogestra", "BOGESTRA", "Bochum / Gelsenkirchen", "DE",

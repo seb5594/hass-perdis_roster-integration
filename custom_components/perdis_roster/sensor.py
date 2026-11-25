@@ -34,7 +34,7 @@ from .capabilities import (
 )
 from .changes import describe
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
-from .entity import ATTR_ROLE, PerdisEntity
+from .entity import ATTR_ROLE, PerdisEntity, description_frozen
 from .insights import ShiftCategory, shift_category
 from .models import Duty, DutyType
 
@@ -45,7 +45,7 @@ POINTS = "pts"
 Value = str | int | float | date | datetime | None
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=description_frozen(SensorEntityDescription), kw_only=True)
 class PerdisSensorDescription(SensorEntityDescription):
     value_fn: Callable[[PerdisCoordinator], Value]
     attributes_fn: Callable[[PerdisCoordinator], dict[str, Any]] | None = None

@@ -13,19 +13,12 @@ from homeassistant.util import dt as dt_util
 from .capabilities import CAP_ROSTER
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import PerdisEntity
-from .models import Duty, DutyType
+from .labels import duty_type_labels
+from .models import Duty
 
 CALENDAR = EntityDescription(key="duties")
 
 # Calendar entries are plain text; these keep them readable in both languages.
-DAY_LABELS = {
-    "en": {DutyType.FREE: "Day off", DutyType.VACATION: "Vacation", DutyType.SICK: "Sick leave",
-           DutyType.COMPENSATION: "Time off in lieu", DutyType.TRAINING: "Training", DutyType.RESERVE: "Reserve",
-           DutyType.WORK: "Duty", DutyType.UNKNOWN: "Roster"},
-    "de": {DutyType.FREE: "Frei", DutyType.VACATION: "Urlaub", DutyType.SICK: "Krank",
-           DutyType.COMPENSATION: "Freizeitausgleich", DutyType.TRAINING: "Schulung", DutyType.RESERVE: "Bereitschaft",
-           DutyType.WORK: "Dienst", DutyType.UNKNOWN: "Dienstplan"},
-}
 DETAIL_LABELS = {
     "en": {"start": "Starts at", "hours": "Paid hours", "split": "Split shift", "parts": "Legs",
            "line": "Line", "course": "Course", "break": "Break"},
@@ -51,9 +44,9 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
 
     def __init__(self, coordinator: PerdisCoordinator, description: EntityDescription) -> None:
         super().__init__(coordinator, description)
-        language = (coordinator.hass.config.language or "en").split("-")[0]
-        self._days = DAY_LABELS.get(language, DAY_LABELS["en"])
-        self._details = DETAIL_LABELS.get(language, DETAIL_LABELS["en"])
+        language = coordinator.hass.config.language or "en"
+        self._days = duty_type_labels(language)
+        self._details = DETAIL_LABELS.get(language.split("-")[0], DETAIL_LABELS["en"])
 
     @property
     def event(self) -> CalendarEvent | None:
@@ -69,14 +62,18 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
         return [event for event in events if _overlaps(event, start_date, end_date)]
 
     def _event(self, duty: Duty) -> CalendarEvent:
+        label = self._days[duty.duty_type]
+        # The duty number and lines only mean something for a working shift; an absence (sick, day
+        # off, vacation) reads as just its name, so "Krank k" or "Frei (R)" become plain "Krank".
         if duty.has_times:
-            title = f"{self._days[duty.duty_type]} {duty.code}".strip()
-            if duty.lines:
-                title += f" · {', '.join(duty.lines)}"
+            title = label
+            if duty.is_working:
+                title = f"{label} {duty.code}".strip()
+                if duty.lines:
+                    title += f" · {', '.join(duty.lines)}"
             return CalendarEvent(start=duty.start, end=duty.end, summary=title, location=duty.start_location,
                                  description=self._description(duty), uid=f"perdis-{duty.day.isoformat()}")
-        label = self._days[duty.duty_type]
-        if duty.code and duty.code.upper() != label.upper():
+        if duty.is_working and duty.code and duty.code.upper() != label.upper():
             label = f"{label} ({duty.code})"
         return CalendarEvent(start=duty.day, end=duty.day + timedelta(days=1), summary=label,
                              description=duty.remark, uid=f"perdis-{duty.day.isoformat()}")

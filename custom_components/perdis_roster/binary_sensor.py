@@ -16,10 +16,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .capabilities import CAP_ROSTER
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
-from .entity import PerdisEntity
+from .entity import PerdisEntity, description_frozen
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=description_frozen(BinarySensorEntityDescription), kw_only=True)
 class PerdisBinarySensorDescription(BinarySensorEntityDescription):
     is_on_fn: Callable[[PerdisCoordinator], bool | None]
     always_available: bool = False
