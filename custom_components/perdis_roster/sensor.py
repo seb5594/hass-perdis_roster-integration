@@ -210,7 +210,8 @@ def _roster_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
     days = []
     for duty in coordinator.insights.window(ROSTER_CARD_DAYS):
         attributes = duty_attributes(duty)
-        days.append({**attributes, "changed": attributes["date"] in changed_days})
+        # The legs ride along so the shift browser can page through each day's detail table.
+        days.append({**attributes, "changed": attributes["date"] in changed_days, "legs": _legs(duty)})
     return {
         "days": days,
         "free_weekends": [saturday.isoformat() for saturday in coordinator.insights.free_weekends],
