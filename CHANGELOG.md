@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.25.3
+
+- 🗓️ Next month's shifts are detailed on a **navigation-based portal**: the roster is opened on a
+  shift's own day (roster.aspx?YYYY-MM-DD) before its detail page is read, exactly as clicking
+  "next" in the browser does — so the shifts of the following month get their legs, not only the
+  current month. Covered by a regression test against a portal that mimics this behaviour.
+
 ## 2026.11.25.2
 
 - ⏱️ Time accounts now read in the portal's own **hours:minutes** form: the accounts card shows the
