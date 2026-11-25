@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.25.10
+
+- 🗓️ New **Perdis: calendar** card draws a month calendar of your roster and finds your calendar
+  entity on its own — nothing to type, just like the other cards. The calendar entity now carries
+  its role, so the card picks it up automatically.
+
 ## 2026.11.25.9
 
 - 🩹 Fix a day going missing from a calendar roster: the day next to the selected one is often
