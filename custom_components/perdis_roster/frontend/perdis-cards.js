@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.3";
+const VERSION = "2026.11.25.4";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -63,8 +63,9 @@ const TEXTS = {
     categories: { early: "Early", day: "Day", late: "Late", night: "Night", split: "Split" },
     facts: { wake_up: "Wake up", leave_home: "Leave", paid: "Paid hours", rest: "Rest before" },
     tiles: {
-      overtime: "Overtime balance", vacation: "Vacation left", weekend_points: "Weekend points",
-      free_weekends: "Free weekends", planned_week: "Planned this week", planned_month: "Planned this month",
+      overtime: "Overtime balance", daily: "Time account today", vacation: "Vacation left",
+      weekend_points: "Weekend points", free_weekends: "Free weekends",
+      planned_week: "Planned this week", planned_month: "Planned this month",
     },
     shiftDetail: {
       title: "Shift detail",
@@ -153,7 +154,7 @@ const TEXTS = {
     categories: { early: "Früh", day: "Mittel", late: "Spät", night: "Nacht", split: "Geteilt" },
     facts: { wake_up: "Aufstehen", leave_home: "Losfahren", paid: "Bezahlte Stunden", rest: "Ruhezeit davor" },
     tiles: {
-      overtime: "Zeitkonto", vacation: "Resturlaub", weekend_points: "WE-Punkte",
+      overtime: "Zeitkonto", daily: "Tageskonto heute", vacation: "Resturlaub", weekend_points: "WE-Punkte",
       free_weekends: "Freie Wochenenden", planned_week: "Geplant diese Woche", planned_month: "Geplant diesen Monat",
     },
     shiftDetail: {
@@ -216,7 +217,12 @@ const CATEGORY_ICONS = {
 const DEFAULT_HEADER_ICON = "mdi:bus-clock";
 const OFF_TYPES = ["free", "vacation", "compensation"];
 const FACT_KEYS = ["wake_up", "leave_home", "paid", "rest"];
-const TILE_KEYS = ["overtime", "vacation", "weekend_points", "free_weekends", "planned_week", "planned_month"];
+const TILE_KEYS = ["overtime", "daily", "vacation", "weekend_points", "free_weekends", "planned_week", "planned_month"];
+// Which account entity each tile needs; a tile is hidden when its portal does not provide it.
+const TILE_ROLES = {
+  overtime: "overtime", daily: "daily_values", vacation: "vacation", weekend_points: "weekend_points",
+  free_weekends: "free_weekends", planned_week: "planned_week", planned_month: "planned_month",
+};
 const DUTY_TYPE_KEYS = ["work", "reserve", "training", "free", "vacation", "compensation", "sick", "unknown"];
 
 function language(hass) {
@@ -730,10 +736,12 @@ class PerdisRosterCard extends PerdisCardBase {
       currentWeek = week;
       const color = accentOf(config, day.duty_type);
       const typeName = t.types[day.duty_type] || day.duty_type;
+      // An unrecognised entry shows its own code ("SF Neu"), not the generic "Unknown" label.
+      const label = day.duty_type === "unknown" && day.duty ? day.duty : typeName;
       const hasTimes = day.start && day.end;
       const heading = hasTimes
-        ? `${escapeHtml(day.duty || typeName)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
-        : escapeHtml(day.duty && day.duty.toUpperCase() !== typeName.toUpperCase() ? `${typeName} (${day.duty})` : typeName);
+        ? `${escapeHtml(day.duty || label)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
+        : escapeHtml(day.duty && day.duty.toUpperCase() !== label.toUpperCase() ? `${label} (${day.duty})` : label);
       const subParts = [
         config.show_location ? day.start_location : null,
         config.show_lines ? (day.lines || []).join(", ") : null,
@@ -808,7 +816,10 @@ const ACCOUNTS_STYLE = `
 
 class PerdisAccountsCard extends PerdisCardBase {
   static defaults() {
-    return { show_tiles: ["overtime", "vacation", "weekend_points", "free_weekends", "planned_week"], columns: 0 };
+    return {
+      show_tiles: ["overtime", "daily", "vacation", "weekend_points", "free_weekends", "planned_week"],
+      columns: 0,
+    };
   }
 
   static getConfigElement() {
@@ -834,6 +845,12 @@ class PerdisAccountsCard extends PerdisCardBase {
         // Shown as hours:minutes like the portal ("+10:17"), not as a decimal number of hours.
         const text = overtime === null ? "–" : `${overtime > 0 ? "+" : ""}${formatClockHours(overtime)}`;
         return wrap("overtime", "mdi:timer-sand", t.overtime, value(text, "", tone));
+      }
+      case "daily": {
+        const daily = numericState(hass, this._entities.daily_values);
+        const tone = daily === null ? "" : daily >= 0 ? "positive" : "negative";
+        const text = daily === null ? "–" : `${daily > 0 ? "+" : ""}${formatClockHours(daily)}`;
+        return wrap("daily_values", "mdi:clock-time-four-outline", t.tiles.daily, value(text, "", tone));
       }
       case "vacation": {
         const vacation = numericState(hass, this._entities.vacation);
@@ -882,8 +899,12 @@ class PerdisAccountsCard extends PerdisCardBase {
     if (!this._entities?.roster) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
 
     const keys = (config.show_tiles && config.show_tiles.length ? config.show_tiles : TILE_KEYS)
-      .filter((key) => TILE_KEYS.includes(key));
+      .filter((key) => TILE_KEYS.includes(key))
+      // Hide a tile whose portal does not provide it, so no empty "–" cards are shown.
+      .filter((key) => this._entities[TILE_ROLES[key]]);
     const tiles = keys.map((key) => this._tile(key)).join("");
+    if (!tiles) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`,
+      ACCOUNTS_STYLE, accentOf(config, "work"));
     const columns = Number(config.columns) || 0;
     const gridClass = columns > 0 ? "" : " auto";
     const gridStyle = columns > 0 ? `style="grid-template-columns:repeat(${columns},1fr)"` : "";

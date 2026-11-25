@@ -321,7 +321,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=lambda c: _period_attributes(c, c.insights.week),
     ),
     PerdisSensorDescription(
-        key="planned_hours_month", device_class=SensorDeviceClass.DURATION,
+        key="planned_hours_month", role="planned_month", device_class=SensorDeviceClass.DURATION,
         native_unit_of_measurement=UnitOfTime.HOURS, suggested_display_precision=1,
         value_fn=lambda c: _hours(c.insights.planned_minutes(*c.insights.month)),
         attributes_fn=lambda c: _period_attributes(c, c.insights.month),
