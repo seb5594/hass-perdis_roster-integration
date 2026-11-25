@@ -5,6 +5,7 @@
  *   perdis-roster-card        the coming days, grouped by week, with days off and changes marked
  *   perdis-accounts-card      overtime, vacation, weekend points and free weekends at a glance
  *   perdis-shift-detail-card  page through the shifts, each broken into its legs as a table
+ *   perdis-calendar-card      a month calendar of the roster, entity found automatically
  *   perdis-swap-card          the open duty swaps the portal lists
  *
  * The integration loads this file on every dashboard, so the cards appear in the card picker
@@ -17,7 +18,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.9";
+const VERSION = "2026.11.25.10";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -72,6 +73,8 @@ const TEXTS = {
       place: "Place", time: "Time", line: "Line", course: "Course", direction: "Relief",
       break: "Break", min: "min", noDetail: "No leg-by-leg breakdown for this shift yet.", dayOff: "No shift on this day.",
     },
+    calendar: "Calendar",
+    views: { dayGridMonth: "Month", listWeek: "Week list", listMonth: "Month list" },
     editor: {
       // Common
       device_id: "Perdis account",
@@ -101,6 +104,8 @@ const TEXTS = {
       show_course: "Show the course column",
       show_relief: "Show the relief column",
       show_breaks: "Show the breaks",
+      // Calendar card
+      initial_view: "Start view",
       // Section headers
       sec_content: "Content",
       sec_appearance: "Appearance",
@@ -162,6 +167,8 @@ const TEXTS = {
       place: "Ort", time: "Zeit", line: "Linie", course: "Kurs", direction: "Ablösung",
       break: "Pause", min: "Min.", noDetail: "Für diesen Dienst liegt noch keine Aufschlüsselung vor.", dayOff: "An diesem Tag kein Dienst.",
     },
+    calendar: "Kalender",
+    views: { dayGridMonth: "Monat", listWeek: "Wochenliste", listMonth: "Monatsliste" },
     editor: {
       device_id: "Perdis-Konto",
       title: "Titel",
@@ -186,6 +193,7 @@ const TEXTS = {
       show_course: "Spalte Kurs anzeigen",
       show_relief: "Spalte Ablösung anzeigen",
       show_breaks: "Pausen anzeigen",
+      initial_view: "Startansicht",
       sec_content: "Inhalt",
       sec_appearance: "Darstellung",
       sec_behavior: "Verhalten",
@@ -1180,6 +1188,84 @@ const SHIFT_DETAIL_EDITOR = (hass) => [
   section(hass, "sec_behavior", [field.tapAction]),
 ];
 
+// --- Calendar (wraps the built-in calendar card, entity found automatically) --------------------
+
+class PerdisCalendarCard extends PerdisCardBase {
+  static defaults() {
+    return { initial_view: "dayGridMonth" };
+  }
+
+  static getConfigElement() {
+    return document.createElement("perdis-calendar-card-editor");
+  }
+
+  setConfig(config) {
+    this._config = { ...this.constructor.defaults(), ...config };
+    this._inner = null;
+    if (this._hass) {
+      this._entities = findEntities(this._hass, this._config.device_id);
+      this._build();
+    }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    this._entities = findEntities(hass, this._config?.device_id);
+    // The built-in calendar card fetches its own events, so it just needs `hass` on every update.
+    if (this._inner) this._inner.hass = hass;
+    else this._build();
+  }
+
+  get hass() {
+    return this._hass;
+  }
+
+  async _build() {
+    if (this._building || this._inner) return;
+    this._building = true;
+    const entityId = this._entities?.calendar;
+    if (!entityId) {
+      this.shadowRoot.innerHTML =
+        `<style>${BASE_STYLE}</style><ha-card><div class="empty">${escapeHtml(texts(this._hass).noAccount)}</div></ha-card>`;
+      this._building = false;
+      return;
+    }
+    try {
+      const helpers = await window.loadCardHelpers();
+      const card = helpers.createCardElement({
+        type: "calendar",
+        initial_view: this._config.initial_view || "dayGridMonth",
+        title: this._config.title || "",
+        entities: [entityId],
+      });
+      card.hass = this._hass;
+      this._inner = card;
+      this.shadowRoot.innerHTML = "";
+      this.shadowRoot.appendChild(card);
+    } catch (error) {
+      this.shadowRoot.innerHTML =
+        `<style>${BASE_STYLE}</style><ha-card><div class="empty">${escapeHtml(String(error))}</div></ha-card>`;
+    }
+    this._building = false;
+  }
+
+  getCardSize() {
+    return 9;
+  }
+
+  getGridOptions() {
+    return { columns: 12, rows: "auto" };
+  }
+}
+
+const CALENDAR_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    field.select("initial_view", ["dayGridMonth", "listWeek", "listMonth"].map(
+      (value) => ({ value, label: texts(hass).views[value] }))),
+  ]),
+];
+
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
@@ -1191,6 +1277,8 @@ const CARDS = [
     "Overtime, vacation, weekend points and free weekends at a glance."],
   ["perdis-shift-detail-card", PerdisShiftDetailCard, SHIFT_DETAIL_EDITOR, "Perdis: shift detail",
     "Page through the shifts with arrows; each one broken into its legs as a table."],
+  ["perdis-calendar-card", PerdisCalendarCard, CALENDAR_EDITOR, "Perdis: calendar",
+    "A month calendar of the roster; finds your calendar entity on its own, no id to type."],
   ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "Perdis: duty swaps",
     "The open shift swaps the portal lists, with the period new requests may cover."],
 ];

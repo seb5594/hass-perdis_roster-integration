@@ -132,7 +132,10 @@ async def test_account_is_set_up_and_reads_the_roster(hass, fake_webcomm):
     assert roster.attributes["perdis_role"] == "roster"
     # Both roster months were read: the December page sits behind the "next" button.
     assert roster.attributes["days"][-1]["date"] == "2026-12-06"
-    assert state_of(hass, "calendar", "duties") is not None
+    # The calendar carries its role too, so a dashboard card can find it without a typed entity id.
+    calendar = state_of(hass, "calendar", "duties")
+    assert calendar is not None
+    assert calendar.attributes["perdis_role"] == "calendar"
 
     assert await hass.config_entries.async_unload(entry_of(hass).entry_id)
 

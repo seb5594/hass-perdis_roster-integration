@@ -12,7 +12,7 @@ from homeassistant.util import dt as dt_util
 
 from .capabilities import CAP_ROSTER
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
-from .entity import PerdisEntity
+from .entity import ATTR_ROLE, PerdisEntity
 from .labels import duty_type_labels
 from .models import Duty, DutyType
 
@@ -41,6 +41,9 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
     # Home Assistant 2026.9 reads the calendar's initial colour from the entity: declare it here,
     # so it is not looked up on the shared (colourless) entity description. Harmless on older cores.
     _attr_initial_color = None
+    # Lets the dashboard cards find this calendar by its role, like the sensors, so a calendar card
+    # needs no hand-typed entity id.
+    _attr_extra_state_attributes = {ATTR_ROLE: "calendar"}
 
     def __init__(self, coordinator: PerdisCoordinator, description: EntityDescription) -> None:
         super().__init__(coordinator, description)
