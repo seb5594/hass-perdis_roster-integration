@@ -236,13 +236,19 @@ class WebCommClient(PortalClient):
         cost a request, and a per-refresh ceiling spreads the first fill over a few refreshes. Days
         off are left untouched, and a portal that serves no detail page at all is detected and left
         alone after a couple of attempts.
+
+        WebComm serves a shift's detail in the context of the roster month that is open in the
+        session, so the month is re-opened before the first detail of a new month is fetched. Without
+        it, only the current month is detailed and the shifts of the next month keep just their times.
         """
         if self._detail_days <= 0 or "roster" not in self._pages:
             return
-        detail_url = urljoin(self._pages["roster"], CANONICAL_SHIFT)
+        roster_url = self._pages["roster"]
+        detail_url = urljoin(roster_url, CANONICAL_SHIFT)
         start_day = today - timedelta(days=1)
         window_end = today + timedelta(days=self._detail_days)
         fetched = misses = 0
+        active_month: date | None = None
         for duty in snapshot.duties:
             # Only driving duties have a per-leg detail page. Days off and, above all, absences such
             # as sick days (which the roster still lists with times) are skipped, so they neither
@@ -256,6 +262,10 @@ class WebCommClient(PortalClient):
                 continue
             if fetched >= MAX_DETAIL_FETCHES or misses >= MAX_DETAIL_MISSES:
                 continue
+            month = duty.day.replace(day=1)
+            if month != active_month:
+                await self._open_roster_month(roster_url, month)
+                active_month = month
             try:
                 page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")
             except (PerdisConnectionError, PerdisPortalError) as error:
@@ -266,9 +276,17 @@ class WebCommClient(PortalClient):
             if detail.has_times:
                 detail.apply_to(duty)
             elif duty.duty_type is DutyType.WORK and duty.has_times:
+                _LOGGER.debug("Shift %s on %s has no leg table on its detail page", duty.code, duty.day)
                 # A real shift with times whose detail page carries no legs: the portal offers no
                 # per-shift breakdown, so stop probing it after a couple of such misses.
                 misses += 1
+
+    async def _open_roster_month(self, roster_url: str, month: date) -> None:
+        """Open a month's roster so its shifts' detail pages are served in the right context."""
+        try:
+            await self._get_signed_in(f"{roster_url}?{month.isoformat()}")
+        except (PerdisConnectionError, PerdisPortalError) as error:
+            _LOGGER.debug("Could not open the roster for %s before reading its shifts: %s", month, error)
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
         """The roster HTML for the needed months: by month query string, or by paging through it."""

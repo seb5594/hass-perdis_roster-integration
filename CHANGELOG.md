@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026.11.25.2
+
+- ⏱️ Time accounts now read in the portal's own **hours:minutes** form: the accounts card shows the
+  overtime as **−10:17**, not the confusing decimal **−10.3 h**. The exact value is also on the
+  overtime and time-account sensors as a `balance` attribute.
+- 🗓️ An unrecognised roster entry now keeps its own code in the calendar (e.g. **SF Neu**) instead
+  of the generic "Dienstplan", and an empty placeholder day no longer becomes an event.
+- 🔎 Next month's shifts: the month is re-opened before its shifts are read, and a shift whose detail
+  page carries no legs is logged, so a missing breakdown can be traced.
+
 ## 2026.11.25.1
 
 - 🧾 New **Perdis: shift detail** dashboard card: the next shift broken into its legs as a real

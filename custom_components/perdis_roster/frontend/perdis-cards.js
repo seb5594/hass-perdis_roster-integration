@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.1";
+const VERSION = "2026.11.25.2";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -364,6 +364,14 @@ function formatNumber(hass, value, digits = 1) {
   return new Intl.NumberFormat(hass?.locale?.language || "en", {
     maximumFractionDigits: digits, minimumFractionDigits: 0,
   }).format(Number(value));
+}
+
+/** A time account in the portal's own hours:minutes form: 10 h 17 min reads "+10:17", not "10.3". */
+function formatClockHours(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) return "–";
+  const total = Math.round(Math.abs(Number(value)) * 60);
+  const sign = Number(value) < 0 ? "−" : "";
+  return `${sign}${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
 
 function isoWeek(date) {
@@ -823,8 +831,9 @@ class PerdisAccountsCard extends PerdisCardBase {
       case "overtime": {
         const overtime = numericState(hass, this._entities.overtime);
         const tone = overtime === null ? "" : overtime >= 0 ? "positive" : "negative";
-        const text = overtime === null ? "–" : `${overtime > 0 ? "+" : ""}${formatNumber(hass, overtime)}`;
-        return wrap("overtime", "mdi:timer-sand", t.overtime, value(text, t.hours, tone));
+        // Shown as hours:minutes like the portal ("+10:17"), not as a decimal number of hours.
+        const text = overtime === null ? "–" : `${overtime > 0 ? "+" : ""}${formatClockHours(overtime)}`;
+        return wrap("overtime", "mdi:timer-sand", t.overtime, value(text, "", tone));
       }
       case "vacation": {
         const vacation = numericState(hass, this._entities.vacation);

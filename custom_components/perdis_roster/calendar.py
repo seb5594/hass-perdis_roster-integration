@@ -14,7 +14,7 @@ from .capabilities import CAP_ROSTER
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import PerdisEntity
 from .labels import duty_type_labels
-from .models import Duty
+from .models import Duty, DutyType
 
 CALENDAR = EntityDescription(key="duties")
 
@@ -58,11 +58,11 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
-        events = (self._event(duty) for duty in self.coordinator.insights.duties)
+        events = (self._event(duty) for duty in self.coordinator.insights.duties if _worth_showing(duty))
         return [event for event in events if _overlaps(event, start_date, end_date)]
 
     def _event(self, duty: Duty) -> CalendarEvent:
-        label = self._days[duty.duty_type]
+        label = self._title(duty)
         # The duty number and lines only mean something for a working shift; an absence (sick, day
         # off, vacation) reads as just its name, so "Krank k" or "Frei (R)" become plain "Krank".
         if duty.has_times:
@@ -77,6 +77,16 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
             label = f"{label} ({duty.code})"
         return CalendarEvent(start=duty.day, end=duty.day + timedelta(days=1), summary=label,
                              description=duty.remark, uid=f"perdis-{duty.day.isoformat()}")
+
+    def _title(self, duty: Duty) -> str:
+        """The duty-type name, except for an unrecognised entry, which shows its own code.
+
+        "Krank"/"Frei" read better than "Krank (k)"; but an unknown code like "SF Neu" carries the
+        only information there is, so the generic "roster" label would hide it.
+        """
+        if duty.duty_type is DutyType.UNKNOWN and duty.code:
+            return duty.code
+        return self._days[duty.duty_type]
 
     def _description(self, duty: Duty) -> str:
         words = self._details
@@ -110,6 +120,11 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
         ) if part)
         relief = f" ({segment.relief.replace(' ', '')})" if segment.relief else ""
         return f"{head}{(' · ' + details) if details else ''}{relief}"
+
+
+def _worth_showing(duty: Duty) -> bool:
+    """Skip an empty placeholder day: an unrecognised entry with neither a code nor times."""
+    return duty.duty_type is not DutyType.UNKNOWN or bool(duty.code) or duty.has_times
 
 
 def _overlaps(event: CalendarEvent, start: datetime, end: datetime) -> bool:
