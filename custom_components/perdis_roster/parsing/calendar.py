@@ -183,7 +183,9 @@ def parse_calendar(document: Element, zone: ZoneInfo, month: date | None = None)
     dated = [(cell, _cell_date(cell)) for cell in cells]
     month = month or detect_month(document)
     if any(day for _, day in dated):
-        pairs = [(cell, day) for cell, day in dated if day]
+        # A single cell without its own date (ASP.NET often renders the day next to the selected one
+        # without a date link) must not drop that day: fill it from its dated neighbours.
+        pairs = _fill_missing_dates(dated)
     elif month is not None:
         pairs = _dates_from_month(cells, month)
     else:
@@ -197,6 +199,41 @@ def parse_calendar(document: Element, zone: ZoneInfo, month: date | None = None)
         if duty is not None:
             duties[day] = duty
     return sorted(duties.values(), key=lambda duty: duty.day)
+
+
+def _fill_missing_dates(dated: list[tuple[Element, date | None]]) -> list[tuple[Element, date]]:
+    """Date every content cell, inferring an undated one from the nearest dated neighbour.
+
+    The calendar grid is chronological, so a cell's date is a dated neighbour's date shifted by the
+    difference of their day numbers. The ``day == number`` check keeps a faded adjacent-month cell
+    from being mis-dated into the shown month.
+    """
+    resolved: list[list] = [[cell, day] for cell, day in dated]
+    for index, entry in enumerate(resolved):
+        if entry[1] is not None:
+            continue
+        number = _day_number(entry[0])
+        if number is None:
+            continue
+        anchor = _nearest_dated(resolved, index)
+        if anchor is None:
+            continue
+        anchor_number = _day_number(anchor[0])
+        if anchor_number is None:
+            continue
+        candidate = anchor[1] + timedelta(days=number - anchor_number)
+        if candidate.day == number:
+            entry[1] = candidate
+    return [(cell, day) for cell, day in resolved if day is not None]
+
+
+def _nearest_dated(resolved: list[list], index: int) -> list | None:
+    """The dated cell closest to `index` in document (chronological) order."""
+    for offset in range(1, len(resolved)):
+        for neighbour in (index - offset, index + offset):
+            if 0 <= neighbour < len(resolved) and resolved[neighbour][1] is not None:
+                return resolved[neighbour]
+    return None
 
 
 def detect_month(document: Element) -> date | None:
