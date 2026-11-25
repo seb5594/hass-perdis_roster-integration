@@ -87,6 +87,21 @@ def _days_until(day: date | None, today: date) -> int | None:
 
 # --- Values and attributes -----------------------------------------------------------------------
 
+def _legs(duty: Duty | None) -> list[dict[str, Any]]:
+    """The shift's legs for the detail card: each reporting point, time, line, course and relief."""
+    if duty is None:
+        return []
+    return [{
+        "start": segment.start.isoformat(),
+        "end": segment.end.isoformat(),
+        "location": segment.start_location,
+        "line": segment.line,
+        "course": segment.course,
+        "is_break": segment.is_break,
+        "relief": segment.relief or None,
+    } for segment in duty.segments]
+
+
 def _next_shift_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
     insights = coordinator.insights
     shift = insights.next_shift
@@ -102,6 +117,7 @@ def _next_shift_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
         "leave_home": insights.leave_home_time.isoformat() if insights.leave_home_time else None,
         "rest_before_hours": round(rest.total_seconds() / 3600, 1) if rest else None,
         "short_rest": insights.short_rest,
+        "legs": _legs(shift),
     }
 
 
@@ -397,7 +413,7 @@ class PerdisSensor(PerdisEntity, SensorEntity):
     entity_description: PerdisSensorDescription
     # Long lists belong on the dashboard, not into the recorder database.
     _unrecorded_attributes = frozenset({
-        "days", "changes", "recent_entries", "recent", "all_balances", "all", "pages",
+        "days", "changes", "recent_entries", "recent", "legs", "all_balances", "all", "pages",
         "minutes_until_start", "minutes_until_end",  # change every minute
     })
 

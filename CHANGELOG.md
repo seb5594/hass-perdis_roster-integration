@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.25.1
+
+- 🧾 New **Perdis: shift detail** dashboard card: the next shift broken into its legs as a real
+  table — reporting point, time, line, course and relief direction, with the breaks called out.
+  Its visual editor lets you hide the course or relief column and the breaks. The legs now also
+  ride on the **next shift** sensor as a `legs` attribute, for your own templates and cards.
+
 ## 2026.11.25
 
 - 🗓️ Next month's shifts are now detailed again: a sick day (which the roster still lists with

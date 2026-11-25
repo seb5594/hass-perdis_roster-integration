@@ -1,9 +1,11 @@
 /**
  * Dashboard cards of the Perdis Duty Roster integration.
  *
- *   perdis-shift-card     the next shift: times, place, countdown, wake-up and leave-home time
- *   perdis-roster-card    the coming days, grouped by week, with days off and changes marked
- *   perdis-accounts-card  overtime, vacation, weekend points and free weekends at a glance
+ *   perdis-shift-card         the next shift: times, place, countdown, wake-up and leave-home time
+ *   perdis-roster-card        the coming days, grouped by week, with days off and changes marked
+ *   perdis-accounts-card      overtime, vacation, weekend points and free weekends at a glance
+ *   perdis-shift-detail-card  the next shift broken into its legs as a table
+ *   perdis-swap-card          the open duty swaps the portal lists
  *
  * The integration loads this file on every dashboard, so the cards appear in the card picker
  * without adding a resource. They work without any configuration: without a `device_id` they show
@@ -15,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25";
+const VERSION = "2026.11.25.1";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -64,6 +66,11 @@ const TEXTS = {
       overtime: "Overtime balance", vacation: "Vacation left", weekend_points: "Weekend points",
       free_weekends: "Free weekends", planned_week: "Planned this week", planned_month: "Planned this month",
     },
+    shiftDetail: {
+      title: "Shift detail",
+      place: "Place", time: "Time", line: "Line", course: "Course", direction: "Relief",
+      break: "Break", min: "min", noDetail: "No leg-by-leg breakdown for the next shift yet.",
+    },
     editor: {
       // Common
       device_id: "Perdis account",
@@ -89,6 +96,10 @@ const TEXTS = {
       // Accounts card
       show_tiles: "Tiles to show",
       columns: "Columns (0 = automatic)",
+      // Shift detail card
+      show_course: "Show the course column",
+      show_relief: "Show the relief column",
+      show_breaks: "Show the breaks",
       // Section headers
       sec_content: "Content",
       sec_appearance: "Appearance",
@@ -145,6 +156,11 @@ const TEXTS = {
       overtime: "Zeitkonto", vacation: "Resturlaub", weekend_points: "WE-Punkte",
       free_weekends: "Freie Wochenenden", planned_week: "Geplant diese Woche", planned_month: "Geplant diesen Monat",
     },
+    shiftDetail: {
+      title: "Dienstdetails",
+      place: "Ort", time: "Zeit", line: "Linie", course: "Kurs", direction: "Ablösung",
+      break: "Pause", min: "Min.", noDetail: "Für den nächsten Dienst liegt noch keine Aufschlüsselung vor.",
+    },
     editor: {
       device_id: "Perdis-Konto",
       title: "Titel",
@@ -166,6 +182,9 @@ const TEXTS = {
       hide_types: "Diese Tagesarten ausblenden",
       show_tiles: "Angezeigte Kacheln",
       columns: "Spalten (0 = automatisch)",
+      show_course: "Spalte Kurs anzeigen",
+      show_relief: "Spalte Ablösung anzeigen",
+      show_breaks: "Pausen anzeigen",
       sec_content: "Inhalt",
       sec_appearance: "Darstellung",
       sec_behavior: "Verhalten",
@@ -960,6 +979,110 @@ const SWAP_EDITOR = (hass) => [
   ]),
 ];
 
+// --- Shift detail (the legs as a table) ----------------------------------------------------------
+
+const DETAIL_STYLE = `
+  .detail-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .detail-head .code { font-size: 1.5rem; font-weight: 700; }
+  .detail-head .when { color: var(--secondary-text-color); }
+  table.legs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  table.legs th, table.legs td { text-align: left; padding: 7px 8px; vertical-align: top; }
+  table.legs thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+                        color: var(--secondary-text-color); border-bottom: 1px solid var(--divider-color); }
+  table.legs tbody tr { border-bottom: 1px solid var(--divider-color); }
+  table.legs tbody tr:last-child { border-bottom: none; }
+  table.legs td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.legs tr.break td { color: var(--secondary-text-color); font-style: italic; }
+  .leg-line { display: inline-block; background: color-mix(in srgb, var(--accent) 22%, var(--card-background-color));
+              border-radius: 6px; padding: 1px 7px; font-weight: 600; }
+`;
+
+class PerdisShiftDetailCard extends PerdisCardBase {
+  static defaults() {
+    return { show_course: true, show_relief: true, show_breaks: true };
+  }
+
+  static getConfigElement() {
+    return document.createElement("perdis-shift-detail-card-editor");
+  }
+
+  _render() {
+    const t = texts(this._hass);
+    const config = this._config;
+    const shift = this.attributes("next_shift");
+    const title = config.title || t.shiftDetail.title;
+    if (shift === null) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
+    if (!shift.date) return this.frame(title, `<div class="empty">${escapeHtml(t.noShift)}</div>`);
+
+    const accent = accentOf(config, shift.duty_type);
+    const legs = (shift.legs || []).filter((leg) => config.show_breaks !== false || !leg.is_break);
+    const head = `
+      <div class="detail-head">
+        <span class="code">${escapeHtml(shift.duty || t.types[shift.duty_type] || "")}</span>
+        <span class="when">${escapeHtml(relativeDay(this._hass, shift.date))} · ${formatTime(this._hass, shift.start)} – ${formatTime(this._hass, shift.end)}</span>
+      </div>`;
+    if (!legs.length) {
+      return this.frame(title,
+        `<div class="content">${head}<div class="muted">${escapeHtml(t.shiftDetail.noDetail)}</div></div>`,
+        DETAIL_STYLE, accent);
+    }
+
+    const showCourse = config.show_course !== false;
+    const showRelief = config.show_relief !== false;
+    const columns = [t.shiftDetail.place, t.shiftDetail.time, t.shiftDetail.line];
+    if (showCourse) columns.push(t.shiftDetail.course);
+    if (showRelief) columns.push(t.shiftDetail.direction);
+    const header = columns.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
+    const rows = legs.map((leg) => {
+      const time = `${formatTime(this._hass, leg.start)}–${formatTime(this._hass, leg.end)}`;
+      if (leg.is_break) {
+        const minutes = Math.max(Math.round((new Date(leg.end) - new Date(leg.start)) / 60000), 0);
+        return `<tr class="break"><td>${escapeHtml(leg.location || "")}</td><td class="num">${time}</td>`
+          + `<td colspan="${columns.length - 2}">${escapeHtml(t.shiftDetail.break)} ${minutes} ${escapeHtml(t.shiftDetail.min)}</td></tr>`;
+      }
+      const cells = [
+        `<td>${escapeHtml(leg.location || "–")}</td>`,
+        `<td class="num">${time}</td>`,
+        `<td>${leg.line ? `<span class="leg-line">${escapeHtml(leg.line)}</span>` : "–"}</td>`,
+      ];
+      if (showCourse) cells.push(`<td>${escapeHtml(leg.course || "–")}</td>`);
+      if (showRelief) cells.push(`<td class="num">${escapeHtml((leg.relief || "").replace(/\s+/g, "")) || "–"}</td>`);
+      return `<tr>${cells.join("")}</tr>`;
+    }).join("");
+
+    this.frame(title, `
+      <div class="content actionable">
+        ${head}
+        <table class="legs">
+          <thead><tr>${header}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`, DETAIL_STYLE, accent);
+    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.runTap("next_shift"));
+  }
+
+  getCardSize() {
+    return 5;
+  }
+
+  getGridOptions() {
+    return { columns: 12, rows: 5, min_rows: 3 };
+  }
+}
+
+const SHIFT_DETAIL_EDITOR = (hass) => [
+  field.device, field.title,
+  section(hass, "sec_content", [
+    { type: "grid", schema: [field.boolean("show_course"), field.boolean("show_relief")] },
+    field.boolean("show_breaks"),
+  ]),
+  section(hass, "sec_appearance", [
+    { type: "grid", schema: [field.showHeader, field.icon] },
+    field.accent,
+  ]),
+  section(hass, "sec_behavior", [field.tapAction]),
+];
+
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
@@ -969,6 +1092,8 @@ const CARDS = [
     "The coming days by week, with days off and roster changes marked."],
   ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "Perdis: accounts",
     "Overtime, vacation, weekend points and free weekends at a glance."],
+  ["perdis-shift-detail-card", PerdisShiftDetailCard, SHIFT_DETAIL_EDITOR, "Perdis: shift detail",
+    "The next shift broken into its legs as a table: place, time, line, course and relief."],
   ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "Perdis: duty swaps",
     "The open shift swaps the portal lists, with the period new requests may cover."],
 ];

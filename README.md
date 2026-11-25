@@ -271,6 +271,7 @@ Without settings a card shows the first Perdis account.
 | 🕐 `perdis-shift-card` | The next shift: duty, shift type, countdown, times, reporting point, lines, wake-up and leave-home time, rest warning, progress while it runs |
 | 📋 `perdis-roster-card` | The coming days grouped by calendar week, colored by type, with changed days marked |
 | 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week or month |
+| 🧾 `perdis-shift-detail-card` | The next shift broken into its legs as a real table: reporting point, time, line, course and relief direction, with the breaks called out |
 
 Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 

@@ -262,6 +262,9 @@ async def test_calendar_portal_gets_real_times_from_shift_detail(hass, fake_webc
     assert nxt.attributes["end"] == "2026-11-24T18:03:00+01:00"
     assert nxt.attributes["start_location"] == "HB"
     assert "21" in nxt.attributes["lines"] and "16" in nxt.attributes["lines"]
+    # The legs ride on the sensor too, so the shift-detail card can show them as a table.
+    assert len(nxt.attributes["legs"]) >= 4
+    assert nxt.attributes["legs"][0]["location"] == "HB"
 
     # The calendar event must carry the leg-by-leg breakdown, not only the start and end.
     description = await _calendar_description(hass, "2026-11-24", "2026-11-25")
