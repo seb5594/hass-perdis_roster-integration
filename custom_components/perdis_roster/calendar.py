@@ -123,8 +123,13 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
 
 
 def _worth_showing(duty: Duty) -> bool:
-    """Skip an empty placeholder day: an unrecognised entry with neither a code nor times."""
-    return duty.duty_type is not DutyType.UNKNOWN or bool(duty.code) or duty.has_times
+    """Skip only an empty parser artefact: an unknown day with no code, no times and no remark.
+
+    A day the portal marks without a duty number but with a note ("no information for this day
+    yet") still carries that remark, so it stays on the calendar — today included.
+    """
+    return (duty.duty_type is not DutyType.UNKNOWN or bool(duty.code) or duty.has_times
+            or bool(duty.remark))
 
 
 def _overlaps(event: CalendarEvent, start: datetime, end: datetime) -> bool:
