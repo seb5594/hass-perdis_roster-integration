@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.25.8
+
+- 🔵 The shift browser gained a **Today** button that jumps straight back to today (or the next
+  shift) after paging around.
+- 🗓️ A day the portal lists only with a note ("no information for this day yet") stays on the
+  calendar, so today is never missing from it; only an empty parser artefact is left out.
+
 ## 2026.11.25.7
 
 - ◀▶ The **shift-detail card is now a browser**: arrows page through the coming days, each shift

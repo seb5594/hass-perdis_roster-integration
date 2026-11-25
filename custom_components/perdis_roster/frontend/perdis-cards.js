@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.7";
+const VERSION = "2026.11.25.8";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -1041,6 +1041,10 @@ const DETAIL_STYLE = `
   .detail-place { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -6px 0 10px;
     color: var(--secondary-text-color); }
   .detail-msg { color: var(--secondary-text-color); padding: 2px 2px 6px; text-align: center; }
+  .to-today { text-align: center; margin: -4px 0 10px; }
+  .to-today .chip { border: none; cursor: pointer; border-radius: 999px; padding: 3px 12px;
+    font-size: 0.8rem; font-weight: 600; color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 18%, var(--card-background-color)); }
 `;
 
 class PerdisShiftDetailCard extends PerdisCardBase {
@@ -1064,6 +1068,13 @@ class PerdisShiftDetailCard extends PerdisCardBase {
     const current = days.findIndex((day) => day.date === this._selectedDate);
     const next = Math.max(0, Math.min((current < 0 ? 0 : current) + delta, days.length - 1));
     this._selectedDate = days[next].date;
+    this._render();
+  }
+
+  _goToday(days) {
+    const todayIso = new Date().toLocaleDateString("sv-SE");
+    this._selectedDate = days.some((day) => day.date === todayIso)
+      ? todayIso : (days.find((day) => day.start && day.end) || days[0]).date;
     this._render();
   }
 
@@ -1102,6 +1113,10 @@ class PerdisShiftDetailCard extends PerdisCardBase {
       ? this._legsTable(legs, config, t)
       : `<div class="detail-msg">${escapeHtml(working ? t.shiftDetail.noDetail : t.shiftDetail.dayOff)}</div>`;
 
+    const onToday = day.date === new Date().toLocaleDateString("sv-SE");
+    const todayButton = onToday ? ""
+      : `<div class="to-today"><button class="chip">${escapeHtml(t.today)}</button></div>`;
+
     this.frame(title, `
       <div class="content">
         <div class="browse">
@@ -1110,10 +1125,11 @@ class PerdisShiftDetailCard extends PerdisCardBase {
             <div class="sub">${escapeHtml(relativeDay(this._hass, day.date))}</div></div>
           ${nav(1, "mdi:chevron-right")}
         </div>
-        ${place}${body}
+        ${todayButton}${place}${body}
       </div>`, DETAIL_STYLE, accent);
     this.shadowRoot.querySelectorAll(".browse .nav").forEach((button) =>
       button.addEventListener("click", () => this._step(Number(button.dataset.step), days)));
+    this.shadowRoot.querySelector(".to-today .chip")?.addEventListener("click", () => this._goToday(days));
   }
 
   _legsTable(legs, config, t) {
