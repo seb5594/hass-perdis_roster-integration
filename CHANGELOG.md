@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.25.4
+
+- 💼 The accounts card is tidier: a tile the portal does not provide (weekend points on a portal
+  without them) is **hidden** instead of showing an empty "–", it gained a **Time account today**
+  tile in hours:minutes, and the monthly planned-hours tile works again.
+- 🗒️ The roster card shows an unrecognised entry by its own code (e.g. **SF Neu**) rather than
+  "Unknown (SF Neu)", matching the calendar.
+
 ## 2026.11.25.3
 
 - 🗓️ Next month's shifts are detailed on a **navigation-based portal**: the roster is opened on a
