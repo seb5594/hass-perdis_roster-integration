@@ -103,6 +103,7 @@ def _legs(duty: Duty | None) -> list[dict[str, Any]]:
         "start": segment.start.isoformat(),
         "end": segment.end.isoformat(),
         "location": segment.start_location,
+        "end_location": segment.end_location,
         "line": segment.line,
         "course": segment.course,
         "is_break": segment.is_break,
@@ -440,4 +441,3 @@ class PerdisSensor(PerdisEntity, SensorEntity):
         if description.role:
             attributes = {**attributes, ATTR_ROLE: description.role}
         return attributes or None
-
