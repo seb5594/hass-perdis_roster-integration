@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026.11.25
+
+- 🗓️ Next month's shifts are now detailed again: a sick day (which the roster still lists with
+  times) no longer counts as a "no detail page" and no longer stops the breakdown of the shifts
+  that follow it.
+- 🧾 An absence now reads as just its name in the calendar: "Krank k" and "Krank (k)" both become
+  plain **Krank**, and a day off is **Frei** without its code. The duty number and lines stay on
+  the real shifts.
+- 🔔 Friendlier roster-change messages, e.g. **"Frei eingetragen für Montag, 30.11."** instead of
+  "aus unknown wurde frei", each with the full weekday and date.
+- 🏷️ A known operator names the account **"&lt;short&gt; - &lt;personnel number&gt;"** (e.g.
+  `VGF - 12345`); a portal added by hand keeps the personnel number and surname.
+- 🧰 Even wider Home Assistant support (verified down to **2023.8**): graceful fallbacks for the
+  service responses and validation errors, the re-authentication, the device info, the frozen
+  entity descriptions, the operator dropdown sorting and the coordinator's own config entry.
+
 ## 2026.11.24.5
 
 - ⏱️ New **Time account today** sensor, read from the daily-values page ("Tageswerte"): the day's

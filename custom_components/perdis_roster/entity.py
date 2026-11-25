@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType
+
+try:  # DeviceInfo moved from helpers.entity to helpers.device_registry in Home Assistant 2024.1.
+    from homeassistant.helpers.device_registry import DeviceInfo
+except ImportError:  # pragma: no cover - older cores keep it in helpers.entity
+    from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -12,6 +17,17 @@ from .operators import find_operator_by_url
 
 # Attribute the dashboard cards use to find the entities of an account, whatever they are named.
 ATTR_ROLE = "perdis_role"
+
+
+def description_frozen(base: type) -> bool:
+    """Whether a Home Assistant entity-description base is a frozen dataclass.
+
+    Entity descriptions became frozen dataclasses in Home Assistant 2024.1. A subclass must match
+    its base (a frozen dataclass cannot inherit from a non-frozen one, and vice versa), so the
+    platform descriptions read their `frozen` from here instead of hard-coding it.
+    """
+    params = getattr(base, "__dataclass_params__", None)
+    return bool(params and params.frozen)
 
 
 class PerdisEntity(CoordinatorEntity[PerdisCoordinator]):

@@ -185,9 +185,12 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_VERIFY_SSL: True,
             }
             return await self.async_step_credentials()
-        options = [SelectOptionDict(value=operator.key, label=operator.label) for operator in OPERATORS]
+        # Pre-sorted by label instead of the selector's own `sort=True`, which only arrived in
+        # Home Assistant 2023.9, so the dropdown stays alphabetical on older cores too.
+        options = sorted((SelectOptionDict(value=operator.key, label=operator.label) for operator in OPERATORS),
+                         key=lambda option: option["label"].lower())
         schema = vol.Schema({vol.Required(CONF_OPERATOR): SelectSelector(SelectSelectorConfig(
-            options=options, mode=SelectSelectorMode.DROPDOWN, sort=True))})
+            options=options, mode=SelectSelectorMode.DROPDOWN))})
         return self.async_show_form(step_id="operator", data_schema=schema)
 
     async def async_step_manual(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
@@ -225,10 +228,7 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             self._abort_if_unique_id_configured()
             error, employee = await async_check_login(self.hass, data)
             if not error:
-                # Title: "<personnel number> - <surname>", or just the number when no name is shown.
-                surname = employee_surname(employee)
-                title = f"{username} - {surname}" if surname else username
-                return self.async_create_entry(title=title, data=data)
+                return self.async_create_entry(title=self._entry_title(username, employee), data=data)
             errors["base"] = error
         schema = vol.Schema({vol.Required(CONF_USERNAME): USERNAME, vol.Required(CONF_PASSWORD): PASSWORD})
         entered = {CONF_USERNAME: (user_input or {}).get(CONF_USERNAME)}  # keep the name after an error
@@ -242,6 +242,15 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
     def _operator_name(self) -> str:
         operator = OPERATORS_BY_KEY.get(self._portal.get(CONF_OPERATOR, ""))
         return operator.name if operator else self._portal[CONF_BASE_URL].split("/")[2]
+
+    def _entry_title(self, username: str, employee: str | None) -> str:
+        """The account name: "<operator short> - <personnel number>" for a known operator,
+        e.g. "VGF - 12345"; otherwise "<personnel number> - <surname>", or just the number."""
+        operator = OPERATORS_BY_KEY.get(self._portal.get(CONF_OPERATOR, ""))
+        if operator:
+            return f"{operator.short} - {username}"
+        surname = employee_surname(employee)
+        return f"{username} - {surname}" if surname else username
 
     # --- New password --------------------------------------------------------------------
 
@@ -257,7 +266,7 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             data = {**entry.data, CONF_PASSWORD: user_input[CONF_PASSWORD]}
             error, _employee = await async_check_login(self.hass, data)
             if not error:
-                return self.async_update_reload_and_abort(entry, data=data)
+                return self._reauth_done(entry, data)
             errors["base"] = error
         return self.async_show_form(
             step_id="reauth_confirm",
@@ -265,6 +274,15 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
             description_placeholders={"username": entry.data[CONF_USERNAME], "url": entry.data[CONF_BASE_URL]},
         )
+
+    def _reauth_done(self, entry, data: dict[str, Any]) -> ConfigFlowResult:
+        # `async_update_reload_and_abort` only exists from Home Assistant 2024.2; older cores update,
+        # reload and abort by hand for the same result.
+        if hasattr(self, "async_update_reload_and_abort"):
+            return self.async_update_reload_and_abort(entry, data=data)
+        self.hass.config_entries.async_update_entry(entry, data=data)
+        self.hass.async_create_task(self.hass.config_entries.async_reload(entry.entry_id))
+        return self.async_abort(reason="reauth_successful")
 
     @staticmethod
     @callback

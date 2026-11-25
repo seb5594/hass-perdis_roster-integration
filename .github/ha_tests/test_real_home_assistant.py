@@ -5,7 +5,7 @@ engine installs both for every release the Compatibility workflow lists; to run 
 locally: python .engine/.scripts/ha_matrix.py run 2026.9.4
 """
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 import aiohttp
@@ -63,6 +63,28 @@ def state_of(hass, platform, key):
 
 def entry_of(hass):
     return hass.config_entries.async_entries(DOMAIN)[0]
+
+
+async def _calendar_description(hass, start_day, end_day):
+    """The first calendar event's description in a day range, however the core exposes events.
+
+    The `calendar.get_events` service only arrived in Home Assistant 2024.1; on older cores the
+    calendar entity is read directly, so the same test runs across the whole supported range.
+    """
+    entity_id = state_of(hass, "calendar", "duties").entity_id
+    if hass.services.has_service("calendar", "get_events"):
+        events = await hass.services.async_call(
+            "calendar", "get_events",
+            {"entity_id": entity_id, "start_date_time": f"{start_day}T00:00:00",
+             "end_date_time": f"{end_day}T00:00:00"},
+            blocking=True, return_response=True)
+        return next(iter(events.values()))["events"][0]["description"]
+    entity = hass.data["entity_components"]["calendar"].get_entity(entity_id)
+    zone = dt_util.DEFAULT_TIME_ZONE
+    found = await entity.async_get_events(
+        hass, datetime.fromisoformat(f"{start_day}T00:00:00").replace(tzinfo=zone),
+        datetime.fromisoformat(f"{end_day}T00:00:00").replace(tzinfo=zone))
+    return found[0].description
 
 
 async def test_setup_dialog_offers_the_known_operators(hass):
@@ -242,12 +264,7 @@ async def test_calendar_portal_gets_real_times_from_shift_detail(hass, fake_webc
     assert "21" in nxt.attributes["lines"] and "16" in nxt.attributes["lines"]
 
     # The calendar event must carry the leg-by-leg breakdown, not only the start and end.
-    events = await hass.services.async_call(
-        "calendar", "get_events",
-        {"entity_id": state_of(hass, "calendar", "duties").entity_id,
-         "start_date_time": "2026-11-24T00:00:00", "end_date_time": "2026-11-25T00:00:00"},
-        blocking=True, return_response=True)
-    description = next(iter(events.values()))["events"][0]["description"]
+    description = await _calendar_description(hass, "2026-11-24", "2026-11-25")
     assert "10:32-14:32" in description  # the first driving leg
     assert "21" in description and "16" in description  # both lines
     assert description.count("\n") >= 5  # several legs, each on its own line

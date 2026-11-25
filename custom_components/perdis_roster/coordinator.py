@@ -99,6 +99,10 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         if "config_entry" in inspect.signature(DataUpdateCoordinator.__init__).parameters:
             kwargs["config_entry"] = entry
         super().__init__(hass, _LOGGER, **kwargs)
+        # Newer cores store the entry on the coordinator (from the kwarg or the setup context); older
+        # ones do not, so keep our own reference where it is still missing.
+        if getattr(self, "config_entry", None) is None:
+            self.config_entry = entry
         self.client = client
         self.capabilities: frozenset[str] = frozenset()
         self._store = PerdisStore(hass, entry.entry_id)
