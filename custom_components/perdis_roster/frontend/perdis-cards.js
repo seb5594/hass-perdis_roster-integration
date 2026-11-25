@@ -18,7 +18,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.11";
+const VERSION = "2026.11.25.12";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -41,6 +41,7 @@ const TEXTS = {
     noDays: "The roster is empty for the coming days.",
     today: "Today",
     tomorrow: "Tomorrow",
+    close: "Close",
     week: "Week",
     changed: "changed",
     split: "split",
@@ -136,6 +137,7 @@ const TEXTS = {
     noDays: "Für die kommenden Tage ist der Dienstplan leer.",
     today: "Heute",
     tomorrow: "Morgen",
+    close: "Schließen",
     week: "KW",
     changed: "geändert",
     split: "geteilt",
@@ -768,7 +770,7 @@ class PerdisRosterCard extends PerdisCardBase {
       const [weekday, ...rest] = formatDay(this._hass, day.date).split(/,?\s+/);
       const today = config.highlight_today && day.date === todayIso ? " today" : "";
       return `${header}
-        <div class="day${today}">
+        <div class="day${today}" data-date="${escapeHtml(day.date)}">
           <div class="date"><b>${escapeHtml(weekday)}</b>${escapeHtml(rest.join(" "))}</div>
           <div class="bar" style="background:${color}"></div>
           <div class="main"><div class="title">${heading}</div>${sub ? `<div class="sub">${escapeHtml(sub)}</div>` : ""}</div>
@@ -777,8 +779,17 @@ class PerdisRosterCard extends PerdisCardBase {
     }).join("");
     const accent = accentOf(config, "work");
     this.frame(title, `<div class="content${config.compact ? " compact" : ""}">${rows}</div>`, ROSTER_STYLE, accent);
+    // Tapping a day opens its full breakdown in a pop-up by default; a configured tap action wins.
+    const byDate = new Map(days.map((entry) => [entry.date, entry]));
     this.shadowRoot.querySelectorAll(".day").forEach((element) => {
-      element.addEventListener("click", () => this.runTap("roster"));
+      element.addEventListener("click", () => {
+        if (config.tap_action) {
+          this.runTap("roster");
+          return;
+        }
+        const entry = byDate.get(element.dataset.date);
+        if (entry) openDayDialog(this._hass, entry, texts(this._hass));
+      });
     });
   }
 
@@ -1055,6 +1066,97 @@ const DETAIL_STYLE = `
     background: color-mix(in srgb, var(--accent) 18%, var(--card-background-color)); }
 `;
 
+const DIALOG_STYLE = `
+  .dlg { --accent: var(--primary-color); min-width: min(90vw, 360px); }
+  .dlg-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .dlg-head .code { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
+  .dlg-head .when { font-size: 1.05rem; color: var(--secondary-text-color); font-variant-numeric: tabular-nums; }
+  .dlg-meta { color: var(--secondary-text-color); margin-bottom: 12px;
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .dlg-meta .dot { opacity: 0.5; }
+`;
+
+
+/** One shift's leg table, shared by the shift-detail card and the day pop-up. */
+function legsTable(hass, legs, options, t) {
+  const showCourse = options.show_course !== false;
+  const showRelief = options.show_relief !== false;
+  const columns = [t.shiftDetail.place, t.shiftDetail.time, t.shiftDetail.line];
+  if (showCourse) columns.push(t.shiftDetail.course);
+  if (showRelief) columns.push(t.shiftDetail.direction);
+  const header = columns.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
+  const rows = legs.map((leg) => {
+    const time = `${formatTime(hass, leg.start)}–${formatTime(hass, leg.end)}`;
+    if (leg.is_break) {
+      const minutes = Math.max(Math.round((new Date(leg.end) - new Date(leg.start)) / 60000), 0);
+      return `<tr class="break"><td>${escapeHtml(leg.location || "")}</td><td class="num">${time}</td>`
+        + `<td colspan="${columns.length - 2}">${escapeHtml(t.shiftDetail.break)} ${minutes} ${escapeHtml(t.shiftDetail.min)}</td></tr>`;
+    }
+    const cells = [
+      `<td>${escapeHtml(leg.location || "–")}</td>`,
+      `<td class="num">${time}</td>`,
+      `<td>${leg.line ? `<span class="leg-line">${escapeHtml(leg.line)}</span>` : "–"}</td>`,
+    ];
+    if (showCourse) cells.push(`<td>${escapeHtml(leg.course || "–")}</td>`);
+    if (showRelief) cells.push(`<td class="num">${escapeHtml((leg.relief || "").replace(/\s+/g, "")) || "–"}</td>`);
+    return `<tr>${cells.join("")}</tr>`;
+  }).join("");
+  return `<table class="legs"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+
+/** One day's pop-up body: the shift summary and, when there is one, its leg table. */
+function dayDetailBody(hass, day, t) {
+  const working = Boolean(day.start && day.end);
+  const typeName = t.types[day.duty_type] || day.duty_type;
+  const code = day.duty_type === "unknown" && day.duty ? day.duty : (working ? (day.duty || typeName) : typeName);
+  const when = working ? `${formatTime(hass, day.start)}–${formatTime(hass, day.end)}` : "";
+  const meta = [day.start_location, working ? (day.lines || []).join(", ") : "", day.remark]
+    .filter(Boolean).map((text) => `<span>${escapeHtml(text)}</span>`).join('<span class="dot">·</span>');
+  const legs = day.legs || [];
+  const body = legs.length
+    ? legsTable(hass, legs, {}, t)
+    : `<div class="detail-msg">${escapeHtml(working ? t.shiftDetail.noDetail : t.shiftDetail.dayOff)}</div>`;
+  return `
+    <div class="dlg-head">
+      <span class="code">${escapeHtml(code)}</span>
+      ${when ? `<span class="when">${escapeHtml(when)}</span>` : ""}
+    </div>
+    ${meta ? `<div class="dlg-meta">${meta}</div>` : ""}
+    ${body}`;
+}
+
+
+/** A shadow-scoped wrapper so the pop-up's styles never leak into the dashboard. */
+class PerdisShiftDialog extends HTMLElement {
+  render(hass, day, t) {
+    if (!this.shadowRoot) this.attachShadow({ mode: "open" });
+    this.shadowRoot.innerHTML = `<style>${DETAIL_STYLE}${DIALOG_STYLE}</style>`
+      + `<div class="dlg">${dayDetailBody(hass, day, t)}</div>`;
+  }
+}
+if (!customElements.get("perdis-shift-dialog")) {
+  customElements.define("perdis-shift-dialog", PerdisShiftDialog);
+}
+
+
+/** Open a modal with one day's full shift breakdown — what tapping a roster day shows. */
+function openDayDialog(hass, day, t) {
+  const content = document.createElement("perdis-shift-dialog");
+  content.render(hass, day, t);
+  const dialog = document.createElement("ha-dialog");
+  dialog.heading = formatDay(hass, day.date, { weekday: "long", day: "numeric", month: "long" });
+  dialog.open = true;
+  dialog.appendChild(content);
+  const close = document.createElement("mwc-button");
+  close.setAttribute("slot", "primaryAction");
+  close.setAttribute("dialogAction", "close");
+  close.textContent = t.close;
+  dialog.appendChild(close);
+  dialog.addEventListener("closed", () => dialog.remove());
+  document.body.appendChild(dialog);
+}
+
 class PerdisShiftDetailCard extends PerdisCardBase {
   static defaults() {
     return { show_course: true, show_relief: true, show_breaks: true };
@@ -1141,29 +1243,7 @@ class PerdisShiftDetailCard extends PerdisCardBase {
   }
 
   _legsTable(legs, config, t) {
-    const showCourse = config.show_course !== false;
-    const showRelief = config.show_relief !== false;
-    const columns = [t.shiftDetail.place, t.shiftDetail.time, t.shiftDetail.line];
-    if (showCourse) columns.push(t.shiftDetail.course);
-    if (showRelief) columns.push(t.shiftDetail.direction);
-    const header = columns.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
-    const rows = legs.map((leg) => {
-      const time = `${formatTime(this._hass, leg.start)}–${formatTime(this._hass, leg.end)}`;
-      if (leg.is_break) {
-        const minutes = Math.max(Math.round((new Date(leg.end) - new Date(leg.start)) / 60000), 0);
-        return `<tr class="break"><td>${escapeHtml(leg.location || "")}</td><td class="num">${time}</td>`
-          + `<td colspan="${columns.length - 2}">${escapeHtml(t.shiftDetail.break)} ${minutes} ${escapeHtml(t.shiftDetail.min)}</td></tr>`;
-      }
-      const cells = [
-        `<td>${escapeHtml(leg.location || "–")}</td>`,
-        `<td class="num">${time}</td>`,
-        `<td>${leg.line ? `<span class="leg-line">${escapeHtml(leg.line)}</span>` : "–"}</td>`,
-      ];
-      if (showCourse) cells.push(`<td>${escapeHtml(leg.course || "–")}</td>`);
-      if (showRelief) cells.push(`<td class="num">${escapeHtml((leg.relief || "").replace(/\s+/g, "")) || "–"}</td>`);
-      return `<tr>${cells.join("")}</tr>`;
-    }).join("");
-    return `<table class="legs"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
+    return legsTable(this._hass, legs, config, t);
   }
 
   getCardSize() {
@@ -1269,17 +1349,17 @@ const CALENDAR_EDITOR = (hass) => [
 // --- Registration --------------------------------------------------------------------------------
 
 const CARDS = [
-  ["perdis-shift-card", PerdisShiftCard, SHIFT_EDITOR, "Perdis: next shift",
-    "Your next shift with countdown, place, wake-up and leave-home time."],
-  ["perdis-roster-card", PerdisRosterCard, ROSTER_EDITOR, "Perdis: roster",
-    "The coming days by week, with days off and roster changes marked."],
-  ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "Perdis: accounts",
+  ["perdis-shift-card", PerdisShiftCard, SHIFT_EDITOR, "PERDIS · Next shift",
+    "Your next shift with a countdown, reporting point, wake-up and leave-home time."],
+  ["perdis-roster-card", PerdisRosterCard, ROSTER_EDITOR, "PERDIS · Roster list",
+    "The coming days by week; tap a day to see its full shift breakdown."],
+  ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "PERDIS · Time accounts",
     "Overtime, vacation, weekend points and free weekends at a glance."],
-  ["perdis-shift-detail-card", PerdisShiftDetailCard, SHIFT_DETAIL_EDITOR, "Perdis: shift detail",
+  ["perdis-shift-detail-card", PerdisShiftDetailCard, SHIFT_DETAIL_EDITOR, "PERDIS · Shift browser",
     "Page through the shifts with arrows; each one broken into its legs as a table."],
-  ["perdis-calendar-card", PerdisCalendarCard, CALENDAR_EDITOR, "Perdis: calendar",
+  ["perdis-calendar-card", PerdisCalendarCard, CALENDAR_EDITOR, "PERDIS · Calendar",
     "A month calendar of the roster; finds your calendar entity on its own, no id to type."],
-  ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "Perdis: duty swaps",
+  ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "PERDIS · Duty swaps",
     "The open shift swaps the portal lists, with the period new requests may cover."],
 ];
 
