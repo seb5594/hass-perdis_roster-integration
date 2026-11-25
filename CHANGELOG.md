@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.25.5
+
+- 🗒️ The roster card drops the code from an absence, like the calendar does: **Krank** and **Frei**
+  instead of "Krank (k)" and "Frei (R)", while a real shift keeps its number and an unknown entry
+  keeps its own code.
+
 ## 2026.11.25.4
 
 - 💼 The accounts card is tidier: a tile the portal does not provide (weekend points on a portal

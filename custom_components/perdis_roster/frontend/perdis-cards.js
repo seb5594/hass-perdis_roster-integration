@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.4";
+const VERSION = "2026.11.25.5";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -738,10 +738,14 @@ class PerdisRosterCard extends PerdisCardBase {
       const typeName = t.types[day.duty_type] || day.duty_type;
       // An unrecognised entry shows its own code ("SF Neu"), not the generic "Unknown" label.
       const label = day.duty_type === "unknown" && day.duty ? day.duty : typeName;
+      // An absence reads as just its name ("Krank", "Frei"); the code is dropped there.
+      const absence = OFF_TYPES.includes(day.duty_type) || day.duty_type === "sick";
       const hasTimes = day.start && day.end;
       const heading = hasTimes
         ? `${escapeHtml(day.duty || label)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
-        : escapeHtml(day.duty && day.duty.toUpperCase() !== label.toUpperCase() ? `${label} (${day.duty})` : label);
+        : escapeHtml(absence
+            ? typeName
+            : (day.duty && day.duty.toUpperCase() !== label.toUpperCase() ? `${label} (${day.duty})` : label));
       const subParts = [
         config.show_location ? day.start_location : null,
         config.show_lines ? (day.lines || []).join(", ") : null,
