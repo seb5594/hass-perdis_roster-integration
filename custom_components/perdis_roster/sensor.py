@@ -77,6 +77,14 @@ def _hours(minutes: int | None) -> float | None:
     return round(minutes / 60, 2) if minutes is not None else None
 
 
+def _hhmm(minutes: int | None) -> str | None:
+    """A time account in the portal's own hours:minutes form, e.g. -617 minutes -> "-10:17"."""
+    if minutes is None:
+        return None
+    sign = "-" if minutes < 0 else ""
+    return f"{sign}{abs(minutes) // 60}:{abs(minutes) % 60:02d}"
+
+
 def _minutes_until(moment: datetime | None, now: datetime) -> int | None:
     return max(int((moment - now).total_seconds() // 60), 0) if moment else None
 
@@ -133,6 +141,7 @@ def _period_attributes(coordinator: PerdisCoordinator, period: tuple[date, date]
 def _overtime_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
     balances = coordinator.data.snapshot.balances
     return {
+        "balance": _hhmm(balances.overtime_minutes),  # the portal's own hours:minutes, e.g. "-10:17"
         "target_hours": _hours(balances.target_minutes),
         "actual_hours": _hours(balances.actual_minutes),
         "all_balances": balances.raw,
@@ -146,7 +155,9 @@ def _daily_entry_hours(entry) -> dict[str, Any]:
         "target_hours": _hours(entry.target_minutes),
         "actual_hours": _hours(entry.actual_minutes),
         "balance_hours": _hours(entry.balance_minutes),
+        "balance": _hhmm(entry.balance_minutes),  # the portal's own hours:minutes
         "account_hours": _hours(entry.cumulative_minutes),
+        "account": _hhmm(entry.cumulative_minutes),
         "cells": entry.cells,
     }
 
