@@ -262,6 +262,7 @@ schreiben. Ohne Einstellungen zeigt eine Karte das erste Perdis-Konto.
 | 🕐 `perdis-shift-card` | Den nächsten Dienst: Nummer, Dienstart, Countdown, Zeiten, Meldeort, Linien, Weck- und Losfahrzeit, Ruhezeit-Warnung, Fortschritt während des Dienstes |
 | 📋 `perdis-roster-card` | Die nächsten Tage nach Kalenderwoche, farbig nach Art, geänderte Tage markiert |
 | 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche oder des Monats |
+| 🧾 `perdis-shift-detail-card` | Den nächsten Dienst Abschnitt für Abschnitt als echte Tabelle: Meldeort, Zeit, Linie, Kurs und Ablöserichtung, Pausen klar ausgewiesen |
 
 Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 
