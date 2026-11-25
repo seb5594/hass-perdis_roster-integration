@@ -305,6 +305,37 @@ async def test_a_navigation_based_portal_details_next_month_shifts(hass, fake_we
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
 
 
+async def test_a_dropped_overview_day_is_recovered(hass, fake_webcomm_dropped):
+    """A working day the month overview omits is recovered by opening that day's own roster.
+
+    ASP.NET sometimes renders one day without its cell, so a shift (tomorrow's, typically) is missing
+    from the overview entirely. Opening roster.aspx?<day>, as clicking the day does, lists it again,
+    and its shift page fills in the real times.
+    """
+    await add_account_for(hass, fake_webcomm_dropped)
+    await hass.async_block_till_done()
+
+    # Keep the detail window tight so only the dropped 24th is probed, not the whole next month.
+    entry = entry_of(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {
+        "wake_up_lead_minutes": 45, "commute_minutes": 15, "minimum_rest_hours": 11, "notify_changes": True,
+        "scan_interval": 30, "lookahead_days": 42, "lookback_days": 7, "detail_days": 3, **ADVANCED_OPTIONS,
+    })
+    await hass.async_block_till_done()
+
+    # The overview dropped the 24th; it is back, with its number and the real times from its legs.
+    nxt = state_of(hass, "sensor", "next_shift")
+    assert nxt.state == "5103"
+    assert nxt.attributes["start"] and nxt.attributes["end"]
+    assert len(nxt.attributes["legs"]) >= 4
+
+    # And it rides the calendar too, so neither the dashboard nor an automation misses it.
+    description = await _calendar_description(hass, "2026-11-24", "2026-11-25")
+    assert description
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
 async def test_open_duty_swaps_are_listed(hass, fake_webcomm):
     await add_account(hass, fake_webcomm)
     await hass.async_block_till_done()

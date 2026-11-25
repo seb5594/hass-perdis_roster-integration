@@ -226,62 +226,70 @@ class WebCommClient(PortalClient):
         self._reachable.add("dutyswap")
 
     async def _enrich_with_details(self, snapshot: Snapshot, today: date, known: dict[date, Duty]) -> None:
-        """Add the leg-by-leg breakdown of every upcoming shift from its detail page.
+        """Fill in — and, where the month overview dropped a day, recover — every upcoming shift.
 
-        The month roster gives at most a duty number and a start and end; the shift's own page adds
-        the real reporting points, lines, courses and every leg. For each working day in the detail
-        window that does not have that breakdown yet, it is first reused from the previous refresh
-        when the shift is unchanged, and otherwise fetched from the detail page. The reuse lets the
-        whole window (next month included) stay detailed while only genuinely new or changed days
-        cost a request, and a per-refresh ceiling spreads the first fill over a few refreshes. Days
-        off are left untouched, and a portal that serves no detail page at all is detected and left
-        alone after a couple of attempts.
+        The month roster gives at most a duty number and a start and end, and now and then it drops a
+        working day from its grid altogether: ASP.NET renders the odd day without the usual link, so
+        for instance tomorrow's shift can be missing from the overview entirely. Both are cured the
+        same way, by doing exactly what a driver does in the browser — open the day's roster
+        (``roster.aspx?YYYY-MM-DD``) and then its shift page (``shift.aspx?YYYY-MM-DD``). The
+        navigated roster still lists the day the overview left out and carries its duty number, and
+        the shift page adds the real reporting points, lines, courses and legs.
 
-        WebComm serves a shift's detail in the context of the roster month that is open in the
-        session, so the month is re-opened before the first detail of a new month is fetched. Without
-        it, only the current month is detailed and the shifts of the next month keep just their times.
+        Only the near-term window is walked, one day at a time. A day already broken down on an
+        earlier refresh is reused without a request — so the whole window (next month included) stays
+        detailed while only new or changed days cost anything, and a remembered shift keeps a day on
+        the roster even once the overview drops it. A per-refresh ceiling spreads the first fill over
+        a few refreshes, and days off and absences, which have no shift page, are left untouched.
         """
         if self._detail_days <= 0 or "roster" not in self._pages:
             return
         roster_url = self._pages["roster"]
         detail_url = urljoin(roster_url, CANONICAL_SHIFT)
-        start_day = today - timedelta(days=1)
-        window_end = today + timedelta(days=self._detail_days)
+        by_day = {duty.day: duty for duty in snapshot.duties}
         fetched = misses = 0
         active_month: date | None = None
-        for duty in snapshot.duties:
-            # Only driving duties have a per-leg detail page. Days off and, above all, absences such
-            # as sick days (which the roster still lists with times) are skipped, so they neither
-            # cost a request nor count as a "no detail page" miss that would stop the probing early.
-            if not duty.is_working or duty.segments or not (start_day <= duty.day <= window_end):
+        for current in _days(today - timedelta(days=1), today + timedelta(days=self._detail_days)):
+            existing = by_day.get(current)
+            # A day off or an absence (sick, vacation) has no per-leg page; a shift already broken
+            # down needs nothing more. Everything else is a working day to detail — or a gap to fill.
+            if existing is not None and (not existing.is_working or existing.segments):
                 continue
-            previous = known.get(duty.day)
-            if previous is not None and previous.segments and previous.code == duty.code:
-                # The same shift was already broken down on an earlier refresh: reuse it, no request.
-                ShiftDetail(list(previous.segments)).apply_to(duty)
+            previous = known.get(current)
+            if previous is not None and previous.segments and (existing is None or previous.code == existing.code):
+                # The same shift was detailed on an earlier refresh: reuse it, no request. When the
+                # overview has since dropped the day, the remembered shift keeps it on the roster.
+                by_day[current] = _reuse_detail(previous, existing)
                 continue
             if fetched >= MAX_DETAIL_FETCHES or misses >= MAX_DETAIL_MISSES:
                 continue
-            month = duty.day.replace(day=1)
-            if month != active_month:
-                # Navigate the roster to this day first, exactly as clicking "next" in the browser
-                # does: the portal only serves a shift's detail once its month's roster is open.
-                await self._open_roster_month(roster_url, duty.day)
+            month = current.replace(day=1)
+            if existing is None:
+                # Missing from the overview: open the day (which also puts its month in context) and
+                # read it straight from the navigated roster, number and all.
+                existing = await self._roster_day(roster_url, current)
+                active_month = month
+            elif month != active_month:
+                # The portal serves a shift's detail only once its month's roster is open.
+                await self._open_roster_month(roster_url, current)
                 active_month = month
             try:
-                page = await self._get_signed_in(f"{detail_url}?{duty.day.isoformat()}")
+                page = await self._get_signed_in(f"{detail_url}?{current.isoformat()}")
             except (PerdisConnectionError, PerdisPortalError) as error:
-                _LOGGER.debug("Shift detail for %s unavailable: %s", duty.day, error)
+                _LOGGER.debug("Shift detail for %s unavailable: %s", current, error)
                 continue
             fetched += 1
-            detail = parse_shift_detail(page.html, duty.day, self._zone)
+            detail = parse_shift_detail(page.html, current, self._zone)
             if detail.has_times:
+                duty = existing if existing is not None else Duty(day=current, duty_type=DutyType.WORK)
                 detail.apply_to(duty)
-            elif duty.duty_type is DutyType.WORK and duty.has_times:
-                _LOGGER.debug("Shift %s on %s has no leg table on its detail page", duty.code, duty.day)
+                by_day[current] = duty
+            elif existing is not None and existing.duty_type is DutyType.WORK and existing.has_times:
+                _LOGGER.debug("Shift %s on %s has no leg table on its detail page", existing.code, current)
                 # A real shift with times whose detail page carries no legs: the portal offers no
                 # per-shift breakdown, so stop probing it after a couple of such misses.
                 misses += 1
+        snapshot.duties = sorted(by_day.values(), key=lambda duty: duty.day)
 
     async def _open_roster_month(self, roster_url: str, day: date) -> None:
         """Open the roster on `day` (roster.aspx?YYYY-MM-DD) so that day's shift detail is served."""
@@ -289,6 +297,19 @@ class WebCommClient(PortalClient):
             await self._get_signed_in(f"{roster_url}?{day.isoformat()}")
         except (PerdisConnectionError, PerdisPortalError) as error:
             _LOGGER.debug("Could not open the roster on %s before reading its shift: %s", day, error)
+
+    async def _roster_day(self, roster_url: str, day: date) -> Duty | None:
+        """Open ``roster.aspx?YYYY-MM-DD`` (as clicking the day does) and return that day's entry.
+
+        This both puts the day's month in context for its shift page and reads the day from the
+        navigated roster, which still lists it — number and all — when the month overview left it out.
+        """
+        try:
+            page = await self._get_signed_in(f"{roster_url}?{day.isoformat()}")
+        except (PerdisConnectionError, PerdisPortalError) as error:
+            _LOGGER.debug("Could not open the roster on %s: %s", day, error)
+            return None
+        return next((duty for duty in self._parser.parse_roster(page.html, day) if duty.day == day), None)
 
     async def _roster_pages(self, url: str, start: date, end: date, today: date) -> list[str]:
         """The roster HTML for the needed months: by month query string, or by paging through it."""
@@ -373,6 +394,23 @@ class WebCommClient(PortalClient):
             raise PerdisConnectionError(f"{method} {url} failed: HTTP {error.status}") from error
         except (aiohttp.ClientError, TimeoutError) as error:
             raise PerdisConnectionError(f"{method} {url} failed: {error!r}") from error
+
+
+def _days(start: date, end: date) -> list[date]:
+    """Every date from `start` to `end`, inclusive."""
+    return [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+
+
+def _reuse_detail(previous: Duty, existing: Duty | None) -> Duty:
+    """Carry a shift detailed on an earlier refresh over to this one.
+
+    When the overview still lists the day, its fresh entry is enriched in place; when the overview
+    has dropped the day, the remembered entry stands in for it so the shift stays on the roster.
+    """
+    if existing is None:
+        return previous
+    ShiftDetail(list(previous.segments)).apply_to(existing)
+    return existing
 
 
 def _error_text(document: Element) -> str:

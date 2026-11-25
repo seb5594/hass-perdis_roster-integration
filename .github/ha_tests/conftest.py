@@ -30,7 +30,7 @@ class FakeWebComm:
     """State of the fake portal, so tests can expire the session or count requests."""
 
     def __init__(self, accounts: bool = True, calendar: bool = False, swaps: bool = True,
-                 navigated: bool = False) -> None:
+                 navigated: bool = False, dropped: bool = False) -> None:
         self.sessions: set[str] = set()
         self.logins = 0
         self.accounts = accounts  # a roster-only portal that serves no account pages
@@ -38,14 +38,16 @@ class FakeWebComm:
         # A navigation-based portal: a shift's detail page only carries its legs while that day's
         # month is the roster month currently open in the session (roster.aspx?YYYY-MM-DD).
         self.navigated = navigated
+        # A portal whose month overview drops one working day (the 24th): only opening that day's
+        # own roster, roster.aspx?2026-11-24, brings it back.
+        self.dropped = dropped
         self.open_month: str | None = None
         self.swap_posts: list[dict] = []  # every form a test submitted to the duty-swap page
         self.app = web.Application()
         self.app.router.add_get("/WebComm/", self.root)
         self.app.router.add_route("*", "/WebComm/default.aspx", self.default)
         self.app.router.add_route("*", "/WebComm/Dienstplan.aspx", self.roster)
-        self.app.router.add_route("*", "/WebComm/roster.aspx",
-                                  self.navigated_roster if navigated else self.calendar_roster)
+        self.app.router.add_route("*", "/WebComm/roster.aspx", self._roster_handler())
         self.app.router.add_get("/WebComm/shift.aspx", self.shift)
         if swaps:
             self.app.router.add_route("*", "/WebComm/dutyswap.aspx", self.dutyswap)
@@ -63,9 +65,14 @@ class FakeWebComm:
     def signed_in(self, request: web.Request) -> bool:
         return request.cookies.get(SESSION_COOKIE) in self.sessions
 
+    def _roster_handler(self):
+        if self.dropped:
+            return self.dropped_roster
+        return self.navigated_roster if self.navigated else self.calendar_roster
+
     @property
     def menu(self) -> str:
-        if self.calendar or self.navigated:
+        if self.calendar or self.navigated or self.dropped:
             return page("webcomm_menu_roster_aspx.html")
         return page("webcomm_menu.html" if self.accounts else "webcomm_menu_roster_only.html")
 
@@ -73,6 +80,16 @@ class FakeWebComm:
         if not self.signed_in(request):
             raise web.HTTPFound("/WebComm/default.aspx")
         return web.Response(text=page("webcomm_roster_calendar_live.html"), content_type="text/html")
+
+    async def dropped_roster(self, request: web.Request) -> web.Response:
+        """roster.aspx: the month overview drops the 24th; roster.aspx?2026-11-24 lists it again."""
+        if not self.signed_in(request):
+            raise web.HTTPFound("/WebComm/default.aspx")
+        if len(request.query_string) >= 7:
+            self.open_month = request.query_string[:7]  # "2026-11"
+        name = ("webcomm_roster_day_24.html" if request.query_string == "2026-11-24"
+                else "webcomm_roster_calendar_dropped.html")
+        return web.Response(text=page(name), content_type="text/html")
 
     async def navigated_roster(self, request: web.Request) -> web.Response:
         """roster.aspx?YYYY-MM-DD: opens that day's month and remembers it for the shift pages."""
@@ -86,7 +103,10 @@ class FakeWebComm:
     async def shift(self, request: web.Request) -> web.Response:
         if not self.signed_in(request):
             raise web.HTTPFound("/WebComm/default.aspx")
-        if self.navigated:
+        if self.dropped:
+            # Only the dropped 24th is a working day; its legs are served once its day was opened.
+            has_legs = request.query_string == "2026-11-24" and self.open_month == "2026-11"
+        elif self.navigated:
             # Legs only while this day's month is the open roster month, as the real portal does.
             has_legs = bool(self.open_month) and request.query_string.startswith(self.open_month)
         else:
@@ -173,6 +193,15 @@ async def fake_webcomm_roster_only(socket_enabled, aiohttp_server):
 async def fake_webcomm_navigated(socket_enabled, aiohttp_server):
     """A navigation-based portal: a shift's legs are only served while its month's roster is open."""
     portal = FakeWebComm(navigated=True)
+    server = await aiohttp_server(portal.app)
+    portal.url = str(server.make_url("/WebComm/"))
+    return portal
+
+
+@pytest.fixture
+async def fake_webcomm_dropped(socket_enabled, aiohttp_server):
+    """A portal whose month overview drops the 24th; only opening that day's roster brings it back."""
+    portal = FakeWebComm(dropped=True)
     server = await aiohttp_server(portal.app)
     portal.url = str(server.make_url("/WebComm/"))
     return portal
