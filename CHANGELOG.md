@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.25.12
+
+- 👆 Tapping a day in the roster list now opens a **pop-up with that day's full shift breakdown** —
+  the reporting point, lines and every leg as a table — instead of the bare duty-number entity. A
+  day off shows as such. A custom tap action, if you set one, still takes over.
+- 🏷️ Clearer card names in the picker (**PERDIS · …**), so the cards are easy to find and tell apart.
+
 ## 2026.11.25.11
 
 - 🩹 Recover a shift the portal drops from its month overview. WebComm now and then renders one day
