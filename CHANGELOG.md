@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.25.7
+
+- ◀▶ The **shift-detail card is now a browser**: arrows page through the coming days, each shift
+  shown with its place, times and full leg table, a day off as such. The roster sensor carries each
+  day's legs so the card can leaf through them.
+
 ## 2026.11.25.6
 
 - 🧩 The dashboard cards size to their content in the new **sections** dashboard layout, so the fact

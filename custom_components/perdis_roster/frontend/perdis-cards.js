@@ -4,7 +4,7 @@
  *   perdis-shift-card         the next shift: times, place, countdown, wake-up and leave-home time
  *   perdis-roster-card        the coming days, grouped by week, with days off and changes marked
  *   perdis-accounts-card      overtime, vacation, weekend points and free weekends at a glance
- *   perdis-shift-detail-card  the next shift broken into its legs as a table
+ *   perdis-shift-detail-card  page through the shifts, each broken into its legs as a table
  *   perdis-swap-card          the open duty swaps the portal lists
  *
  * The integration loads this file on every dashboard, so the cards appear in the card picker
@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.6";
+const VERSION = "2026.11.25.7";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ const TEXTS = {
     shiftDetail: {
       title: "Shift detail",
       place: "Place", time: "Time", line: "Line", course: "Course", direction: "Relief",
-      break: "Break", min: "min", noDetail: "No leg-by-leg breakdown for the next shift yet.",
+      break: "Break", min: "min", noDetail: "No leg-by-leg breakdown for this shift yet.", dayOff: "No shift on this day.",
     },
     editor: {
       // Common
@@ -160,7 +160,7 @@ const TEXTS = {
     shiftDetail: {
       title: "Dienstdetails",
       place: "Ort", time: "Zeit", line: "Linie", course: "Kurs", direction: "Ablösung",
-      break: "Pause", min: "Min.", noDetail: "Für den nächsten Dienst liegt noch keine Aufschlüsselung vor.",
+      break: "Pause", min: "Min.", noDetail: "Für diesen Dienst liegt noch keine Aufschlüsselung vor.", dayOff: "An diesem Tag kein Dienst.",
     },
     editor: {
       device_id: "Perdis-Konto",
@@ -1029,6 +1029,18 @@ const DETAIL_STYLE = `
   table.legs tr.break td { color: var(--secondary-text-color); font-style: italic; }
   .leg-line { display: inline-block; background: color-mix(in srgb, var(--accent) 22%, var(--card-background-color));
               border-radius: 6px; padding: 1px 7px; font-weight: 600; }
+  .browse { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .browse .nav { flex: 0 0 auto; border: none; border-radius: 10px; width: 36px; height: 36px; cursor: pointer;
+    background: var(--secondary-background-color); color: var(--primary-text-color);
+    display: inline-flex; align-items: center; justify-content: center; }
+  .browse .nav:hover { background: color-mix(in srgb, var(--accent) 16%, var(--secondary-background-color)); }
+  .browse .nav[disabled] { opacity: 0.3; cursor: default; }
+  .browse .day { flex: 1 1 auto; text-align: center; min-width: 0; }
+  .browse .day .main { font-size: 1.25rem; font-weight: 700; overflow-wrap: anywhere; }
+  .browse .day .sub { font-size: 0.82rem; color: var(--secondary-text-color); }
+  .detail-place { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -6px 0 10px;
+    color: var(--secondary-text-color); }
+  .detail-msg { color: var(--secondary-text-color); padding: 2px 2px 6px; text-align: center; }
 `;
 
 class PerdisShiftDetailCard extends PerdisCardBase {
@@ -1040,27 +1052,71 @@ class PerdisShiftDetailCard extends PerdisCardBase {
     return document.createElement("perdis-shift-detail-card-editor");
   }
 
+  /** The days from today on, which the arrows page through. */
+  _upcoming() {
+    const roster = this.attributes("roster");
+    if (!roster) return null;
+    const todayIso = new Date().toLocaleDateString("sv-SE");
+    return (roster.days || []).filter((day) => day.date >= todayIso);
+  }
+
+  _step(delta, days) {
+    const current = days.findIndex((day) => day.date === this._selectedDate);
+    const next = Math.max(0, Math.min((current < 0 ? 0 : current) + delta, days.length - 1));
+    this._selectedDate = days[next].date;
+    this._render();
+  }
+
   _render() {
     const t = texts(this._hass);
     const config = this._config;
-    const shift = this.attributes("next_shift");
     const title = config.title || t.shiftDetail.title;
-    if (shift === null) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
-    if (!shift.date) return this.frame(title, `<div class="empty">${escapeHtml(t.noShift)}</div>`);
+    const days = this._upcoming();
+    if (days === null) return this.frame(title, `<div class="empty">${escapeHtml(t.noAccount)}</div>`);
+    if (!days.length) return this.frame(title, `<div class="empty">${escapeHtml(t.noShift)}</div>`);
 
-    const accent = accentOf(config, shift.duty_type);
-    const legs = (shift.legs || []).filter((leg) => config.show_breaks !== false || !leg.is_break);
-    const head = `
-      <div class="detail-head">
-        <span class="code">${escapeHtml(shift.duty || t.types[shift.duty_type] || "")}</span>
-        <span class="when">${escapeHtml(relativeDay(this._hass, shift.date))} · ${formatTime(this._hass, shift.start)} – ${formatTime(this._hass, shift.end)}</span>
-      </div>`;
-    if (!legs.length) {
-      return this.frame(title,
-        `<div class="content">${head}<div class="muted">${escapeHtml(t.shiftDetail.noDetail)}</div></div>`,
-        DETAIL_STYLE, accent);
+    // Start on the next real shift; afterwards keep whatever the arrows last selected.
+    if (!this._selectedDate || !days.some((day) => day.date === this._selectedDate)) {
+      this._selectedDate = (days.find((day) => day.start && day.end) || days[0]).date;
     }
+    const index = days.findIndex((day) => day.date === this._selectedDate);
+    const day = days[index];
+    const accent = accentOf(config, day.duty_type);
+    const working = Boolean(day.start && day.end);
+    const typeName = t.types[day.duty_type] || day.duty_type;
+    const codeLabel = day.duty_type === "unknown" && day.duty ? day.duty : (working ? (day.duty || typeName) : typeName);
+    const mainLine = working
+      ? `${escapeHtml(codeLabel)} · ${formatTime(this._hass, day.start)}–${formatTime(this._hass, day.end)}`
+      : escapeHtml(codeLabel);
 
+    const nav = (step, icon) => {
+      const disabled = (step < 0 && index === 0) || (step > 0 && index === days.length - 1);
+      return `<button class="nav" data-step="${step}"${disabled ? " disabled" : ""}>`
+        + `<ha-icon icon="${icon}"></ha-icon></button>`;
+    };
+    const place = working && day.start_location
+      ? `<div class="detail-place"><ha-icon icon="mdi:map-marker" style="--mdc-icon-size:16px"></ha-icon>${escapeHtml(day.start_location)}</div>`
+      : "";
+    const legs = (day.legs || []).filter((leg) => config.show_breaks !== false || !leg.is_break);
+    const body = legs.length
+      ? this._legsTable(legs, config, t)
+      : `<div class="detail-msg">${escapeHtml(working ? t.shiftDetail.noDetail : t.shiftDetail.dayOff)}</div>`;
+
+    this.frame(title, `
+      <div class="content">
+        <div class="browse">
+          ${nav(-1, "mdi:chevron-left")}
+          <div class="day"><div class="main">${mainLine}</div>
+            <div class="sub">${escapeHtml(relativeDay(this._hass, day.date))}</div></div>
+          ${nav(1, "mdi:chevron-right")}
+        </div>
+        ${place}${body}
+      </div>`, DETAIL_STYLE, accent);
+    this.shadowRoot.querySelectorAll(".browse .nav").forEach((button) =>
+      button.addEventListener("click", () => this._step(Number(button.dataset.step), days)));
+  }
+
+  _legsTable(legs, config, t) {
     const showCourse = config.show_course !== false;
     const showRelief = config.show_relief !== false;
     const columns = [t.shiftDetail.place, t.shiftDetail.time, t.shiftDetail.line];
@@ -1083,16 +1139,7 @@ class PerdisShiftDetailCard extends PerdisCardBase {
       if (showRelief) cells.push(`<td class="num">${escapeHtml((leg.relief || "").replace(/\s+/g, "")) || "–"}</td>`);
       return `<tr>${cells.join("")}</tr>`;
     }).join("");
-
-    this.frame(title, `
-      <div class="content actionable">
-        ${head}
-        <table class="legs">
-          <thead><tr>${header}</tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>`, DETAIL_STYLE, accent);
-    this.shadowRoot.querySelector(".content")?.addEventListener("click", () => this.runTap("next_shift"));
+    return `<table class="legs"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;
   }
 
   getCardSize() {
@@ -1127,7 +1174,7 @@ const CARDS = [
   ["perdis-accounts-card", PerdisAccountsCard, ACCOUNTS_EDITOR, "Perdis: accounts",
     "Overtime, vacation, weekend points and free weekends at a glance."],
   ["perdis-shift-detail-card", PerdisShiftDetailCard, SHIFT_DETAIL_EDITOR, "Perdis: shift detail",
-    "The next shift broken into its legs as a table: place, time, line, course and relief."],
+    "Page through the shifts with arrows; each one broken into its legs as a table."],
   ["perdis-swap-card", PerdisSwapCard, SWAP_EDITOR, "Perdis: duty swaps",
     "The open shift swaps the portal lists, with the period new requests may cover."],
 ];
