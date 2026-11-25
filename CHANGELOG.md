@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.25.6
+
+- 🧩 The dashboard cards size to their content in the new **sections** dashboard layout, so the fact
+  tiles of the shift card and long tables/lists are no longer clipped at the bottom.
+
 ## 2026.11.25.5
 
 - 🗒️ The roster card drops the code from an absence, like the calendar does: **Krank** and **Frei**

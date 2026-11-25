@@ -17,7 +17,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.5";
+const VERSION = "2026.11.25.6";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -655,7 +655,7 @@ class PerdisShiftCard extends PerdisCardBase {
   }
 
   getGridOptions() {
-    return { columns: 12, rows: 4, min_rows: 3 };
+    return { columns: 12, rows: "auto" };
   }
 }
 
@@ -779,7 +779,7 @@ class PerdisRosterCard extends PerdisCardBase {
   }
 
   getGridOptions() {
-    return { columns: 12, rows: 8, min_rows: 4 };
+    return { columns: 12, rows: "auto" };
   }
 }
 
@@ -929,7 +929,7 @@ class PerdisAccountsCard extends PerdisCardBase {
   }
 
   getGridOptions() {
-    return { columns: 12, rows: 3, min_rows: 2 };
+    return { columns: 12, rows: "auto" };
   }
 }
 
@@ -1100,7 +1100,7 @@ class PerdisShiftDetailCard extends PerdisCardBase {
   }
 
   getGridOptions() {
-    return { columns: 12, rows: 5, min_rows: 3 };
+    return { columns: 12, rows: "auto" };
   }
 }
 
