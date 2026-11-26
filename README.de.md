@@ -5,40 +5,52 @@
   </picture>
 </h1>
 
-[🇬🇧 English](README.md) · **🇩🇪 Deutsch**
+**🇩🇪 Deutsch** · [🇬🇧 English](README.md)
 
-Dein Dienstplan aus **MOBILE-PERDIS** in Home Assistant: der nächste Dienst mit Countdown, die
-Weckzeit, die Ruhezeit bis zum nächsten Dienst, freie Wochenenden, Zeitkonto, Resturlaub und
-WE-Punkte. Änderungen am Dienstplan kommen als Benachrichtigung, und Automationen reagieren auf
-den Moment, in dem du aufstehen musst oder dein Dienst beginnt.
+Ich wollte meinen Dienstplan in Home Assistant haben: wann ich aufstehen muss, wann der Dienst
+anfängt, wie lang die Ruhezeit wird – ohne ständig im Portal nachzuschauen. Also habe ich mir diese
+Integration gebaut. Wenn es dir genauso geht, nutz sie gern.
 
-PERDIS ist das Personaldispositionssystem, das viele Bus- und Straßenbahnbetriebe in Deutschland,
-Österreich und den Niederlanden nutzen. Fahrerinnen und Fahrer sehen ihren Dienstplan im
-**WebComm**-Portal im Browser oder in der **AppComm**-App. Diese Integration meldet sich mit deinem
-persönlichen Konto am selben Portal an.
+PERDIS ist die Personaleinsatzplanung, die viele Bus- und Bahnbetriebe in Deutschland, Österreich
+und den Niederlanden nutzen. Fahrerinnen und Fahrer sehen ihren Dienstplan im **WebComm**-Portal
+im Browser oder in der **AppComm**-App. Diese Integration meldet sich mit **deinem eigenen Zugang**
+am Portal an und liest aus, was du dort auch siehst. Daraus werden Sensoren, ein Kalender,
+Auslöser für Automationen und eine Dashboard-Karte, die zuerst fürs Handy gebaut ist.
 
 > [!IMPORTANT]
-> ⚠️ **Dies ist eine inoffizielle Integration.** PERDIS ist ein Produkt der INIT Mobility Software
-> Solutions GmbH, die die Schnittstellen von WebComm und AppComm nicht dokumentiert. Die
-> Integration liest, was dir das Portal nach der Anmeldung zeigt – genau wie dein Browser. Sie steht
-> in keiner Verbindung zu INIT oder einem Verkehrsunternehmen und wird von diesen weder
-> unterstützt noch empfohlen. Ein Update des Portals kann die Seiten ändern; wenn etwas nicht mehr
-> funktioniert, [melde es bitte](https://github.com/seb5594/hass-perdis_roster-integration/issues).
+> ### Ich habe nichts mit PERDIS oder INIT zu tun – bisher zu 0 %
+> Das hier ist ein privates Hobbyprojekt. Ich arbeite nicht bei der INIT Mobility Software
+> Solutions GmbH (die Herstellerin von PERDIS, MOBILE-PERDIS, WebComm und AppComm), bin kein Partner
+> und habe weder eine Dokumentation noch Insiderwissen.
+>
+> - Die Integration liest nur, was das Portal dir nach der Anmeldung im Browser zeigt. Eine
+>   offizielle Schnittstelle gibt es nicht. Ein Portal-Update kann sie jederzeit kaputt machen.
+> - INIT und dein Verkehrsunternehmen haben sie weder geprüft noch empfohlen noch unterstützt.
+> - Nutz sie nur mit deinem eigenen Zugang und halte dich an die Regeln deines Arbeitgebers.
+> - Sie ersetzt nicht den offiziellen Dienstplan. Im Zweifel zählt, was im Portal steht.
+> - Nutzung auf eigene Verantwortung.
+>
+> *PS: Falls bei INIT jemand mitliest und noch einen Platz im Team hat – ich wäre neugierig. 😉
+> Kein Druck, ehrlich.*
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-de-dark.png" alt="Die drei Dashboard-Karten: nächster Dienst, Dienstplan und Konten" width="860">
+  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/master-card-de.png" alt="Die All-in-one-Karte auf dem Handy: links der nächste Dienst, rechts der Dienstplan" width="860">
 </p>
+<p align="center"><sub>Die All-in-one-Karte in der Breite eines Handys. Alle Daten im Bild sind erfunden.</sub></p>
 
 ## 📑 Inhalt
 
+- [🚀 Schnellstart](#-schnellstart)
 - [✨ Funktionen](#-funktionen)
 - [🚌 Verkehrsunternehmen](#-verkehrsunternehmen)
 - [📋 Voraussetzungen](#-voraussetzungen)
 - [📦 Installation](#-installation)
 - [⚙️ Einrichtung](#️-einrichtung)
 - [🎛️ Optionen](#️-optionen)
-- [📊 Entitäten](#-entitäten)
 - [🃏 Dashboard-Karten](#-dashboard-karten)
+- [📱 Handy zuerst](#-handy-zuerst)
+- [🧩 Optionale Extras](#-optionale-extras-aus-hacs)
+- [📊 Entitäten](#-entitäten)
 - [⚡ Automationen](#-automationen)
 - [🛠️ Aktionen](#️-aktionen)
 - [📱 AppComm (PERDIS mobil)](#-appcomm-perdis-mobil)
@@ -46,6 +58,19 @@ persönlichen Konto am selben Portal an.
 - [🔒 Datenschutz](#-datenschutz)
 - [🩺 Fehlersuche](#-fehlersuche)
 - [🤝 Mitmachen](#-mitmachen)
+- [⚖️ Hinweis](#️-hinweis)
+
+## 🚀 Schnellstart
+
+1. **Installieren.** In HACS dieses Repository hinzufügen und herunterladen (Details unter
+   [Installation](#-installation)).
+2. **Home Assistant neu starten.** Das ist keine Formalität: Erst danach läuft die neue Version
+   (und werden die neuen Karten ausgeliefert). Welche Version gerade läuft, steht auf der
+   Geräteseite der Integration.
+3. **Integration hinzufügen.** *Einstellungen → Geräte & Dienste → Integration hinzufügen → PERDIS.*
+4. **Betrieb wählen** und mit **Personalnummer und Passwort** anmelden – dieselben Daten wie im Portal.
+5. **Karte hinzufügen.** Dashboard bearbeiten → *Karte hinzufügen* → **PERDIS · All-in-one**.
+   Keine Entitäts-IDs, kein YAML.
 
 ## ✨ Funktionen
 
@@ -68,7 +93,8 @@ persönlichen Konto am selben Portal an.
   *Dienst hat begonnen*, *Dienst ist zu Ende*, *freies Wochenende hat begonnen*, *Dienstplan hat
   sich geändert* – sekundengenau.
 - 🗓️ **Kalender** mit jedem Dienst und freien Tag, für das Kalender-Dashboard und Kalender-Auslöser.
-- 🃏 **Drei Dashboard-Karten**, die sich selbst registrieren: nächster Dienst, Dienstplan und Konten.
+- 🃏 **Dashboard-Karten**, die sich selbst registrieren: eine All-in-one-Karte mit Reitern oder jede
+  Ansicht einzeln – zuerst fürs Handy gebaut.
 - 💾 **Übersteht Wartungsfenster**: der letzte Dienstplan wird zwischengespeichert und bleibt
   verfügbar, während das Portal nicht erreichbar ist.
 - 🌍 **Deutsch und Englisch** durchgehend: Einrichtung, Entitäten, Karten, Benachrichtigungen, Kalender. Einrichtung und Entitätsnamen gibt es zusätzlich auf **Niederländisch**; andere Sprachen fallen auf Englisch zurück.
@@ -102,49 +128,66 @@ dann kommt das Unternehmen in die Liste.
 
 ## 📋 Voraussetzungen
 
-- 🏠 Home Assistant **2025.1** oder neuer.
-- 👤 Dein eigenes Konto für das WebComm-Portal deines Unternehmens (Benutzerkennung bzw.
-  Personalnummer und Kennwort) – dasselbe wie im Browser.
-- 🌐 Home Assistant muss das Portal erreichen können. Manche Unternehmen erlauben den Zugriff nur aus
-  dem eigenen Netz; dann kommt auch die Integration nicht hin.
+- 🏠 Home Assistant **2023.7** oder neuer. Die CI prüft jede Version seitdem; zuletzt getestet bis
+  **2026.9**.
+- 👤 Dein eigener Zugang zum WebComm-Portal deines Unternehmens (Personalnummer bzw. Benutzerkennung
+  und Passwort) – derselbe wie im Browser.
+- 🌐 Home Assistant muss das Portal erreichen können. Manche Unternehmen erlauben den Zugriff nur
+  aus dem eigenen Netz; dann kommt auch die Integration nicht hin.
+- 📦 **HACS** ist der bequemste Weg zur Installation, aber nicht Pflicht (es geht auch von Hand).
+- 🧩 **Nichts weiter.** Die Karten laufen mit Home Assistant allein. Nur ein paar
+  [optionale Extras](#-optionale-extras-aus-hacs) brauchen zusätzlich Karten aus HACS – und die sind
+  standardmäßig aus.
 
 ## 📦 Installation
 
 ### HACS / Marketplace (empfohlen)
 
 1. Klicke oben auf den Button **HACS · Marketplace** oder öffne **HACS** (Home Assistant 2026.10
-   und älter) bzw. **Einstellungen → Marketplace** (ab 2026.11) und suche nach **PERDIS Duty
-   Roster**. Wird es nicht gefunden, füge zuerst
-   `https://github.com/seb5594/hass-perdis_roster-integration` als benutzerdefiniertes Repository der
-   Kategorie *Integration* hinzu.
-2. Herunterladen und Home Assistant neu starten.
+   und älter) bzw. **Einstellungen → Marketplace** (ab 2026.11) und suche nach **PERDIS**. Wird es
+   nicht gefunden, füge zuerst `https://github.com/seb5594/hass-perdis_roster-integration` als
+   benutzerdefiniertes Repository der Kategorie *Integration* hinzu.
+2. Herunterladen.
+3. **Home Assistant neu starten** – auch bei jedem späteren Update. Bis zum Neustart läuft noch die
+   alte Version, und der Browser bekommt auch noch die alten Karten.
 
 ### Manuell
 
-1. Lade `perdis.zip` aus dem [neuesten Release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
+1. Lade `perdis_roster.zip` aus dem [neuesten Release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
 2. Entpacke es nach `config/custom_components/perdis_roster/`, sodass `manifest.json` in diesem Ordner liegt.
 3. Home Assistant neu starten.
 
 ## ⚙️ Einrichtung
 
-1. **Einstellungen → Geräte & Dienste → Integration hinzufügen** und nach **PERDIS Duty Roster**
-   suchen.
+1. **Einstellungen → Geräte & Dienste → Integration hinzufügen** und nach **PERDIS** suchen.
 2. Wähle, wie dein Portal gefunden wird:
    - 🚌 **Mein Verkehrsunternehmen aus der Liste wählen** oder
-   - ✍️ **Portal-Adresse selbst eingeben** – die Adresse aus dem Browser einfügen. *Art des Portals*
-     bleibt auf **WebComm**, außer dein Unternehmen hat dir eine AppComm-Dienstadresse genannt.
-3. **Benutzerkennung / Personalnummer** und **Kennwort** eingeben. Der Dialog meldet sich einmal zur
+   - ✍️ **Portal-Adresse selbst eingeben** – die Adresse aus dem Browser einfügen (auch der reine
+     Hostname reicht; `/WebComm/` ergänzt die Integration selbst). *Art des Portals* bleibt auf
+     **WebComm**, außer dein Unternehmen hat dir eine AppComm-Dienstadresse genannt
+     (siehe [AppComm](#-appcomm-perdis-mobil)).
+3. **Benutzerkennung / Personalnummer** und **Kennwort** eingeben. Die Überschrift nennt dabei
+   die Anbindung, z. B. „PERDIS WebComm · Anmeldung bei …“. Der Dialog meldet sich einmal zur
    Prüfung an; wenige Sekunden später ist der Dienstplan da.
+4. **Zeiten einstellen** (*Konfigurieren* am Eintrag): wie lange du vor dem Dienst aufstehst (90 min)
+   und wie lang dein Arbeitsweg ist (30 min). Daraus entstehen Weck- und Losfahrzeit.
 
-Das Konto wird nach deiner Personalnummer und deinem Nachnamen benannt, z. B. **12345 -
-Mustermann** (den Nachnamen liest die Integration aus dem Portal-Header); zeigt das Portal keinen
-Namen, wird nur die Personalnummer verwendet.
+Das Konto heißt bei einem Unternehmen aus der Liste **Kürzel - Personalnummer**, z. B. **VGF -
+12345**. Bei einer selbst eingegebenen Adresse wird es nach Personalnummer und Nachnamen benannt
+(den Nachnamen liest die Integration aus dem Portal-Header), und wenn das Portal keinen Namen
+zeigt, nach der Personalnummer allein.
 
-Mehrere Konten (zum Beispiel von einem Paar, das beide fahren) lassen sich nebeneinander anlegen;
+Mehrere Konten (zum Beispiel von einem Paar, das beide fährt) lassen sich nebeneinander anlegen;
 jedes bekommt ein eigenes Gerät mit eigenen Entitäten.
 
 Änderst du dein Kennwort im Portal, zeigt Home Assistant einen **Reparaturhinweis** und fragt nach
 dem neuen – die Integration muss nicht entfernt werden.
+
+> [!TIP]
+> **Meldung aufs Handy (auch WhatsApp):** *Konfigurieren → Aktion bei Dienstplanänderungen* ist der
+> volle Aktionen-Editor von Home Assistant. Wähle dort deinen Benachrichtigungsdienst oder ein
+> Skript und trag bei *Titel* `{{ title }}` und bei *Nachricht* `{{ message }}` ein – dann bekommst
+> du genau den Text, den auch Home Assistant selbst anzeigt.
 
 ## 🎛️ Optionen
 
@@ -174,77 +217,6 @@ Portalen gebraucht. Die Integration findet Dienstplan, Konten und WE-Punkte selb
 Portals; wird eine Seite nicht gefunden (siehe [Fehlersuche](#-fehlersuche)), trage hier ihren Pfad
 ein, z. B. `Dienstplan.aspx`.
 
-## 📊 Entitäten
-
-> [!NOTE]
-> Es werden nur die Sensoren angelegt, die dein Portal tatsächlich füllen kann. Bei der Einrichtung
-> prüft die Integration, welche Seiten dein Portal ausliefert und welche Kontowerte es zurückgibt;
-> ein Portal ohne WE-Punkte zeigt dann keine WE-Punkte-Sensoren statt einer Reihe „Unbekannt".
-> Nach dem Freischalten einer neuen Funktion die Integration neu laden.
-
-Alle Entitäten gehören zu einem Gerät pro Konto. Die Entitäts-IDs unten gehen von einem Konto
-namens *Rheinbahn (4711)* aus; deine beginnen mit dem Namen deines Kontos. Mit Home Assistant auf
-Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
-
-### 🕐 Nächster Dienst
-
-| Name | Beispiel | Hinweis |
-| --- | --- | --- |
-| Nächster Dienst | `4711` | Laufender oder nächster Dienst. Attribute: Datum, Beginn, Ende, Orte, Linien, Stunden, Dienstart, Minuten bis Beginn/Ende, Weck- und Losfahrzeit, Ruhezeit davor |
-| Nächster Dienstbeginn / Nächstes Dienstende | Zeitstempel | Als relative Zeit anzeigbar („in 5 Stunden“) |
-| Nächster Dienstantrittsort | `Betriebshof Musterstadt` | Meldeort |
-| Art des nächsten Dienstes | `Frühdienst` | Früh-, Mittel-, Spät-, Nacht- oder geteilter Dienst |
-| Weckzeit | Zeitstempel | Dienstbeginn minus Vorlaufzeit |
-| Losfahren | Zeitstempel | Dienstbeginn minus Arbeitsweg |
-| Ruhezeit vor nächstem Dienst | `1 Tag 3 Stunden 20 Minuten` | Ende des vorigen bis Beginn des nächsten Dienstes, in Tagen, Stunden und Minuten (die Stunden stehen im Attribut `hours`) |
-
-### 📅 Tage
-
-| Name | Beispiel | Hinweis |
-| --- | --- | --- |
-| Heute / Morgen | `Dienst` | Dienst, Bereitschaft, Schulung, Frei, Urlaub, Freizeitausgleich, Krank |
-| Nächster freier Tag | `26.11.2026` | Heute, wenn du frei hast |
-| Tage bis frei | `3 d` | |
-| Arbeitstage am Stück | `3 d` | Von heute bis zum nächsten freien Tag |
-| Nächstes freies Wochenende | `28.11.2026` | Samstag des nächsten Wochenendes mit zwei freien Tagen |
-| Freie Wochenenden voraus | `2` | Freie Wochenenden im sichtbaren Dienstplan |
-| Geplante Stunden diese Woche / diesen Monat | `38,5 h` | Attribute zählen die Dienste nach Art und Dienstlage |
-
-### 💼 Konten
-
-| Name | Beispiel | Hinweis |
-| --- | --- | --- |
-| Zeitkonto | `14,5 h` | Attribute: Soll- und Iststunden, alle Salden, die das Portal zeigt |
-| Tageskonto heute | `-0,5 h` | Der heutige Tag der Tageswerte-Seite; Attribute: Soll-, Ist- und laufende Kontostunden sowie die letzten zehn Tage |
-| Resturlaub | `12,5 d` | Attribute: verplante Tage, Anspruch, Rest nach dem verplanten Urlaub |
-| WE-Punkte | `38,5 pts` | Attribute: Gruppendurchschnitt, letzte Einträge |
-| WE-Punkte zum Durchschnitt | `-3,5 pts` | Negativ: weniger Punkte als deine Gruppe |
-| Freie Wochenenden dieses Jahr | `7` | Wie vom Portal gezählt |
-
-### 🔎 Ja / Nein
-
-| Name | An, wenn |
-| --- | --- |
-| Im Dienst | ein Dienst läuft |
-| Heute frei / Morgen frei | der Tag frei, Urlaub oder Freizeitausgleich ist |
-| Heute geteilter Dienst | der heutige Dienst eine lange Pause hat |
-| Verkürzte Ruhezeit | die Ruhezeit vor dem nächsten Dienst unter deinem Minimum liegt |
-| Portal | die letzte Abfrage das Portal erreicht hat (Diagnose) |
-
-### 🗂️ Listen und Kalender
-
-| Name | Hinweis |
-| --- | --- |
-| Dienstplan | Anzahl der Tage in den nächsten sechs Wochen; das Attribut `days` versorgt die Dienstplan-Karte |
-| Dienstplanänderungen | Änderungen der letzten 14 Tage, jeweils mit lesbarer Zusammenfassung |
-| Letzte Aktualisierung | Letzte erfolgreiche Abfrage, letzter Fehler und gefundene Seiten (Diagnose) |
-| Dienstplan-Rekorde | Längster Dienst, frühester Beginn und spätestes Ende im geladenen Dienstplan (Diagnose) |
-| Dienste mit Details | Wie viele der kommenden Dienste ihre Abschnitte im Detail haben (Diagnose) |
-| Schaltfläche *Dienstplan aktualisieren* | Fragt das Portal sofort ab; entspricht der Aktion `perdis_roster.refresh` |
-| Kalender *Dienste* | Dienste als Termine mit Uhrzeit, freie Tage und Abwesenheiten ganztägig |
-
-Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verlauf klein bleibt.
-
 ## 🃏 Dashboard-Karten
 
 Die Karten gehören zur Integration und registrieren sich selbst – **keine Ressource nötig**.
@@ -267,7 +239,9 @@ schreiben. Ohne Einstellungen zeigt eine Karte das erste PERDIS-Konto.
 | 🕐 `perdis-shift-card` | Den nächsten Dienst: Nummer, Dienstart, Countdown, Zeiten, Meldeort, Linien, Weck- und Losfahrzeit, Ruhezeit-Warnung, Fortschritt während des Dienstes |
 | 📋 `perdis-roster-card` | Die nächsten Tage nach Kalenderwoche, farbig nach Art, geänderte Tage markiert |
 | 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche oder des Monats |
-| 🧾 `perdis-shift-detail-card` | Den nächsten Dienst Abschnitt für Abschnitt als echte Tabelle: Meldeort, Zeit, Linie, Kurs und Ablöserichtung, Pausen klar ausgewiesen |
+| 🧾 `perdis-shift-detail-card` | Die Dienste zum Durchblättern, jeder Abschnitt als echte Tabelle: Von → Bis, Zeit, Linie, Kurs und Ablösung, Pausen zusammengefasst |
+| 🗓️ `perdis-calendar-card` | Ein Monatskalender deiner Dienste; findet die Kalender-Entität selbst |
+| 🔁 `perdis-swap-card` | Die offenen Diensttausche, die das Portal anzeigt |
 
 Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 
@@ -281,11 +255,31 @@ Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 | `tap_action` | more-info | Volle Lovelace-Aktion (`more-info`, `navigate`, `url`, `perform-action`, `none`) |
 
 <details>
+<summary>🧩 Optionen der All-in-one-Karte</summary>
+
+| Option | Standard | Wirkung |
+| --- | --- | --- |
+| `tabs` | Dienst, Plan, Konten, Kalender | Welche Reiter und in welcher Reihenfolge: `shift`, `detail`, `roster`, `accounts`, `calendar`, `swaps`. Im Editor mit Häkchen und Pfeilen |
+| `logo` | – | Adresse deines eigenen Bildes (z. B. `/local/logo.png`) statt des Namens-Badges |
+| `show_open` | `true` | Den **PERDIS**-Button zeigen, der dein Portal öffnet |
+| `open_url` | dein Portal | Eigenes Ziel des Buttons: eine Adresse, oder `app://paketname`, um in der Android-Companion-App eine App zu starten |
+| `show_trend` / `trend_days` | aus / `14` | [Extra](#-optionale-extras-aus-hacs): Zeitkonto-Verlauf |
+| `use_calendar_card_pro` / `calendar_days` | aus / `14` | [Extra](#-optionale-extras-aus-hacs): Kalender als Liste |
+
+```yaml
+type: custom:perdis-card
+tabs: [shift, roster, accounts, calendar]
+open_url: https://perdis.example.org/WebComm/
+```
+
+</details>
+
+<details>
 <summary>🕐 Optionen der Dienst-Karte</summary>
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
-| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
+| `show_facts` | alle | Welche Eckdaten (in dieser Reihenfolge): `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
 | `show_location` | `true` | Meldeort anzeigen |
 | `show_lines` | `true` | Linien-Badges anzeigen |
 | `show_countdown` | `true` | Countdown-Pille anzeigen |
@@ -328,8 +322,9 @@ group_by_week: false
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
-| `show_tiles` | 5 Kacheln | Welche Kacheln und in welcher Reihenfolge: `overtime`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
+| `show_tiles` | 6 Kacheln | Welche Kacheln und in welcher Reihenfolge: `overtime`, `daily`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
 | `columns` | `0` (auto) | Feste Spaltenzahl (1–4) |
+| `show_trend` / `trend_days` | aus / `14` | [Extra](#-optionale-extras-aus-hacs): Zeitkonto-Verlauf |
 
 ```yaml
 type: custom:perdis-accounts-card
@@ -339,6 +334,126 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, für ein zweites Konto
 ```
 
 </details>
+
+## 📱 Handy zuerst
+
+Ich schaue fast nur auf dem Handy nach dem Dienstplan, deshalb sind die Karten zuerst dafür gebaut
+und erst danach für Tablet und Desktop:
+
+- 👆 **Große Tippflächen** und Aktionen mit Beschriftung statt nur Symbol: *Aktualisieren*
+  ruft das Portal sofort ab, *PERDIS* öffnet es.
+- 📏 Die Kopfzeile bricht auf sehr schmalen Displays um, statt Text wegzuquetschen. Ich habe sie bei
+  320, 360 und 390 Pixel Breite geprüft.
+- 👉 Die Reiter der All-in-one-Karte lassen sich seitwärts wischen.
+- 🗣️ **Zahlen in Worten**: „1 Stunde 14 Minuten“, „in 2 Tagen“ – mit richtigem Singular und Plural,
+  damit du nicht rechnen musst.
+- 🌐 Ist das Portal als **PWA** installiert („Zum Startbildschirm hinzufügen“), öffnet der
+  *PERDIS*-Button es in dieser App, sofern Android sie für die Adresse registriert hat.
+- ♻️ Nach einem Update zeigt die Companion-App manchmal noch die alte Karte. Dann den
+  Frontend-Cache zurücksetzen (je nach App-Version unter *Fehlerbehebung*), siehe
+  [Fehlersuche](#-fehlersuche).
+
+## 🧩 Optionale Extras (aus HACS)
+
+Alles oben läuft mit Home Assistant allein – **du musst nichts davon installieren.** Ein paar
+Extras zeichnen aber mit Karten aus der Community und brauchen deshalb zusätzlich etwas aus HACS
+(dort unter *Frontend*, in neueren HACS-Versionen *Dashboard*; es sind keine Integrationen).
+**Alle Extras sind standardmäßig aus.**
+
+| Extra | Was es macht | Braucht aus HACS | Einschalten |
+| --- | --- | --- | --- |
+| 📈 Zeitkonto-Verlauf | Eine Linie deines Zeitkontos der letzten Tage unter den Konten-Kacheln | [mini-graph-card](https://github.com/kalkih/mini-graph-card) | Kartenpanel *Konten*: `show_trend`, Länge mit `trend_days` |
+| 🗒️ Kalender als Liste | Eine übersichtlichere Liste deiner Dienste statt der Kalenderkarte von Home Assistant | [Calendar Card Pro](https://github.com/alexpfau/calendar-card-pro) | Kartenpanel *Kalender*: `use_calendar_card_pro`, Länge mit `calendar_days` |
+
+So geht es:
+
+1. Die Karte aus HACS installieren und die Seite neu laden.
+2. Die PERDIS-Karte im Editor öffnen → Abschnitt **Extras**. Dort schaltest du das Extra ein.
+3. Ist die Karte aus HACS **nicht** installiert, bleibt der Schalter ausgegraut und sagt, was fehlt.
+   Das prüft der Editor im Browser, jedes Mal wenn er geöffnet wird; installierst du sie später,
+   zieht er von allein nach. Steht ein Extra im YAML auf `true`, die Karte fehlt aber, zeigt die
+   PERDIS-Karte nur einen kleinen Hinweis statt eines Fehlers.
+
+Diese Extras sind in der **All-in-one-Karte** und in der jeweiligen Einzelkarte verfügbar. Der
+Zeitkonto-Verlauf zeichnet den Sensor *Zeitkonto (Stunden)* (Diagnose-Gruppe).
+
+> [!NOTE]
+> Ehrlich gesagt: Die Extras sind schwächer getestet als der Rest. Ich kenne die Optionen der
+> fremden Karten aus deren Dokumentation, kann sie aber nicht mit jeder ihrer Versionen
+> ausprobieren. Geht etwas schief, lass das Extra einfach aus oder
+> [sag Bescheid](https://github.com/seb5594/hass-perdis_roster-integration/issues).
+
+## 📊 Entitäten
+
+> [!NOTE]
+> Es werden nur die Sensoren angelegt, die dein Portal tatsächlich füllen kann. Bei der Einrichtung
+> prüft die Integration, welche Seiten dein Portal ausliefert und welche Kontowerte es zurückgibt;
+> ein Portal ohne WE-Punkte zeigt dann keine WE-Punkte-Sensoren statt einer Reihe „Unbekannt".
+> Nach dem Freischalten einer neuen Funktion die Integration neu laden.
+
+Alle Entitäten gehören zu einem Gerät pro Konto. Die Entitäts-IDs unten gehen von einem Konto
+namens *Rheinbahn (4711)* aus; deine beginnen mit dem Namen deines Kontos. Mit Home Assistant auf
+Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
+
+### 🕐 Nächster Dienst
+
+| Name | Beispiel | Hinweis |
+| --- | --- | --- |
+| Nächster Dienst | `4711` | Laufender oder nächster Dienst. Attribute: Datum, Beginn, Ende, Orte, Linien, Stunden, Dienstart, Minuten bis Beginn/Ende, Weck- und Losfahrzeit, Ruhezeit davor |
+| Nächster Dienstbeginn / Nächstes Dienstende | Zeitstempel | Als relative Zeit anzeigbar („in 5 Stunden“) |
+| Nächster Dienstantrittsort | `Betriebshof Musterstadt` | Meldeort |
+| Art des nächsten Dienstes | `Frühdienst` | Früh-, Mittel-, Spät-, Nacht- oder geteilter Dienst |
+| Weckzeit | Zeitstempel | Dienstbeginn minus Vorlaufzeit |
+| Losfahren | Zeitstempel | Dienstbeginn minus Arbeitsweg |
+| Ruhezeit vor nächstem Dienst | `1 Tag 3 Stunden 20 Minuten` | Ende des vorigen bis Beginn des nächsten Dienstes, in Tagen, Stunden und Minuten (die Stunden stehen im Attribut `hours`) |
+
+### 📅 Tage
+
+| Name | Beispiel | Hinweis |
+| --- | --- | --- |
+| Heute / Morgen | `Dienst` | Dienst, Bereitschaft, Schulung, Frei, Urlaub, Freizeitausgleich, Krank |
+| Nächster freier Tag | `26.11.2026` | Heute, wenn du frei hast |
+| Tage bis frei | `3 d` | |
+| Arbeitstage am Stück | `3 d` | Von heute bis zum nächsten freien Tag |
+| Nächstes freies Wochenende | `28.11.2026` | Samstag des nächsten Wochenendes mit zwei freien Tagen |
+| Freie Wochenenden voraus | `2` | Freie Wochenenden im sichtbaren Dienstplan |
+| Geplante Stunden diese Woche / diesen Monat | `38,5 h` | Attribute zählen die Dienste nach Art und Dienstlage |
+
+### 💼 Konten
+
+| Name | Beispiel | Hinweis |
+| --- | --- | --- |
+| Zeitkonto | `14:30` | So wie im Portal (Stunden:Minuten). Attribute: dieselbe Zahl als Dezimalwert (`hours`), Soll- und Iststunden, alle Salden, die das Portal zeigt |
+| Zeitkonto (Stunden) | `14,5 Std.` | Dasselbe als Zahl, für Verläufe und Automationen (Diagnose) |
+| Tageskonto heute | `-0,5 h` | Der heutige Tag der Tageswerte-Seite; Attribute: Soll-, Ist- und laufende Kontostunden sowie die letzten zehn Tage |
+| Resturlaub | `12,5 d` | Attribute: verplante Tage, Anspruch, Rest nach dem verplanten Urlaub |
+| WE-Punkte | `38,5 pts` | Attribute: Gruppendurchschnitt, letzte Einträge |
+| WE-Punkte zum Durchschnitt | `-3,5 pts` | Negativ: weniger Punkte als deine Gruppe |
+| Freie Wochenenden dieses Jahr | `7` | Wie vom Portal gezählt |
+
+### 🔎 Ja / Nein
+
+| Name | An, wenn |
+| --- | --- |
+| Im Dienst | ein Dienst läuft |
+| Heute frei / Morgen frei | der Tag frei, Urlaub oder Freizeitausgleich ist |
+| Heute geteilter Dienst | der heutige Dienst eine lange Pause hat |
+| Verkürzte Ruhezeit | die Ruhezeit vor dem nächsten Dienst unter deinem Minimum liegt |
+| Portal | die letzte Abfrage das Portal erreicht hat (Diagnose) |
+
+### 🗂️ Listen und Kalender
+
+| Name | Hinweis |
+| --- | --- |
+| Dienstplan | Anzahl der Tage in den nächsten sechs Wochen; das Attribut `days` versorgt die Dienstplan-Karte |
+| Dienstplanänderungen | Änderungen der letzten 14 Tage, jeweils mit lesbarer Zusammenfassung |
+| Letzte Aktualisierung | Letzte erfolgreiche Abfrage, letzter Fehler und gefundene Seiten (Diagnose) |
+| Dienstplan-Rekorde | Längster Dienst, frühester Beginn und spätestes Ende im geladenen Dienstplan (Diagnose) |
+| Dienste mit Details | Wie viele der kommenden Dienste ihre Abschnitte im Detail haben (Diagnose) |
+| Schaltfläche *Dienstplan aktualisieren* | Fragt das Portal sofort ab; entspricht der Aktion `perdis_roster.refresh` |
+| Kalender *Dienste* | Dienste als Termine mit Uhrzeit, freie Tage und Abwesenheiten ganztägig |
+
+Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verlauf klein bleibt.
 
 ## ⚡ Automationen
 
@@ -510,6 +625,8 @@ Kennwort oder Token) allen weiter.
 | *Das Portal ist nicht erreichbar* | Die Adresse in einem Browser im selben Netz wie Home Assistant öffnen. Manche Portale sind nur im Firmennetz erreichbar. |
 | *Nicht wie ein PERDIS-Portal* | Adresse prüfen; sie muss auf den Ordner des Portals enden (z. B. `/WebComm/`). |
 | Dienstplan bleibt leer | In **Letzte Aktualisierung** (Diagnose) das Attribut `pages` ansehen. Fehlt `roster`, den Pfad der Dienstplanseite in den erweiterten Optionen eintragen. |
+| Ich habe aktualisiert, aber alles sieht aus wie vorher | Home Assistant **neu starten**. Die Geräteseite der Integration zeigt die Version, die wirklich läuft. Danach den Browser mit geleertem Cache neu laden; in der Companion-App den Frontend-Cache zurücksetzen. |
+| Ein neuer Sensor fehlt (z. B. *Dienstplan-Rekorde*) | Er liegt in der Gruppe **Diagnose** der Geräteseite, nicht unter *Sensoren*. Gibt es ihn dort nicht, läuft noch die alte Version (siehe oben). |
 | Konten oder WE-Punkte sind unbekannt | Nicht jedes Unternehmen zeigt sie. Stehen sie im Portal unter anderem Namen, bitte ein Issue mit dem Bezeichnungstext öffnen. |
 
 Für ein Issue die **Diagnose** herunterladen (Geräteseite → ⋮ → *Diagnose herunterladen*). Mehr
@@ -534,8 +651,8 @@ logger:
 
 PERDIS, MOBILE-PERDIS, WebComm und AppComm sind Produkte und ggf. Marken der INIT Mobility
 Software Solutions GmbH. Unternehmensnamen gehören ihren Inhabern und dienen nur dem Hinweis auf
-deren Portale. Dieses Projekt steht mit keinem von ihnen in Verbindung. Nutze es nur mit deinem
-eigenen Konto und halte dich an die Regeln deines Arbeitgebers.
+deren Portale. Dieses Projekt steht mit keinem von ihnen in Verbindung (siehe den Kasten ganz
+oben). Nutze es nur mit deinem eigenen Konto und halte dich an die Regeln deines Arbeitgebers.
 
 ## 💛 Danke sagen
 

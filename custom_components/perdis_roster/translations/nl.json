@@ -229,6 +229,9 @@
       },
       "detailed_shifts": {
         "name": "Diensten met details"
+      },
+      "overtime_hours": {
+        "name": "Saldo overuren in uren"
       }
     },
     "binary_sensor": {

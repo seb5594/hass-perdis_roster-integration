@@ -229,6 +229,9 @@
       },
       "detailed_shifts": {
         "name": "Shifts with details"
+      },
+      "overtime_hours": {
+        "name": "Overtime balance (hours)"
       }
     },
     "binary_sensor": {

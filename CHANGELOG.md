@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026.11.26.8
+
+- 🧩 **Optional extras** that need a card from HACS — a time account trend (mini-graph-card) and
+  the calendar as a list (Calendar Card Pro). Both are **off by default**. The card editor
+  checks in the browser whether the card is installed: if not, the switch stays disabled and says
+  what is missing; if it is installed later, the editor catches up by itself. An enabled extra whose
+  card is missing shows a small note instead of an error. The README now says plainly that nothing
+  from HACS is needed for the rest.
+- 📈 New diagnostic sensor **Overtime balance (hours)**: the overtime as a plain number, for graphs
+  and automations.
+- 📱 The header of the all-in-one card is built for the phone first: its two actions are a symbol
+  over a word — **PERDIS** (with the "open in app" symbol, so it cannot be mistaken for a link icon)
+  and **Refresh** — and it wraps on very narrow screens instead of squeezing the text. Checked at
+  320, 360 and 390 pixels.
+- 📖 The README is rewritten in plain words: what this is, a five-step quick start, the complete
+  setup with tips, a "phone first" section, the optional extras and a clear disclaimer that this
+  project has nothing to do with PERDIS or INIT. New preview images with made-up data.
+- 🧪 The cards now have tests of their own (`.github/tests/cards.test.cjs`).
+
 ## 2026.11.26.7
 
 - 🔠 **PERDIS** is written in capitals everywhere (name, texts, logo, README), and the card header

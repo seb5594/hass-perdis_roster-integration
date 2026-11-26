@@ -445,6 +445,13 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=_overtime_attributes,
     ),
     PerdisSensorDescription(
+        # The same balance as a plain number of hours, for graphs and automations ("above 10 hours").
+        key="overtime_hours", role="overtime_hours", device_class=SensorDeviceClass.DURATION,
+        state_class=SensorStateClass.MEASUREMENT, native_unit_of_measurement=UnitOfTime.HOURS,
+        suggested_display_precision=2, entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda c: _hours(_snapshot(c).balances.overtime_minutes),
+    ),
+    PerdisSensorDescription(
         key="daily_balance", role="daily_values", device_class=SensorDeviceClass.DURATION,
         state_class=SensorStateClass.MEASUREMENT, native_unit_of_measurement=UnitOfTime.HOURS,
         suggested_display_precision=1,
@@ -515,6 +522,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
 # is a diagnostic that is always created (capability None).
 SENSOR_CAPABILITY: dict[str, str | None] = {
     "overtime": CAP_OVERTIME,
+    "overtime_hours": CAP_OVERTIME,
     "daily_balance": CAP_DAILY_VALUES,
     "vacation_remaining": CAP_VACATION,
     "weekend_points": CAP_WEEKEND_POINTS,
