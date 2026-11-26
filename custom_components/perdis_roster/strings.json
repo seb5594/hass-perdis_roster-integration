@@ -73,7 +73,9 @@
           "lookback_days": "Days to keep in the past",
           "detail_days": "Fetch exact shift times for this many days ahead",
           "person": "Employee (person) this roster belongs to",
-          "notify_target": "Notification service on roster changes"
+          "notify_target": "Notification service on roster changes",
+          "calendar_leg_events": "Calendar: one event per shift leg",
+          "notify_action": "Action on roster changes"
         },
         "data_description": {
           "wake_up_lead_minutes": "Sets the wake-up time and its trigger.",
@@ -82,7 +84,8 @@
           "scan_interval": "Rosters rarely change by the minute; 30 minutes is plenty.",
           "detail_days": "Only the month roster is free; a shift's exact times cost one extra request the first time, then are reused until the shift changes. A few are fetched per refresh. 0 turns it off.",
           "person": "Used as context and passed to a notification/script you set below.",
-          "notify_target": "A service such as notify.mobile_app_phone or a script.my_script to call on a roster change. Leave empty to use only the repair-style notification."
+          "notify_target": "A service such as notify.mobile_app_phone or a script.my_script to call on a roster change. Leave empty to use only the repair-style notification.",
+          "notify_action": "The full action editor: pick a service and fill its fields, or build a sequence. Available: {{ title }}, {{ message }}, {{ changes }}, {{ person }}."
         },
         "sections": {
           "advanced": {

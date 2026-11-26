@@ -87,6 +87,27 @@ async def _calendar_description(hass, start_day, end_day):
     return found[0].description
 
 
+async def _calendar_events(hass, start_day, end_day):
+    """Every calendar event in a day range, normalized across the service and the direct-read paths."""
+    entity_id = state_of(hass, "calendar", "duties").entity_id
+    if hass.services.has_service("calendar", "get_events"):
+        result = await hass.services.async_call(
+            "calendar", "get_events",
+            {"entity_id": entity_id, "start_date_time": f"{start_day}T00:00:00",
+             "end_date_time": f"{end_day}T00:00:00"},
+            blocking=True, return_response=True)
+        raw = next(iter(result.values()))["events"]
+        return [{"summary": event.get("summary", ""), "location": event.get("location") or "",
+                 "start": str(event.get("start", ""))} for event in raw]
+    entity = hass.data["entity_components"]["calendar"].get_entity(entity_id)
+    zone = dt_util.DEFAULT_TIME_ZONE
+    found = await entity.async_get_events(
+        hass, datetime.fromisoformat(f"{start_day}T00:00:00").replace(tzinfo=zone),
+        datetime.fromisoformat(f"{end_day}T00:00:00").replace(tzinfo=zone))
+    return [{"summary": event.summary or "", "location": event.location or "",
+             "start": str(event.start)} for event in found]
+
+
 async def test_setup_dialog_offers_the_known_operators(hass):
     result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "operator"})
@@ -124,7 +145,10 @@ async def test_account_is_set_up_and_reads_the_roster(hass, fake_webcomm):
     assert state_of(hass, "sensor", "today").state == "work"
     assert state_of(hass, "sensor", "next_day_off").state == "2026-11-26"
     assert state_of(hass, "sensor", "next_free_weekend").state == "2026-11-28"
-    assert float(state_of(hass, "sensor", "overtime").state) == 14.5
+    # The overtime balance reads the portal's own way (hours:minutes); the decimal rides on it.
+    overtime = state_of(hass, "sensor", "overtime")
+    assert overtime.state == "14:30"
+    assert overtime.attributes["hours"] == 14.5
     assert float(state_of(hass, "sensor", "vacation_remaining").state) == 12.5
     assert float(state_of(hass, "sensor", "weekend_points_difference").state) == -3.5
     assert state_of(hass, "binary_sensor", "on_duty").state == "off"
@@ -269,12 +293,32 @@ async def test_calendar_portal_gets_real_times_from_shift_detail(hass, fake_webc
     assert len(nxt.attributes["legs"]) >= 4
     assert nxt.attributes["legs"][0]["location"] == "HB"
 
-    # The calendar event must carry the leg-by-leg breakdown, not only the start and end.
-    description = await _calendar_description(hass, "2026-11-24", "2026-11-25")
-    assert "10:32-14:32" in description  # the first driving leg
-    assert "21" in description and "16" in description  # both lines
-    assert description.count("\n") >= 5  # several legs, each on its own line
+    # By default the calendar splits the shift into one event per leg, each with its line and times.
+    events = await _calendar_events(hass, "2026-11-24", "2026-11-25")
+    assert len(events) >= 4
+    summaries = " | ".join(event["summary"] for event in events)
+    assert "21" in summaries and "16" in summaries  # both lines, each on its own leg event
+    assert any("10:32" in event["start"] for event in events)  # the first driving leg's start
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_calendar_can_show_one_event_per_shift(hass, fake_webcomm_calendar):
+    """With the leg split turned off, a shift is one calendar event with its legs in the text."""
+    await add_account_for(hass, fake_webcomm_calendar)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    await hass.config_entries.options.async_configure(result["flow_id"], {
+        "wake_up_lead_minutes": 45, "commute_minutes": 15, "minimum_rest_hours": 11,
+        "notify_changes": True, "calendar_leg_events": False, "scan_interval": 30,
+        "lookahead_days": 42, "lookback_days": 7, "detail_days": 42, **ADVANCED_OPTIONS})
+    await hass.async_block_till_done()
+
+    events = await _calendar_events(hass, "2026-11-24", "2026-11-25")
+    assert len(events) == 1  # the whole shift as a single block
+    description = await _calendar_description(hass, "2026-11-24", "2026-11-25")
+    assert "10:32-14:32" in description and "21" in description
+    await hass.config_entries.async_unload(entry.entry_id)
 
 
 async def test_detail_legs_are_added_even_when_the_roster_already_has_times(hass, fake_webcomm):

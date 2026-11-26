@@ -15,12 +15,16 @@ import inspect
 import logging
 from typing import TYPE_CHECKING, Any
 
+import voluptuous as vol
+
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
+from homeassistant.core import CALLBACK_TYPE, Context, HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_point_in_time, async_track_time_change
+from homeassistant.helpers.script import Script
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
@@ -34,6 +38,7 @@ from .const import (
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
     CONF_MINIMUM_REST,
+    CONF_NOTIFY_ACTION,
     CONF_NOTIFY_CHANGES,
     CONF_NOTIFY_TARGET,
     CONF_PERSON,
@@ -239,7 +244,8 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
     def _announce_changes(self, changes: list[ScheduleChange]) -> None:
         language = self.hass.config.language or "en"
         lines = [describe(change, language) for change in changes]
-        title = f"{texts(language)['title']} ({self.config_entry.title})"
+        # Compact, e.g. "VGF - 12345: Dienstplanänderung".
+        title = f"{self.config_entry.title}: {texts(language)['change_title']}"
         message = "\n".join(f"- {line}" for line in lines)
         _LOGGER.info("Roster changes detected: %s", "; ".join(describe(change) for change in changes))
         # The event lets automations react with any custom action, and carries the person entity.
@@ -256,7 +262,36 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         self._call_notify_target(title, message, lines)
 
     def _call_notify_target(self, title: str, message: str, lines: list[str]) -> None:
-        """Call a user-chosen service (e.g. notify.mobile_app_*, or a script) on a roster change."""
+        """Run the user-configured action on a roster change, or the legacy single service."""
+        variables = {
+            "title": title,
+            "message": message,
+            "changes": lines,
+            "person": self.option(CONF_PERSON, None),
+            "entry_id": self.config_entry.entry_id,
+        }
+        action = self.option(CONF_NOTIFY_ACTION, None)
+        if action:
+            self._run_notify_action(action, variables)
+            return
+        self._call_legacy_target(title, message, lines)
+
+    def _run_notify_action(self, action: Any, variables: dict[str, Any]) -> None:
+        """Run the action built in the UI (a service call or a whole sequence) with the change data.
+
+        The action can use `{{ title }}`, `{{ message }}`, `{{ changes }}` and `{{ person }}`.
+        """
+        sequence = action if isinstance(action, list) else [action]
+        try:
+            sequence = cv.SCRIPT_SCHEMA(sequence)
+        except vol.Invalid as error:
+            _LOGGER.warning("Perdis notify action is not valid: %s", error)
+            return
+        script = Script(self.hass, sequence, f"{DOMAIN} {self.config_entry.title}", DOMAIN)
+        self.hass.async_create_task(script.async_run(variables, Context()))
+
+    def _call_legacy_target(self, title: str, message: str, lines: list[str]) -> None:
+        """The older single-service option (e.g. notify.mobile_app_*), kept for existing setups."""
         target = self.option(CONF_NOTIFY_TARGET, None)
         if not target or "." not in target:
             return
@@ -264,8 +299,6 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         if not self.hass.services.has_service(domain, service):
             _LOGGER.warning("Perdis notify target %s is not a known service", target)
             return
-        # notify.* services take title/message; a script or custom action also gets the structured
-        # change and the person entity to work with.
         data: dict[str, Any] = {"title": title, "message": message}
         if domain != "notify":
             data.update(changes=lines, person=self.option(CONF_PERSON, None),

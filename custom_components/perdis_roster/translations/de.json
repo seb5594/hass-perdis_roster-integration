@@ -73,7 +73,9 @@
           "lookback_days": "Vergangene Tage behalten",
           "detail_days": "Genaue Dienstzeiten für so viele Tage voraus laden",
           "person": "Mitarbeiter (Person), zu dem dieser Dienstplan gehört",
-          "notify_target": "Benachrichtigungsdienst bei Dienstplanänderungen"
+          "notify_target": "Benachrichtigungsdienst bei Dienstplanänderungen",
+          "calendar_leg_events": "Kalender: ein Eintrag je Dienstabschnitt",
+          "notify_action": "Aktion bei Dienstplanänderungen"
         },
         "data_description": {
           "wake_up_lead_minutes": "Ergibt die Weckzeit und ihren Auslöser.",
@@ -82,7 +84,8 @@
           "scan_interval": "Dienstpläne ändern sich selten minütlich; 30 Minuten reichen völlig.",
           "detail_days": "Nur der Monatsplan ist kostenlos; die genauen Zeiten je Dienst kosten beim ersten Mal eine zusätzliche Abfrage und werden dann wiederverwendet, bis sich der Dienst ändert. Pro Aktualisierung werden nur wenige geladen. 0 schaltet es aus.",
           "person": "Dient als Kontext und wird an einen unten gesetzten Dienst/ein Skript übergeben.",
-          "notify_target": "Ein Dienst wie notify.mobile_app_handy oder ein script.mein_skript, der bei einer Änderung aufgerufen wird. Leer lassen für nur die Standardbenachrichtigung."
+          "notify_target": "Ein Dienst wie notify.mobile_app_handy oder ein script.mein_skript, der bei einer Änderung aufgerufen wird. Leer lassen für nur die Standardbenachrichtigung.",
+          "notify_action": "Der volle Aktionen-Editor: Dienst wählen und Felder ausfüllen oder eine Sequenz bauen. Verfügbar: {{ title }}, {{ message }}, {{ changes }}, {{ person }}."
         },
         "sections": {
           "advanced": {

@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026.11.26
+
+- 🧭 The shift detail now always shows each leg's **destination**, not only its start — "HB → Hbf" —
+  even when both are the same relief point, so the end point is never missing.
+- 📅 The calendar can split a shift into **one event per leg** (default on), for a structured day;
+  turn it off in the options to keep a single event with the legs in the text.
+- 🔔 Roster-change messages are shorter and clearer: the title is **"<account>: Dienstplanänderung"**
+  and each change reads **"Freitag, 27.11. SF Neu"** with the times on the next line.
+- 🛠️ The notification can now be a **full Home Assistant action** built in the options UI (pick a
+  service and fill its fields, or build a sequence); `{{ title }}`, `{{ message }}`, `{{ changes }}`
+  and `{{ person }}` are available. The old single-service field still works.
+- 🕑 The **overtime** sensor reads the portal's way, hours:minutes ("-10:17"); **rest before the next
+  shift** reads as days, hours and minutes; **remaining vacation** drops a pointless ".0".
+- 🏷️ The **next shift** sensor shows a readable name ("Dienst") instead of the raw "work" when the
+  portal gives no duty number. German servers see "Std."/"Tage" instead of "h"/"d".
+- 🩹 The **Today** button in the shift browser sits at the top, centered, and is clearly visible; a
+  few secondary sensors moved to the device's diagnostics.
+
 ## 2026.11.25.14
 
 - 👆 Tapping the **next shift** (its own card and the all-in-one card's shift tab) now opens the same
