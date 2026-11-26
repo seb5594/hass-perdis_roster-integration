@@ -227,7 +227,8 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_VERIFY_SSL, default=True): BooleanSelector(),
         })
         return self.async_show_form(step_id="manual", data_schema=self.add_suggested_values_to_schema(
-            schema, user_input or {}), errors=errors)
+            schema, user_input or {}), errors=errors,
+            description_placeholders={"example_url": "https://perdis.example.org/WebComm/"})
 
     async def async_step_credentials(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         errors: dict[str, str] = {}

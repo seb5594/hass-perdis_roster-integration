@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.26.2
+
+- Add the Marketplace calendar category and supply the setup example URL through a translation placeholder.
+
+
 ## 2026.11.26.1
 
 - 💅 The shift-detail table is now centered (header and cells), and a relief marker is spaced out

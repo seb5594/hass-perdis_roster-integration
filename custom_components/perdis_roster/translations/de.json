@@ -18,7 +18,7 @@
       },
       "manual": {
         "title": "Adresse deines Perdis-Portals",
-        "description": "Kopiere die Adresse aus dem Browser, z. B. `https://perdis.example.org/WebComm/`. Der reine Hostname reicht auch.",
+        "description": "Kopiere die Adresse aus dem Browser, z. B. `{example_url}`. Der reine Hostname reicht auch.",
         "data": {
           "base_url": "Portal-Adresse",
           "portal_type": "Art des Portals",

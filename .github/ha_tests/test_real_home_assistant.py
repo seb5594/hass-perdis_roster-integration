@@ -49,6 +49,7 @@ async def add_account(hass, portal, password=PASSWORD):
     assert result["type"] == "menu"
     result = await hass.config_entries.flow.async_configure(result["flow_id"], {"next_step_id": "manual"})
     assert result["step_id"] == "manual"
+    assert result["description_placeholders"]["example_url"] == "https://perdis.example.org/WebComm/"
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"base_url": portal.url, "portal_type": "webcomm", "verify_ssl": True})
     assert result["step_id"] == "credentials"
