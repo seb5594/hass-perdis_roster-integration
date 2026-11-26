@@ -501,9 +501,28 @@ async def test_a_saved_notification_service_is_offered_as_an_action(hass, fake_w
 
 
 async def test_the_integration_name_follows_the_server_language(hass):
-    """German servers see "Perdis-Dienstplan"; every other language falls back to the English name."""
+    """The name is German or Dutch where the server is; every other language gets the English name."""
     from homeassistant.helpers.translation import async_get_translations
 
-    for language, expected in (("de", "Perdis-Dienstplan"), ("en", "Perdis Duty Roster"), ("fr", "Perdis Duty Roster")):
+    names = (("de", "Perdis Dienstplan"), ("nl", "Dienstrooster van Perdis"),
+             ("en", "Perdis Duty Roster"), ("fr", "Perdis Duty Roster"))
+    for language, expected in names:
         found = await async_get_translations(hass, language, "title", [DOMAIN])
         assert found.get(f"component.{DOMAIN}.title") == expected, language
+
+
+async def test_the_device_shows_the_running_version_and_the_cards_find_the_button(hass, fake_webcomm):
+    """The running version is on the device page; the all-in-one card finds the refresh button by its role."""
+    import json
+
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    manifest = json.loads((Path(__file__).resolve().parents[2] / "custom_components" / DOMAIN / "manifest.json").read_text())
+    (device,) = dr.async_entries_for_config_entry(dr.async_get(hass), entry.entry_id)
+    assert device.sw_version == manifest["version"]
+
+    button = hass.states.get(er.async_get(hass).async_get_entity_id("button", DOMAIN, f"{entry.entry_id}_refresh"))
+    assert button.attributes["perdis_role"] == "refresh"
+    assert state_of(hass, "sensor", "last_refresh").attributes["perdis_role"] == "last_refresh"
+    await hass.config_entries.async_unload(entry.entry_id)

@@ -95,6 +95,8 @@ class TimelineEvent(StrEnum):
 # --- Frontend --------------------------------------------------------------------------------
 FRONTEND_URL_BASE: Final = f"/{DOMAIN}_static"
 FRONTEND_SCRIPT: Final = "perdis-cards.js"
+# Where the running version is kept, so the device page can show which version is loaded.
+VERSION_KEY: Final = f"{DOMAIN}_version"
 
 # How many changes the storage keeps, and how long the change sensor shows them.
 CHANGE_HISTORY_LIMIT: Final = 50

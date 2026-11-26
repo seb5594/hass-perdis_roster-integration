@@ -71,7 +71,7 @@ persönlichen Konto am selben Portal an.
 - 🃏 **Drei Dashboard-Karten**, die sich selbst registrieren: nächster Dienst, Dienstplan und Konten.
 - 💾 **Übersteht Wartungsfenster**: der letzte Dienstplan wird zwischengespeichert und bleibt
   verfügbar, während das Portal nicht erreichbar ist.
-- 🌍 **Deutsch und Englisch** durchgehend: Einrichtung, Entitäten, Karten, Benachrichtigungen, Kalender.
+- 🌍 **Deutsch und Englisch** durchgehend: Einrichtung, Entitäten, Karten, Benachrichtigungen, Kalender. Einrichtung und Entitätsnamen gibt es zusätzlich auf **Niederländisch**; andere Sprachen fallen auf Englisch zurück.
 - 🪶 **Sparsam**: keine zusätzlichen Python-Pakete, eine Portal-Abfrage alle 30 Minuten, und der
   Zwischenspeicher wird nur geschrieben, wenn sich der Dienstplan wirklich geändert hat.
 
@@ -240,7 +240,7 @@ Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
 | Letzte Aktualisierung | Letzte erfolgreiche Abfrage, letzter Fehler und gefundene Seiten (Diagnose) |
 | Dienstplan-Rekorde | Längster Dienst, frühester Beginn und spätestes Ende im geladenen Dienstplan (Diagnose) |
 | Dienste mit Details | Wie viele der kommenden Dienste ihre Abschnitte im Detail haben (Diagnose) |
-| Schaltfläche *Jetzt aktualisieren* | Fragt das Portal sofort ab; entspricht der Aktion `perdis_roster.refresh` |
+| Schaltfläche *Dienstplan aktualisieren* | Fragt das Portal sofort ab; entspricht der Aktion `perdis_roster.refresh` |
 | Kalender *Dienste* | Dienste als Termine mit Uhrzeit, freie Tage und Abwesenheiten ganztägig |
 
 Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verlauf klein bleibt.

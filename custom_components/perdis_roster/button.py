@@ -8,7 +8,7 @@ from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .coordinator import PerdisConfigEntry, coordinator_of
-from .entity import PerdisEntity
+from .entity import ATTR_ROLE, PerdisEntity
 
 REFRESH = EntityDescription(key="refresh")
 
@@ -21,6 +21,9 @@ async def async_setup_entry(
 
 class PerdisRefreshButton(PerdisEntity, ButtonEntity):
     """Shown under "Controls" on the device page: no entity category, so it is not tucked away."""
+
+    # Lets the all-in-one card find the button and offer a refresh in its header.
+    _attr_extra_state_attributes = {ATTR_ROLE: "refresh"}
 
     async def async_press(self) -> None:
         await self.coordinator.async_request_refresh()

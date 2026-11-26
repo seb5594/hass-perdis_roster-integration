@@ -498,7 +498,8 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=lambda c: {"upcoming_shifts": len(_upcoming_shifts(c))},
     ),
     PerdisSensorDescription(
-        key="last_refresh", device_class=SensorDeviceClass.TIMESTAMP, entity_category=EntityCategory.DIAGNOSTIC,
+        key="last_refresh", role="last_refresh", device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.data.last_success,
         attributes_fn=lambda c: {"online": c.data.online, "last_error": c.data.last_error,
                                  "pages": c.client.discovered_pages},

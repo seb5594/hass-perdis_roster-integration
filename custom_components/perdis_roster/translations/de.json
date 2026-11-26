@@ -1,5 +1,5 @@
 {
-  "title": "Perdis-Dienstplan",
+  "title": "Perdis Dienstplan",
   "config": {
     "step": {
       "user": {
@@ -253,7 +253,7 @@
     },
     "button": {
       "refresh": {
-        "name": "Jetzt aktualisieren"
+        "name": "Dienstplan aktualisieren"
       }
     },
     "calendar": {

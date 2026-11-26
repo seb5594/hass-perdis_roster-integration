@@ -25,6 +25,7 @@ from .const import (
     DOMAIN,
     PLATFORMS,
     SECTION_ADVANCED,
+    VERSION_KEY,
     PortalType,
     default_time_zone,
 )
@@ -40,6 +41,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Register what all accounts share: the services and the dashboard cards."""
     async_register_services(hass)
     integration = await async_get_integration(hass, DOMAIN)
+    hass.data[VERSION_KEY] = str(integration.version)
     await async_register_cards(hass, str(integration.version))
     return True
 
