@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.25.14";
+const VERSION = "2026.11.26";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -1087,10 +1087,11 @@ const DETAIL_STYLE = `
   .detail-place { display: flex; align-items: center; justify-content: center; gap: 6px; margin: -6px 0 10px;
     color: var(--secondary-text-color); }
   .detail-msg { color: var(--secondary-text-color); padding: 2px 2px 6px; text-align: center; }
-  .to-today { text-align: center; margin: -4px 0 10px; }
-  .to-today .chip { border: none; cursor: pointer; border-radius: 999px; padding: 3px 12px;
-    font-size: 0.8rem; font-weight: 600; color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 18%, var(--card-background-color)); }
+  .to-today { text-align: center; margin: 0 0 12px; }
+  .to-today .chip { border: none; cursor: pointer; border-radius: 999px; padding: 5px 16px;
+    font-size: 0.82rem; font-weight: 600; color: var(--text-primary-color, #fff);
+    background: var(--accent, var(--primary-color)); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2); }
+  .to-today .chip:hover { filter: brightness(1.08); }
 `;
 
 const DIALOG_STYLE = `
@@ -1119,9 +1120,9 @@ function legsTable(hass, legs, options, t) {
       return `<tr class="break"><td>${escapeHtml(leg.location || "")}</td><td class="num">${time}</td>`
         + `<td colspan="${columns.length - 2}">${escapeHtml(t.shiftDetail.break)} ${minutes} ${escapeHtml(t.shiftDetail.min)}</td></tr>`;
     }
-    // Show the leg's destination too, not only its start: "HB → Hbf". The last leg's end is the
-    // shift's final destination, which the start-only column never revealed.
-    const place = leg.end_location && leg.end_location !== leg.location
+    // Every leg has a start point and an end point; show both as "Von → Bis", even when they are
+    // the same relief point, so the destination column is never missing.
+    const place = leg.end_location
       ? `${escapeHtml(leg.location || "–")} <span class="to">→</span> ${escapeHtml(leg.end_location)}`
       : escapeHtml(leg.location || "–");
     const cells = [
@@ -1271,13 +1272,14 @@ class PerdisShiftDetailCard extends PerdisCardBase {
 
     this.frame(title, `
       <div class="content">
+        ${todayButton}
         <div class="browse">
           ${nav(-1, "mdi:chevron-left")}
           <div class="day"><div class="main">${mainLine}</div>
             <div class="sub">${escapeHtml(relativeDay(this._hass, day.date))}</div></div>
           ${nav(1, "mdi:chevron-right")}
         </div>
-        ${todayButton}${place}${body}
+        ${place}${body}
       </div>`, DETAIL_STYLE, accent);
     this.shadowRoot.querySelectorAll(".browse .nav").forEach((button) =>
       button.addEventListener("click", () => this._step(Number(button.dataset.step), days)));

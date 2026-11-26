@@ -52,6 +52,7 @@ def _validation_error(key: str) -> Exception:
     except TypeError:  # pragma: no cover - older cores take a plain message only
         return ServiceValidationError(_ERROR_MESSAGES[key])
 
+
 REFRESH_SCHEMA = vol.Schema({vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string})
 GET_DUTIES_SCHEMA = vol.Schema({
     vol.Optional(ATTR_CONFIG_ENTRY_ID): cv.string,

@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .capabilities import CAP_ROSTER
+from .const import CONF_CALENDAR_LEG_EVENTS, DEFAULT_CALENDAR_LEG_EVENTS
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import ATTR_ROLE, PerdisEntity
 from .labels import duty_type_labels
@@ -61,8 +62,47 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
     async def async_get_events(
         self, hass: HomeAssistant, start_date: datetime, end_date: datetime
     ) -> list[CalendarEvent]:
-        events = (self._event(duty) for duty in self.coordinator.insights.duties if _worth_showing(duty))
+        # Optionally break a shift into one event per leg, so a day reads as a structured timeline
+        # instead of a single block with the legs hidden in the description.
+        split = self.coordinator.option(CONF_CALENDAR_LEG_EVENTS, DEFAULT_CALENDAR_LEG_EVENTS)
+        events: list[CalendarEvent] = []
+        for duty in self.coordinator.insights.duties:
+            if not _worth_showing(duty):
+                continue
+            if split and duty.is_working and duty.segments:
+                events.extend(self._leg_events(duty))
+            else:
+                events.append(self._event(duty))
         return [event for event in events if _overlaps(event, start_date, end_date)]
+
+    def _leg_events(self, duty: Duty) -> list[CalendarEvent]:
+        """Each leg of a shift as its own event: a drive by its line and course, a break as a break."""
+        events = []
+        for index, segment in enumerate(duty.segments):
+            events.append(CalendarEvent(
+                start=segment.start, end=segment.end,
+                summary=self._leg_title(duty, segment),
+                location=self._leg_place(segment),
+                description=(segment.relief or "").replace(" ", ""),
+                uid=f"perdis-{duty.day.isoformat()}-{index}"))
+        return events
+
+    def _leg_title(self, duty: Duty, segment) -> str:
+        if segment.is_break:
+            return self._details["break"]
+        parts = [
+            f"{self._details['line']} {segment.line}" if segment.line else "",
+            f"{self._details['course']} {segment.course}" if segment.course else "",
+        ]
+        title = " · ".join(part for part in parts if part)
+        # A preparation or wrap-up leg carries no line; fall back to the duty number.
+        return title or f"{self._days[DutyType.WORK]} {duty.code}".strip()
+
+    def _leg_place(self, segment) -> str | None:
+        start, end = segment.start_location or "", segment.end_location or ""
+        if end and end != start:
+            return f"{start} → {end}".strip()
+        return start or None
 
     def _event(self, duty: Duty) -> CalendarEvent:
         label = self._title(duty)

@@ -34,6 +34,7 @@ except ImportError:  # pragma: no cover - only on older cores, where options sta
     section = None
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.selector import (
+    ActionSelector,
     BooleanSelector,
     EntitySelector,
     EntitySelectorConfig,
@@ -64,13 +65,14 @@ from .const import (
     CONF_APPCOMM_WEEKEND_POINTS_PATH,
     CONF_BALANCES_PAGE,
     CONF_BASE_URL,
+    CONF_CALENDAR_LEG_EVENTS,
     CONF_COMMUTE,
     CONF_DETAIL_DAYS,
     CONF_LOOKAHEAD_DAYS,
     CONF_LOOKBACK_DAYS,
     CONF_MINIMUM_REST,
+    CONF_NOTIFY_ACTION,
     CONF_NOTIFY_CHANGES,
-    CONF_NOTIFY_TARGET,
     CONF_OPERATOR,
     CONF_PERSON,
     CONF_PORTAL_TYPE,
@@ -79,6 +81,7 @@ from .const import (
     CONF_VERIFY_SSL,
     CONF_WAKE_UP_LEAD,
     CONF_WEEKEND_POINTS_PAGE,
+    DEFAULT_CALENDAR_LEG_EVENTS,
     DEFAULT_COMMUTE,
     DEFAULT_DETAIL_DAYS,
     DEFAULT_LOOKAHEAD_DAYS,
@@ -155,6 +158,13 @@ async def async_check_login(hass: HomeAssistant, data: Mapping[str, Any]) -> tup
 def _number(minimum: float, maximum: float, step: float = 1, unit: str | None = None) -> NumberSelector:
     return NumberSelector(NumberSelectorConfig(min=minimum, max=maximum, step=step, unit_of_measurement=unit,
                                                mode=NumberSelectorMode.BOX))
+
+
+def _units(hass: HomeAssistant) -> dict[str, str]:
+    """The minute/hour/day unit labels for the form, in German words where the server is German."""
+    if (hass.config.language or "en").split("-")[0] == "de":
+        return {"min": "Min.", "h": "Std.", "d": "Tage"}
+    return {"min": "min", "h": "h", "d": "d"}
 
 
 WEBCOMM_ADVANCED = (CONF_ROSTER_PAGE, CONF_BALANCES_PAGE, CONF_WEEKEND_POINTS_PAGE)
@@ -302,17 +312,22 @@ class PerdisOptionsFlow(OptionsFlow):
         portal_type = PortalType(self._entry.data[CONF_PORTAL_TYPE])
         if user_input is not None:
             return self.async_create_entry(title="", data=_fold_advanced(user_input, portal_type))
+        unit = _units(self.hass)
         schema = vol.Schema({
-            vol.Required(CONF_WAKE_UP_LEAD, default=DEFAULT_WAKE_UP_LEAD): _number(0, 360, unit="min"),
-            vol.Required(CONF_COMMUTE, default=DEFAULT_COMMUTE): _number(0, 240, unit="min"),
-            vol.Required(CONF_MINIMUM_REST, default=DEFAULT_MINIMUM_REST): _number(0, 24, step=0.5, unit="h"),
+            vol.Required(CONF_WAKE_UP_LEAD, default=DEFAULT_WAKE_UP_LEAD): _number(0, 360, unit=unit["min"]),
+            vol.Required(CONF_COMMUTE, default=DEFAULT_COMMUTE): _number(0, 240, unit=unit["min"]),
+            vol.Required(CONF_MINIMUM_REST, default=DEFAULT_MINIMUM_REST): _number(0, 24, step=0.5, unit=unit["h"]),
             vol.Required(CONF_NOTIFY_CHANGES, default=DEFAULT_NOTIFY_CHANGES): BooleanSelector(),
-            vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _number(10, 360, unit="min"),
-            vol.Required(CONF_LOOKAHEAD_DAYS, default=DEFAULT_LOOKAHEAD_DAYS): _number(7, 120, unit="d"),
-            vol.Required(CONF_LOOKBACK_DAYS, default=DEFAULT_LOOKBACK_DAYS): _number(0, 60, unit="d"),
-            vol.Required(CONF_DETAIL_DAYS, default=DEFAULT_DETAIL_DAYS): _number(0, 120, unit="d"),
+            vol.Required(CONF_CALENDAR_LEG_EVENTS, default=DEFAULT_CALENDAR_LEG_EVENTS): BooleanSelector(),
+            vol.Required(CONF_SCAN_INTERVAL, default=DEFAULT_SCAN_INTERVAL): _number(10, 360, unit=unit["min"]),
+            vol.Required(CONF_LOOKAHEAD_DAYS, default=DEFAULT_LOOKAHEAD_DAYS): _number(7, 120, unit=unit["d"]),
+            vol.Required(CONF_LOOKBACK_DAYS, default=DEFAULT_LOOKBACK_DAYS): _number(0, 60, unit=unit["d"]),
+            vol.Required(CONF_DETAIL_DAYS, default=DEFAULT_DETAIL_DAYS): _number(0, 120, unit=unit["d"]),
             vol.Optional(CONF_PERSON): EntitySelector(EntitySelectorConfig(domain="person")),
-            vol.Optional(CONF_NOTIFY_TARGET): TextSelector(),
+            # The full Home Assistant action editor: pick a service and fill its parameters in the UI,
+            # or build a whole sequence. It runs on every roster change with the title, message, the
+            # structured changes and the person available as variables.
+            vol.Optional(CONF_NOTIFY_ACTION): ActionSelector(),
             **_advanced_part(portal_type),
         })
         return self.async_show_form(

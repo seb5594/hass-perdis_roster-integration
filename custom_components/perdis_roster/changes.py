@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 
 from .labels import type_label
-from .models import ChangeKind, Duty, ScheduleChange, Snapshot
+from .models import ChangeKind, Duty, DutyType, ScheduleChange, Snapshot
 
 
 def detect_changes(previous: Snapshot | None, current: Snapshot, today: date) -> list[ScheduleChange]:
@@ -56,26 +56,12 @@ def changes_since(history: list[ScheduleChange], since: datetime) -> list[Schedu
 
 TEXTS = {
     "en": {
-        "title": "Your roster has changed",
-        # A day that turns into an absence (a day off, vacation, sick day) reads as "entered";
-        # a new or changed shift keeps its number.
-        "entered": "{type} entered for {day}",
-        "added_work": "New duty {after} on {day}",
-        "changed_work": "Duty {after} instead of {before} on {day}",
-        ChangeKind.REMOVED: "Duty {before} dropped on {day}",
-        ChangeKind.TIMES: "Duty {after} now {after_times} (was {before_times}) on {day}",
-        ChangeKind.LOCATION: "Duty {after} now starts at {after_location} on {day}",
+        "change_title": "Roster change",
         "weekdays": ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"),
         "date_format": "%d %b",
     },
     "de": {
-        "title": "Dein Dienstplan hat sich geändert",
-        "entered": "{type} eingetragen für {day}",
-        "added_work": "Neuer Dienst {after} am {day}",
-        "changed_work": "Dienst {after} statt {before} am {day}",
-        ChangeKind.REMOVED: "Dienst {before} entfällt am {day}",
-        ChangeKind.TIMES: "Dienst {after} jetzt {after_times} (vorher {before_times}) am {day}",
-        ChangeKind.LOCATION: "Dienst {after} beginnt jetzt in {after_location} am {day}",
+        "change_title": "Dienstplanänderung",
         "weekdays": ("Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"),
         "date_format": "%d.%m.",
     },
@@ -87,32 +73,33 @@ def texts(language: str) -> dict:
 
 
 def describe(change: ScheduleChange, language: str = "en") -> str:
-    """One readable line, e.g. `Frei eingetragen für Montag, 30.11.` or
-    `Dienst 4711 jetzt 05:12–13:40 (vorher 06:02–14:10) am Montag, 23.11.`."""
+    """A short, two-line summary of one change, e.g. `Freitag, 27.11. SF Neu` + `06:00 - 17:30`.
+
+    The first line is the weekday, the date and what the day now is (its duty number, or the name of
+    the absence); the second line holds the times, dropped when the day has none.
+    """
     words = texts(language)
-    day = f"{words['weekdays'][change.day.weekday()]}, {change.day.strftime(words['date_format'])}"
-    after, before = change.after, change.before
-    fields = {
-        "day": day,
-        "before": before.label if before else "–",
-        "after": after.label if after else "–",
-        "before_times": _times(before),
-        "after_times": _times(after),
-        "after_location": (after.start_location if after else None) or "–",
-    }
-    if change.kind is ChangeKind.ADDED:
-        template = "added_work" if after and after.is_working else "entered"
-    elif change.kind is ChangeKind.DUTY:
-        # Turning into an absence reads as "entered"; a swap between real shifts keeps both numbers.
-        template = "changed_work" if after and after.is_working else "entered"
-    else:
-        template = change.kind
-    if template == "entered":
-        fields["type"] = type_label(after.duty_type, language) if after else fields["after"]
-    return words[template].format(**fields)
+    duty = change.after or change.before
+    headline = f"{words['weekdays'][change.day.weekday()]}, {change.day.strftime(words['date_format'])}"
+    headline = f"{headline} {_what(duty, language)}".strip()
+    # Prefer the new times; for a day that lost its times (e.g. it became an absence) show the old
+    # ones so the change still carries the shift it replaced.
+    times = _time_range(change.after) or _time_range(change.before)
+    return f"{headline}\n{times}" if times else headline
 
 
-def _times(duty: Duty | None) -> str:
-    if duty is None or not duty.has_times:
+def _what(duty: Duty | None, language: str) -> str:
+    """What a day is: an unknown entry's own code, a working shift's "Dienst <number>", or a name."""
+    if duty is None:
         return "–"
-    return f"{duty.start:%H:%M}–{duty.end:%H:%M}"
+    if duty.duty_type is DutyType.UNKNOWN and duty.code:
+        return duty.code
+    if duty.is_working:
+        return f"{type_label(DutyType.WORK, language)} {duty.code}".strip()
+    return type_label(duty.duty_type, language)
+
+
+def _time_range(duty: Duty | None) -> str:
+    if duty is None or not duty.has_times:
+        return ""
+    return f"{duty.start:%H:%M} - {duty.end:%H:%M}"

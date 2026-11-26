@@ -39,8 +39,10 @@ CONF_LOOKAHEAD_DAYS: Final = "lookahead_days"
 CONF_LOOKBACK_DAYS: Final = "lookback_days"
 CONF_DETAIL_DAYS: Final = "detail_days"
 CONF_NOTIFY_CHANGES: Final = "notify_changes"
+CONF_CALENDAR_LEG_EVENTS: Final = "calendar_leg_events"  # one calendar event per shift leg
 CONF_PERSON: Final = "person"  # the employee the roster belongs to (a person entity)
-CONF_NOTIFY_TARGET: Final = "notify_target"  # a service to call on roster changes, e.g. notify.*
+CONF_NOTIFY_TARGET: Final = "notify_target"  # legacy: a single service to call, e.g. notify.*
+CONF_NOTIFY_ACTION: Final = "notify_action"  # a full action/sequence run on every roster change
 
 # Advanced options: everything the automatic page discovery can get wrong on a strange portal.
 SECTION_ADVANCED: Final = "advanced"
@@ -60,6 +62,7 @@ DEFAULT_LOOKAHEAD_DAYS: Final = 42
 DEFAULT_LOOKBACK_DAYS: Final = 7
 DEFAULT_DETAIL_DAYS: Final = 42  # how many days ahead to detail each shift; matches the lookahead
 DEFAULT_NOTIFY_CHANGES: Final = True
+DEFAULT_CALENDAR_LEG_EVENTS: Final = True  # a structured day: each leg of a shift as its own event
 
 # AppComm does not publish its API. These paths are a reasonable starting point and can be
 # changed in the options as soon as the real ones of an operator are known.

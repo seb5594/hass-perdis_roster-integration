@@ -108,15 +108,16 @@ class Changes(unittest.TestCase):
     def test_descriptions_in_both_languages(self):
         change = models.ScheduleChange(date(2026, 11, 24), models.ChangeKind.TIMES, at("2026-11-23", 2),
                                        ROSTER[2], shift("2026-11-24", (14, 10), (22, 45), "5104"))
-        self.assertEqual(changes.describe(change, "de"),
-                         "Dienst 5104 jetzt 14:10–22:45 (vorher 13:10–21:45) am Dienstag, 24.11.")
-        self.assertIn("now 14:10–22:45 (was 13:10–21:45) on Tuesday", changes.describe(change, "en"))
+        # Two lines: weekday/date and what the day now is, then the times.
+        self.assertEqual(changes.describe(change, "de"), "Dienstag, 24.11. Dienst 5104\n14:10 - 22:45")
+        self.assertEqual(changes.describe(change, "en"), "Tuesday, 24 Nov Duty 5104\n14:10 - 22:45")
 
-    def test_turning_into_a_day_off_reads_as_entered(self):
+    def test_turning_into_a_day_off_reads_as_its_name(self):
         change = models.ScheduleChange(date(2026, 11, 30), models.ChangeKind.DUTY, at("2026-11-23", 2),
                                        Duty(date(2026, 11, 30), DutyType.UNKNOWN), off("2026-11-30"))
-        self.assertEqual(changes.describe(change, "de"), "Frei eingetragen für Montag, 30.11.")
-        self.assertEqual(changes.describe(change, "en"), "Day off entered for Monday, 30 Nov")
+        # A day off has no times, so just the name is shown.
+        self.assertEqual(changes.describe(change, "de"), "Montag, 30.11. Frei")
+        self.assertEqual(changes.describe(change, "en"), "Monday, 30 Nov Day off")
 
 
 if __name__ == "__main__":

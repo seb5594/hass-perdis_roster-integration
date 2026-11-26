@@ -36,7 +36,21 @@ from .changes import describe
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
 from .entity import ATTR_ROLE, PerdisEntity, description_frozen
 from .insights import ShiftCategory, shift_category
+from .labels import type_label
 from .models import Duty, DutyType
+
+# German readers expect "Std."/"Tage", not the bare "h"/"d" symbols of the core units. The unit is
+# localized per account language; dropping the duration device class with it keeps Home Assistant
+# from rejecting a non-standard duration unit (the numeric value is unaffected).
+LOCALIZED_UNITS: dict[str, dict[str, str]] = {
+    "de": {UnitOfTime.HOURS: "Std.", UnitOfTime.DAYS: "Tage"},
+}
+
+# Words for the human-readable rest duration, e.g. "1 Tag 3 Std 20 Min".
+DURATION_WORDS: dict[str, dict[str, str]] = {
+    "de": {"day": "Tag", "days": "Tage", "hours": "Std", "minutes": "Min"},
+    "en": {"day": "day", "days": "days", "hours": "h", "minutes": "min"},
+}
 
 ROSTER_CARD_DAYS = 42  # how far the roster sensor looks ahead for the dashboard card
 LEDGER_ENTRIES = 10
@@ -93,6 +107,47 @@ def _days_until(day: date | None, today: date) -> int | None:
     return (day - today).days if day else None
 
 
+def _trim(value: float | None) -> float | int | None:
+    """Drop a pointless ".0": 12.0 -> 12, while 12.5 stays 12.5."""
+    if value is None:
+        return None
+    rounded = round(value, 1)
+    return int(rounded) if rounded == int(rounded) else rounded
+
+
+def _language(coordinator: PerdisCoordinator) -> str:
+    return coordinator.hass.config.language or "en"
+
+
+def _duration_text(minutes: int | None, language: str) -> str | None:
+    """A duration in days, hours and minutes, e.g. "1 Tag 3 Std 20 Min" or "11 Std 30 Min".
+
+    Days show from 24 h on (plural "Tage" from 48 h on); the hours are dropped below one hour.
+    """
+    if minutes is None:
+        return None
+    words = DURATION_WORDS.get(language.split("-")[0], DURATION_WORDS["en"])
+    days, rest = divmod(max(int(minutes), 0), 1440)
+    hours, mins = divmod(rest, 60)
+    parts: list[str] = []
+    if days:
+        parts.append(f"{days} {words['day'] if days == 1 else words['days']}")
+    if days or hours:
+        parts.append(f"{hours} {words['hours']}")
+    parts.append(f"{mins} {words['minutes']}")
+    return " ".join(parts)
+
+
+def _shift_label(duty: Duty | None, language: str) -> str | None:
+    """The next shift's own number, or — when the portal gives none — its readable type name.
+
+    So a shift with no duty number reads "Dienst", not the raw, untranslated enum value "work".
+    """
+    if duty is None:
+        return None
+    return duty.code or type_label(duty.duty_type, language)
+
+
 # --- Values and attributes -----------------------------------------------------------------------
 
 def _legs(duty: Duty | None) -> list[dict[str, Any]]:
@@ -143,6 +198,7 @@ def _overtime_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
     balances = coordinator.data.snapshot.balances
     return {
         "balance": _hhmm(balances.overtime_minutes),  # the portal's own hours:minutes, e.g. "-10:17"
+        "hours": _hours(balances.overtime_minutes),  # the same balance as a decimal, for automations
         "target_hours": _hours(balances.target_minutes),
         "actual_hours": _hours(balances.actual_minutes),
         "all_balances": balances.raw,
@@ -245,19 +301,21 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     # Next shift
     PerdisSensorDescription(
         key="next_shift", role="next_shift",
-        value_fn=lambda c: c.insights.next_shift.label if c.insights.next_shift else None,
+        value_fn=lambda c: _shift_label(c.insights.next_shift, _language(c)),
         attributes_fn=_next_shift_attributes,
     ),
     PerdisSensorDescription(
         key="next_shift_start", device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.insights.next_shift.start if c.insights.next_shift else None,
     ),
     PerdisSensorDescription(
         key="next_shift_end", device_class=SensorDeviceClass.TIMESTAMP,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.insights.next_shift.end if c.insights.next_shift else None,
     ),
     PerdisSensorDescription(
-        key="next_shift_location",
+        key="next_shift_location", entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.insights.next_shift.start_location if c.insights.next_shift else None,
     ),
     PerdisSensorDescription(
@@ -275,11 +333,13 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=lambda c: {"commute_minutes": int(c.settings.commute.total_seconds() // 60)},
     ),
     PerdisSensorDescription(
-        key="rest_before_next_shift", device_class=SensorDeviceClass.DURATION,
-        native_unit_of_measurement=UnitOfTime.HOURS, suggested_display_precision=1,
-        value_fn=lambda c: round(r.total_seconds() / 3600, 2) if (r := c.insights.rest_before_upcoming) else None,
-        attributes_fn=lambda c: {"minimum_hours": c.settings.minimum_rest.total_seconds() / 3600,
-                                 "short_rest": c.insights.short_rest},
+        key="rest_before_next_shift",
+        value_fn=lambda c: _duration_text(
+            round(r.total_seconds() / 60) if (r := c.insights.rest_before_upcoming) else None, _language(c)),
+        attributes_fn=lambda c: {
+            "minimum_hours": c.settings.minimum_rest.total_seconds() / 3600,
+            "hours": round(r.total_seconds() / 3600, 2) if (r := c.insights.rest_before_upcoming) else None,
+            "short_rest": c.insights.short_rest},
     ),
     # Days
     PerdisSensorDescription(
@@ -304,6 +364,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     ),
     PerdisSensorDescription(
         key="working_days_in_a_row", native_unit_of_measurement=UnitOfTime.DAYS,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.insights.working_days_in_a_row,
     ),
     PerdisSensorDescription(
@@ -314,6 +375,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     ),
     PerdisSensorDescription(
         key="free_weekends_ahead", state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: len(c.insights.free_weekends),
     ),
     PerdisSensorDescription(
@@ -330,10 +392,10 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     ),
     # Accounts
     PerdisSensorDescription(
-        key="overtime", role="overtime", device_class=SensorDeviceClass.DURATION,
-        state_class=SensorStateClass.MEASUREMENT, native_unit_of_measurement=UnitOfTime.HOURS,
-        suggested_display_precision=1,
-        value_fn=lambda c: _hours(_snapshot(c).balances.overtime_minutes),
+        key="overtime", role="overtime",
+        # Shown the portal's own way, hours:minutes ("-10:17"), not a decimal — the hours ride in
+        # the attributes for automations and history.
+        value_fn=lambda c: _hhmm(_snapshot(c).balances.overtime_minutes),
         attributes_fn=_overtime_attributes,
     ),
     PerdisSensorDescription(
@@ -346,7 +408,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     PerdisSensorDescription(
         key="vacation_remaining", role="vacation", state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTime.DAYS,
-        value_fn=lambda c: _snapshot(c).balances.vacation_remaining_days,
+        value_fn=lambda c: _trim(_snapshot(c).balances.vacation_remaining_days),
         attributes_fn=_vacation_attributes,
     ),
     PerdisSensorDescription(
@@ -433,6 +495,26 @@ class PerdisSensor(PerdisEntity, SensorEntity):
     @property
     def native_value(self) -> Value:
         return self.entity_description.value_fn(self.coordinator)
+
+    def _localized_unit(self) -> str | None:
+        """The configured unit, localized for the account's language ("h" -> "Std.")."""
+        base = self.entity_description.native_unit_of_measurement
+        language = (self.coordinator.hass.config.language or "en").split("-")[0]
+        return LOCALIZED_UNITS.get(language, {}).get(base, base)
+
+    @property
+    def native_unit_of_measurement(self) -> str | None:
+        return self._localized_unit()
+
+    @property
+    def device_class(self) -> SensorDeviceClass | None:
+        # A localized unit such as "Std." is not a valid duration unit, so the duration device class
+        # is dropped once the unit is localized; the number itself is shown unchanged.
+        device_class = self.entity_description.device_class
+        if device_class is SensorDeviceClass.DURATION \
+                and self._localized_unit() != self.entity_description.native_unit_of_measurement:
+            return None
+        return device_class
 
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
