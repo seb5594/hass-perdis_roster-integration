@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.2";
+const VERSION = "2026.11.26.3";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -1111,6 +1111,21 @@ function formatRelief(relief) {
 }
 
 
+/** Collapse a run of back-to-back breaks into one block, e.g. three short breaks into "Pause 45 Min.". */
+function mergeBreaks(legs) {
+  const merged = [];
+  for (const leg of legs) {
+    const last = merged[merged.length - 1];
+    if (leg.is_break && last && last.is_break) {
+      merged[merged.length - 1] = { ...last, end: leg.end, end_location: leg.end_location || last.end_location };
+    } else {
+      merged.push(leg);
+    }
+  }
+  return merged;
+}
+
+
 /** One shift's leg table, shared by the shift-detail card and the day pop-up. */
 function legsTable(hass, legs, options, t) {
   const showCourse = options.show_course !== false;
@@ -1119,7 +1134,7 @@ function legsTable(hass, legs, options, t) {
   if (showCourse) columns.push(t.shiftDetail.course);
   if (showRelief) columns.push(t.shiftDetail.direction);
   const header = columns.map((label) => `<th>${escapeHtml(label)}</th>`).join("");
-  const rows = legs.map((leg) => {
+  const rows = mergeBreaks(legs).map((leg) => {
     const time = `${formatTime(hass, leg.start)}–${formatTime(hass, leg.end)}`;
     if (leg.is_break) {
       const minutes = Math.max(Math.round((new Date(leg.end) - new Date(leg.start)) / 60000), 0);

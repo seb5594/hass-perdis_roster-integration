@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.26.3
+
+- ⏸️ Back-to-back breaks in a shift are merged into one block (three short breaks become a single
+  "Pause 45 Min."), in the shift-detail table and the calendar alike.
+
 ## 2026.11.26.2
 
 - Add the Marketplace calendar category and supply the setup example URL through a translation placeholder.
