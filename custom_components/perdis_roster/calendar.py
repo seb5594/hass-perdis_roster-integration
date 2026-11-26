@@ -83,7 +83,7 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
                 start=segment.start, end=segment.end,
                 summary=self._leg_title(duty, segment),
                 location=self._leg_place(segment),
-                description=(segment.relief or "").replace(" ", ""),
+                description=_relief(segment.relief),
                 uid=f"perdis-{duty.day.isoformat()}-{index}"))
         return events
 
@@ -161,8 +161,13 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
             f"{self._details['line']} {segment.line}" if segment.line else "",
             f"{self._details['course']} {segment.course}" if segment.course else "",
         ) if part)
-        relief = f" ({segment.relief.replace(' ', '')})" if segment.relief else ""
+        relief = f" ({_relief(segment.relief)})" if segment.relief else ""
         return f"{head}{(' · ' + details) if details else ''}{relief}"
+
+
+def _relief(marker: str | None) -> str:
+    """A relief marker spaced out for legibility: "+/+" -> "+ / +"."""
+    return (marker or "").replace(" ", "").replace("/", " / ")
 
 
 def _worth_showing(duty: Duty) -> bool:

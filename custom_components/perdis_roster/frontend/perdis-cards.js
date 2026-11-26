@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26";
+const VERSION = "2026.11.26.1";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -1065,7 +1065,7 @@ const DETAIL_STYLE = `
   .detail-head .code { font-size: 1.5rem; font-weight: 700; }
   .detail-head .when { color: var(--secondary-text-color); }
   table.legs { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-  table.legs th, table.legs td { text-align: left; padding: 7px 8px; vertical-align: top; }
+  table.legs th, table.legs td { text-align: center; padding: 7px 8px; vertical-align: top; }
   table.legs thead th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
                         color: var(--secondary-text-color); border-bottom: 1px solid var(--divider-color); }
   table.legs tbody tr { border-bottom: 1px solid var(--divider-color); }
@@ -1105,6 +1105,12 @@ const DIALOG_STYLE = `
 `;
 
 
+/** A relief marker spaced out for legibility: "+/+" -> "+ / +", "-/-" -> "- / -". */
+function formatRelief(relief) {
+  return (relief || "").replace(/\s+/g, "").replace("/", " / ");
+}
+
+
 /** One shift's leg table, shared by the shift-detail card and the day pop-up. */
 function legsTable(hass, legs, options, t) {
   const showCourse = options.show_course !== false;
@@ -1131,7 +1137,7 @@ function legsTable(hass, legs, options, t) {
       `<td>${leg.line ? `<span class="leg-line">${escapeHtml(leg.line)}</span>` : "–"}</td>`,
     ];
     if (showCourse) cells.push(`<td>${escapeHtml(leg.course || "–")}</td>`);
-    if (showRelief) cells.push(`<td class="num">${escapeHtml((leg.relief || "").replace(/\s+/g, "")) || "–"}</td>`);
+    if (showRelief) cells.push(`<td class="num">${escapeHtml(formatRelief(leg.relief)) || "–"}</td>`);
     return `<tr>${cells.join("")}</tr>`;
   }).join("");
   return `<table class="legs"><thead><tr>${header}</tr></thead><tbody>${rows}</tbody></table>`;

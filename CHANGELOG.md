@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.11.26.1
+
+- 💅 The shift-detail table is now centered (header and cells), and a relief marker is spaced out
+  for legibility: "+/+" reads as "+ / +".
+
 ## 2026.11.26
 
 - 🧭 The shift detail now always shows each leg's **destination**, not only its start — "HB → Hbf" —
