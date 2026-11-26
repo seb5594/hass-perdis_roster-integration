@@ -498,3 +498,12 @@ async def test_a_saved_notification_service_is_offered_as_an_action(hass, fake_w
     assert suggested[0]["data"] == {"title": "{{ title }}", "message": "{{ message }}"}
     assert "notify_target" not in [str(key) for key in result["data_schema"].schema]
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_the_integration_name_follows_the_server_language(hass):
+    """German servers see "Perdis-Dienstplan"; every other language falls back to the English name."""
+    from homeassistant.helpers.translation import async_get_translations
+
+    for language, expected in (("de", "Perdis-Dienstplan"), ("en", "Perdis Duty Roster"), ("fr", "Perdis Duty Roster")):
+        found = await async_get_translations(hass, language, "title", [DOMAIN])
+        assert found.get(f"component.{DOMAIN}.title") == expected, language

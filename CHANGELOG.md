@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026.11.26.5
+
+- 🌍 The integration's display name follows the server language: **"Perdis-Dienstplan"** on a German
+  Home Assistant, "Perdis Duty Roster" everywhere else (English is the fallback for any language
+  without its own name).
+
 ## 2026.11.26.4
 
 - 🧩 The **all-in-one card** shows your operator in its header: a name badge, or your own logo with
