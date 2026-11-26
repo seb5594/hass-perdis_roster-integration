@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
@@ -78,7 +79,7 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
     def _leg_events(self, duty: Duty) -> list[CalendarEvent]:
         """Each leg of a shift as its own event: a drive by its line and course, a break as a break."""
         events = []
-        for index, segment in enumerate(duty.segments):
+        for index, segment in enumerate(_merge_breaks(duty.segments)):
             events.append(CalendarEvent(
                 start=segment.start, end=segment.end,
                 summary=self._leg_title(duty, segment),
@@ -143,7 +144,7 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
             if lines:
                 lines.append("")
             lines.append(f"{words['parts']}:")
-            lines.extend(self._segment_line(segment) for segment in duty.segments)
+            lines.extend(self._segment_line(segment) for segment in _merge_breaks(duty.segments))
         elif duty.start_location:  # a timed duty whose detail legs are not (yet) available
             lines.insert(0, f"{words['start']}: {duty.start_location}")
         return "\n".join(lines)
@@ -168,6 +169,18 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
 def _relief(marker: str | None) -> str:
     """A relief marker spaced out for legibility: "+/+" -> "+ / +"."""
     return (marker or "").replace(" ", "").replace("/", " / ")
+
+
+def _merge_breaks(segments: list) -> list:
+    """Collapse a run of back-to-back breaks into one, so three short breaks read as one block."""
+    merged: list = []
+    for segment in segments:
+        if segment.is_break and merged and merged[-1].is_break:
+            merged[-1] = replace(merged[-1], end=segment.end,
+                                 end_location=segment.end_location or merged[-1].end_location)
+        else:
+            merged.append(segment)
+    return merged
 
 
 def _worth_showing(duty: Duty) -> bool:
