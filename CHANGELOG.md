@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.11.26.9
+
+- 🚌 Nine more portals in the list: Stadtwerke Bielefeld, Stadtwerke Hamm, Stadtwerke Münster,
+  Ruhrbahn, WVV Würzburg, ICB In der City Bus (Frankfurt), NVG, RET Rotterdam and Tower Transit
+  Singapore. The first six answer with the PERDIS login page; WVV, Ruhrbahn and NVG were handed over
+  and could not be opened from here, which the README says.
+- 📖 The German disclaimer reads "Wichtig" instead of "Important".
+
 ## 2026.11.26.8
 
 - 🧩 **Optional extras** that need a card from HACS — a time account trend (mini-graph-card) and

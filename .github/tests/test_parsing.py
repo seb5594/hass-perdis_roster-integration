@@ -391,4 +391,7 @@ class OperatorShortName(unittest.TestCase):
         shorts = {operator.key: operator.short for operator in operators.OPERATORS}
         self.assertEqual(shorts["dvg_duisburg"], "DVG")
         self.assertEqual(shorts["rheinbahn"], "Rheinbahn")
+        self.assertEqual(shorts["stadtwerke_bielefeld"], "SW Bielefeld")  # a short name beats the first word
+        self.assertEqual(shorts["wvv"], "WVV")
+        self.assertEqual(shorts["tower_transit_sg"], "Tower Transit")
         self.assertEqual(shorts["uestra"], "ÜSTRA")  # written in capitals, as the company does
