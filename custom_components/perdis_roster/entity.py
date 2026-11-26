@@ -1,4 +1,4 @@
-"""The base of every Perdis entity: one device per account, names from the translations."""
+"""The base of every PERDIS entity: one device per account, names from the translations."""
 
 from __future__ import annotations
 

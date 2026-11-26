@@ -90,7 +90,7 @@ else:
 
 
 class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
-    """Refreshes one Perdis account."""
+    """Refreshes one PERDIS account."""
 
     config_entry: PerdisConfigEntry
 
@@ -201,7 +201,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         except PerdisError as error:
             if self._stored.snapshot is None:
                 raise UpdateFailed(str(error)) from error
-            _LOGGER.warning("Perdis portal unavailable (%s); showing the cached roster", error)
+            _LOGGER.warning("PERDIS portal unavailable (%s); showing the cached roster", error)
             previous = self.data
             self._timeline_outdated = True  # moments of the cached roster still deserve their timers
             return PerdisData(self._stored.snapshot, self._stored.changes, online=False, last_error=str(error),
@@ -285,7 +285,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
         try:
             sequence = cv.SCRIPT_SCHEMA(sequence)
         except vol.Invalid as error:
-            _LOGGER.warning("Perdis notify action is not valid: %s", error)
+            _LOGGER.warning("PERDIS notify action is not valid: %s", error)
             return
         script = Script(self.hass, sequence, f"{DOMAIN} {self.config_entry.title}", DOMAIN)
         self.hass.async_create_task(script.async_run(variables, Context()))
@@ -297,7 +297,7 @@ class PerdisCoordinator(DataUpdateCoordinator[PerdisData]):
             return
         domain, service = target.split(".", 1)
         if not self.hass.services.has_service(domain, service):
-            _LOGGER.warning("Perdis notify target %s is not a known service", target)
+            _LOGGER.warning("PERDIS notify target %s is not a known service", target)
             return
         data: dict[str, Any] = {"title": title, "message": message}
         if domain != "notify":

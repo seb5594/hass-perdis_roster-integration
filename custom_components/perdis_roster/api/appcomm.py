@@ -1,4 +1,4 @@
-"""Client for the JSON service behind the AppComm app ("Perdis mobile").
+"""Client for the JSON service behind the AppComm app ("PERDIS mobile").
 
 INIT publishes the AppComm app, not its interface. The endpoints below are therefore settings
 with a sensible default, not facts: an operator's service may use other paths, which can be

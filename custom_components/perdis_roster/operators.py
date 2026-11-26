@@ -19,7 +19,7 @@ from .const import PortalType
 
 @dataclass(frozen=True, slots=True)
 class Operator:
-    """A transit operator and the address of its Perdis portal."""
+    """A transit operator and the address of its PERDIS portal."""
 
     key: str
     name: str

@@ -3,7 +3,7 @@
 Steps of a new account:
 
 1. `user`        - menu: choose from the known operators, or enter the address yourself
-2. `operator`    - list of operators with a public Perdis portal (see operators.py)
+2. `operator`    - list of operators with a public PERDIS portal (see operators.py)
    `manual`      - address of the portal, the kind of portal and the certificate check
 3. `credentials` - user name and password; the dialog signs in once to check them
 
@@ -196,7 +196,7 @@ USERNAME = TextSelector(TextSelectorConfig(type=TextSelectorType.TEXT, autocompl
 
 
 class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Adds one Perdis account."""
+    """Adds one PERDIS account."""
 
     VERSION = 1
 
@@ -268,7 +268,12 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
             step_id="credentials",
             data_schema=self.add_suggested_values_to_schema(schema, entered),
             errors=errors,
-            description_placeholders={"operator": self._operator_name(), "url": self._portal[CONF_BASE_URL]},
+            description_placeholders={
+                "operator": self._operator_name(),
+                "url": self._portal[CONF_BASE_URL],
+                # The way the portal is reached, shown right next to PERDIS in the title.
+                "portal": "AppComm" if self._portal.get(CONF_PORTAL_TYPE) == PortalType.APPCOMM else "WebComm",
+            },
         )
 
     def _operator_name(self) -> str:

@@ -30,7 +30,7 @@ class PerdisPortalError(PerdisError):
 
 
 class PortalClient(ABC):
-    """Logs in to a Perdis portal and reads one snapshot of the roster and the accounts."""
+    """Logs in to a PERDIS portal and reads one snapshot of the roster and the accounts."""
 
     def __init__(self, session: aiohttp.ClientSession, base_url: str, username: str, password: str) -> None:
         self._session = session

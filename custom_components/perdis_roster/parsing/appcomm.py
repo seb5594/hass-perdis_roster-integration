@@ -1,4 +1,4 @@
-"""Builds a `Snapshot` from the JSON answers of an AppComm (Perdis mobile) service.
+"""Builds a `Snapshot` from the JSON answers of an AppComm (PERDIS mobile) service.
 
 INIT does not document this service and its field names may differ between versions, so the
 parser does not expect one fixed layout. It looks for the list of days anywhere in the answer

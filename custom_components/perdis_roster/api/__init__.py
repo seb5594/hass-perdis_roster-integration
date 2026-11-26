@@ -1,4 +1,4 @@
-"""Clients for the two kinds of Perdis portals, and the one place that picks between them."""
+"""Clients for the two kinds of PERDIS portals, and the one place that picks between them."""
 
 from __future__ import annotations
 

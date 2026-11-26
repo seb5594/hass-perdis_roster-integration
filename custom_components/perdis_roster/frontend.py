@@ -34,7 +34,7 @@ async def async_register_cards(hass: HomeAssistant, version: str) -> None:
     if getattr(hass, "http", None) is None or DATA_EXTRA_MODULE_URL not in hass.data:
         # "frontend" is a manifest dependency, so this should not happen; warn if it ever does, so
         # a missing card picker is traceable instead of failing silently.
-        _LOGGER.warning("Home Assistant frontend not ready; the Perdis dashboard cards were not registered")
+        _LOGGER.warning("Home Assistant frontend not ready; the PERDIS dashboard cards were not registered")
         return
     folder = str(FRONTEND_FOLDER)
     if StaticPathConfig is not None and hasattr(hass.http, "async_register_static_paths"):
@@ -48,4 +48,4 @@ async def async_register_cards(hass: HomeAssistant, version: str) -> None:
     # Logged at info so the user can confirm in the log that the cards are served; the card picker
     # then lists them after a browser refresh (they are loaded as a frontend module, so they do not
     # show up under Settings > Dashboards > Resources).
-    _LOGGER.info("Perdis dashboard cards served from %s/%s", FRONTEND_URL_BASE, FRONTEND_SCRIPT)
+    _LOGGER.info("PERDIS dashboard cards served from %s/%s", FRONTEND_URL_BASE, FRONTEND_SCRIPT)

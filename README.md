@@ -2,7 +2,7 @@
 <h1 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="PERDIS Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
@@ -54,7 +54,7 @@ Netherlands use. Drivers see their roster in the **WebComm** portal in the brows
 - [🃏 Dashboard cards](#-dashboard-cards)
 - [⚡ Automations](#-automations)
 - [🛠️ Services](#️-services)
-- [📱 AppComm (Perdis mobile)](#-appcomm-perdis-mobile)
+- [📱 AppComm (PERDIS mobile)](#-appcomm-perdis-mobile)
 - [🧠 How it works](#-how-it-works)
 - [🔒 Privacy](#-privacy)
 - [🩺 Troubleshooting](#-troubleshooting)
@@ -126,7 +126,7 @@ so the company can be added to the list.
 
 1. Click the **HACS · Marketplace** button at the top of this page, or open **HACS** (Home
    Assistant 2026.10 and older) or **Settings → Marketplace** (2026.11 and newer) and search for
-   **Perdis Duty Roster**. If it is not found, add
+   **PERDIS Duty Roster**. If it is not found, add
    `https://github.com/seb5594/hass-perdis_roster-integration` as a custom repository of the
    category *Integration* first.
 2. Download it and restart Home Assistant.
@@ -139,7 +139,7 @@ so the company can be added to the list.
 
 ## ⚙️ Setup
 
-1. Go to **Settings → Devices & services → Add integration** and search for **Perdis Duty Roster**.
+1. Go to **Settings → Devices & services → Add integration** and search for **PERDIS Duty Roster**.
 2. Choose how to find your portal:
    - 🚌 **Pick my transit company from the list**, or
    - ✍️ **Enter the portal address myself** – paste the address from the browser. Leave *Kind of
@@ -158,7 +158,7 @@ for the new one – no need to remove the integration.
 
 ## 🎛️ Options
 
-**Settings → Devices & services → Perdis Duty Roster → Configure**
+**Settings → Devices & services → PERDIS Duty Roster → Configure**
 
 | Option | Default | What it does |
 | --- | --- | --- |
@@ -257,22 +257,22 @@ Long lists are kept out of the recorder database, so the history stays small.
 ## 🃏 Dashboard cards
 
 The cards are part of the integration and register themselves – there is **no resource to add**.
-Edit a dashboard, click **Add card** and search for **Perdis**. Every card has a **visual editor**
+Edit a dashboard, click **Add card** and search for **PERDIS**. Every card has a **visual editor**
 with grouped sections (*Content*, *Appearance*, *Behaviour*), so you never need to write YAML.
-Without settings a card shows the first Perdis account.
+Without settings a card shows the first PERDIS account.
 
 > **Not finding the cards in the picker?** They load as a frontend module, so they never appear
 > under *Settings → Dashboards → Resources* – that list is only for resources you add by hand.
 > After installing or updating, **reload the browser with the cache cleared** (Ctrl/Cmd + Shift + R),
 > because Home Assistant and the browser cache frontend modules. Still nothing? Reload the
 > integration under *Settings → Devices & services*, check the log for the line
-> `Perdis dashboard cards served from …`, and – only as a last resort – add the resource by hand
+> `PERDIS dashboard cards served from …`, and – only as a last resort – add the resource by hand
 > under *Settings → Dashboards → Resources*: URL `/perdis_roster_static/perdis-cards.js`, type
 > *JavaScript Module*.
 
 | Card | Shows |
 | --- | --- |
-| 🧩 `perdis-card` | **All-in-one**: a tab bar over the cards below (next shift, shift browser, roster, accounts, calendar, duty swaps). Switch tabs on and off and reorder them in the editor. The header shows your operator as a badge; set `logo` to your own image (e.g. `/local/logo.png`) to show a logo instead |
+| 🧩 `perdis-card` | **All-in-one**: a tab bar over the cards below (next shift, shift browser, roster, accounts, calendar, duty swaps). Switch tabs on and off and reorder them in the editor. The header shows your operator as a badge; set `logo` to your own image (e.g. `/local/logo.png`) to show a logo instead. Next to it: **PERDIS WebComm** (or AppComm), a round **refresh** button and an **open** button — it opens your portal, or whatever you put into `open_url` (an address, or `app://package.name` to start an app in the Android Companion app); turn it off with `show_open: false`. Installed as a PWA, the portal opens in that app |
 | 🕐 `perdis-shift-card` | The next shift: duty, shift type, countdown, times, reporting point, lines, wake-up and leave-home time, rest warning, progress while it runs |
 | 📋 `perdis-roster-card` | The coming days grouped by calendar week, colored by type, with changed days marked |
 | 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week or month |
@@ -282,7 +282,7 @@ Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `device_id` | first account | Which Perdis account the card shows |
+| `device_id` | first account | Which PERDIS account the card shows |
 | `title` | card name | A custom header title |
 | `icon` | `mdi:bus-clock` | A custom header icon |
 | `show_header` | `true` | Hide the header for a bare card |
@@ -294,7 +294,7 @@ Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `duration`, `paid`, `breaks`, `rest` |
+| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
 | `show_location` | `true` | Show the reporting point |
 | `show_lines` | `true` | Show the line badges |
 | `show_countdown` | `true` | Show the countdown pill |
@@ -357,7 +357,7 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, for a second account
 
 ### Device triggers
 
-In the automation editor choose **Device → your Perdis account**. The triggers fire at the exact
+In the automation editor choose **Device → your PERDIS account**. The triggers fire at the exact
 second; nothing is polled:
 
 | Trigger | When |
@@ -476,11 +476,11 @@ response_variable: roster
 ### 🔄 Duty swaps
 
 On portals that offer shift swaps, an **Open duty swaps** sensor lists the open offers and the
-period new requests may cover, and the **Perdis: duty swaps** dashboard card shows them at a glance.
+period new requests may cover, and the **PERDIS: duty swaps** dashboard card shows them at a glance.
 This is read-only for now; entering and answering swaps from Home Assistant will follow once it is
 fully tested against a live portal. Portals without a swap page simply do not get the sensor or card.
 
-## 📱 AppComm (Perdis mobile)
+## 📱 AppComm (PERDIS mobile)
 
 Besides WebComm, PERDIS offers the **AppComm** app. Behind it runs a JSON service that each
 company has to switch on; INIT does not publish its interface. The integration therefore treats
@@ -538,7 +538,7 @@ password or token) helps everyone.
 | --- | --- |
 | *The portal did not accept the user name or password* | Sign in in the browser with the same data. Some companies lock an account after several failed attempts. |
 | *The portal could not be reached* | Open the address in a browser on the same network as Home Assistant. Some portals are only reachable from the company network. |
-| *Not like a Perdis portal* | Check the address; it must end in the folder of the portal (e.g. `/WebComm/`). |
+| *Not like a PERDIS portal* | Check the address; it must end in the folder of the portal (e.g. `/WebComm/`). |
 | Roster stays empty | Open **Last refresh** (diagnostic) and look at the `pages` attribute. If `roster` is missing, enter the path of the roster page in the advanced options. |
 | Accounts or weekend points are unknown | Not every company shows them. If they are in the portal under a different name, please open an issue with the label text. |
 

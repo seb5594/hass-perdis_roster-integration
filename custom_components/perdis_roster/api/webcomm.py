@@ -191,7 +191,7 @@ class WebCommClient(PortalClient):
             try:
                 roster = await self._roster_pages(self._pages["roster"], start, end, now.date())
             except (KeyError, PerdisConnectionError, PerdisPortalError) as error:
-                _LOGGER.warning("Perdis roster page unavailable for %s (%s); set it in the options",
+                _LOGGER.warning("PERDIS roster page unavailable for %s (%s); set it in the options",
                                 self.base_url, error)
             else:
                 pages.roster = roster

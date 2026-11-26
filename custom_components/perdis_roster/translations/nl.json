@@ -1,10 +1,10 @@
 {
-  "title": "Dienstrooster van Perdis",
+  "title": "Dienstrooster van PERDIS",
   "config": {
     "step": {
       "user": {
-        "title": "Koppel je Perdis-dienstrooster",
-        "description": "Hoe wil je je portaal vinden?\n\nOnofficiële integratie: INIT documenteert de Perdis-interfaces niet, dus het leest af wat het portaal je in de browser laat zien. Je wachtwoord blijft in Home Assistant opgeslagen.",
+        "title": "Koppel je PERDIS-dienstrooster",
+        "description": "Hoe wil je je portaal vinden?\n\nOnofficiële integratie: INIT documenteert de PERDIS-interfaces niet, dus het leest af wat het portaal je in de browser laat zien. Je wachtwoord blijft in Home Assistant opgeslagen.",
         "menu_options": {
           "operator": "Kies mijn vervoersbedrijf uit de lijst",
           "manual": "Het adres van het portaal zelf invoeren"
@@ -12,13 +12,13 @@
       },
       "operator": {
         "title": "Je vervoersbedrijf",
-        "description": "Deze bedrijven beheren een openbaar Perdis WebComm-portaal. Staat die van jou er niet bij? Ga dan terug en voer het adres in dat je in de browser hebt geopend.",
+        "description": "Deze bedrijven beheren een openbaar PERDIS WebComm-portaal. Staat die van jou er niet bij? Ga dan terug en voer het adres in dat je in de browser hebt geopend.",
         "data": {
           "operator": "Vervoersbedrijf"
         }
       },
       "manual": {
-        "title": "Adres van je Perdis-portaal",
+        "title": "Adres van je PERDIS-portaal",
         "description": "Kopieer het adres uit de browser, bijvoorbeeld `{example_url}`. Een gewone hostnaam is ook voldoende.",
         "data": {
           "base_url": "Adres van het portaal",
@@ -32,7 +32,7 @@
         }
       },
       "credentials": {
-        "title": "Log in bij {operator}",
+        "title": "PERDIS {portal} · Log in bij {operator}",
         "description": "Gebruik dezelfde gebruikersnaam en hetzelfde wachtwoord als op {url}. Deze worden uitsluitend naar dat portaal verzonden.",
         "data": {
           "username": "Gebruikersnaam / personeelsnummer",
@@ -50,7 +50,7 @@
     "error": {
       "invalid_auth": "Het portaal heeft de gebruikersnaam of het wachtwoord niet geaccepteerd.",
       "cannot_connect": "Het portaal kon niet worden bereikt. Controleer het adres en je internetverbinding.",
-      "not_a_portal": "Dit adres werkt wel, maar niet zoals een Perdis-portaal. Controleer het adres en het type portaal.",
+      "not_a_portal": "Dit adres werkt wel, maar niet zoals een PERDIS-portaal. Controleer het adres en het type portaal.",
       "invalid_url": "Dit is geen geldig webadres.",
       "unknown": "Onverwachte fout; raadpleeg het logboek voor meer informatie."
     },
@@ -304,7 +304,7 @@
   },
   "exceptions": {
     "no_loaded_entry": {
-      "message": "Er is geen Perdis-account geladen."
+      "message": "Er is geen PERDIS-account geladen."
     },
     "end_before_start": {
       "message": "De laatste dag ligt vóór de eerste dag."

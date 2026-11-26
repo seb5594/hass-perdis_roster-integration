@@ -40,7 +40,7 @@ DEFAULT_RANGE = timedelta(days=13)  # two weeks including today
 
 # English fall-backs for the cores that cannot show a translated validation error.
 _ERROR_MESSAGES = {
-    "no_loaded_entry": "No Perdis account is set up and loaded.",
+    "no_loaded_entry": "No PERDIS account is set up and loaded.",
     "end_before_start": "The end date is before the start date.",
 }
 

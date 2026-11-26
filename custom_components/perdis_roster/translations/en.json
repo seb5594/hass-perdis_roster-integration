@@ -1,10 +1,10 @@
 {
-  "title": "Perdis Duty Roster",
+  "title": "PERDIS Duty Roster",
   "config": {
     "step": {
       "user": {
-        "title": "Connect your Perdis duty roster",
-        "description": "How do you want to find your portal?\n\nUnofficial integration: INIT does not document the Perdis interfaces, so it reads what the portal shows you in the browser. Your password stays in Home Assistant.",
+        "title": "Connect your PERDIS duty roster",
+        "description": "How do you want to find your portal?\n\nUnofficial integration: INIT does not document the PERDIS interfaces, so it reads what the portal shows you in the browser. Your password stays in Home Assistant.",
         "menu_options": {
           "operator": "Pick my transit company from the list",
           "manual": "Enter the portal address myself"
@@ -12,13 +12,13 @@
       },
       "operator": {
         "title": "Your transit company",
-        "description": "These companies run a public Perdis WebComm portal. Yours is missing? Go back and enter the address you open in the browser.",
+        "description": "These companies run a public PERDIS WebComm portal. Yours is missing? Go back and enter the address you open in the browser.",
         "data": {
           "operator": "Transit company"
         }
       },
       "manual": {
-        "title": "Address of your Perdis portal",
+        "title": "Address of your PERDIS portal",
         "description": "Copy the address from the browser, e.g. `{example_url}`. A plain host name works too.",
         "data": {
           "base_url": "Portal address",
@@ -32,7 +32,7 @@
         }
       },
       "credentials": {
-        "title": "Sign in to {operator}",
+        "title": "PERDIS {portal} · Sign in to {operator}",
         "description": "Use the same user name and password as on {url}. They are only sent to that portal.",
         "data": {
           "username": "User name / personnel number",
@@ -50,7 +50,7 @@
     "error": {
       "invalid_auth": "The portal did not accept the user name or password.",
       "cannot_connect": "The portal could not be reached. Check the address and your internet connection.",
-      "not_a_portal": "This address answers, but not like a Perdis portal. Check the address and the kind of portal.",
+      "not_a_portal": "This address answers, but not like a PERDIS portal. Check the address and the kind of portal.",
       "invalid_url": "This is not a valid web address.",
       "unknown": "Unexpected error, see the log for details."
     },
@@ -304,7 +304,7 @@
   },
   "exceptions": {
     "no_loaded_entry": {
-      "message": "No Perdis account is loaded."
+      "message": "No PERDIS account is loaded."
     },
     "end_before_start": {
       "message": "The last day lies before the first day."

@@ -1,4 +1,4 @@
-"""Perdis Duty Roster: the duty roster of a MOBILE-PERDIS portal in Home Assistant.
+"""PERDIS Duty Roster: the duty roster of a MOBILE-PERDIS portal in Home Assistant.
 
 This is an unofficial integration. INIT does not document the interfaces of WebComm or AppComm;
 everything here reads what the portal shows a signed-in employee in the browser.
