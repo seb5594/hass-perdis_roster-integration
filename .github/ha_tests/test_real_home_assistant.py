@@ -430,7 +430,7 @@ async def test_roster_records_and_the_diagnostic_sensors(hass, fake_webcomm):
     await add_account(hass, fake_webcomm)
     await hass.async_block_till_done()
     registry = er.async_get(hass)
-    for key in ("roster_records", "detailed_shifts", "roster", "next_shift_start", "days_until_day_off"):
+    for key in ("roster_records", "detailed_shifts", "roster", "next_shift_start", "days_until_day_off", "overtime_hours"):
         entity = registry.async_get(registry.async_get_entity_id("sensor", DOMAIN, f"{entry_of(hass).entry_id}_{key}"))
         assert entity.entity_category == "diagnostic", key
 
@@ -442,6 +442,8 @@ async def test_roster_records_and_the_diagnostic_sensors(hass, fake_webcomm):
     assert records.attributes["latest_end"] == "26:05"
     assert records.attributes["latest_end_date"] == "2026-11-27"
     assert int(state_of(hass, "sensor", "detailed_shifts").state) >= 1
+    # The overtime balance also comes as a plain number, for graphs and automations.
+    assert float(state_of(hass, "sensor", "overtime_hours").state) == 14.5
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
 
 

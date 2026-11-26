@@ -229,6 +229,9 @@
       },
       "detailed_shifts": {
         "name": "Dienste mit Details"
+      },
+      "overtime_hours": {
+        "name": "Zeitkonto (Stunden)"
       }
     },
     "binary_sensor": {

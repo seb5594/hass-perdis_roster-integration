@@ -112,6 +112,9 @@
       },
       "detailed_shifts": {
         "default": "mdi:table-clock"
+      },
+      "overtime_hours": {
+        "default": "mdi:chart-line"
       }
     },
     "binary_sensor": {

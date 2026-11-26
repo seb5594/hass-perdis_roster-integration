@@ -22,36 +22,50 @@
 
 **🇬🇧 English** · [🇩🇪 Deutsch](README.de.md)
 
-Your duty roster from **MOBILE-PERDIS** in Home Assistant: the next shift with a countdown, the
-time to get up, the rest before the next shift, free weekends, overtime, vacation and weekend
-points. Changes to your roster show up as a notification, and automations can react to the
-moment you have to get up or your shift starts.
+I wanted my duty roster in Home Assistant: when I have to get up, when the shift starts, how long
+the rest will be – without opening the portal all the time. So I built this integration. If you
+feel the same, feel free to use it.
 
 PERDIS is the staff scheduling system many bus and tram companies in Germany, Austria and the
 Netherlands use. Drivers see their roster in the **WebComm** portal in the browser or in the
-**AppComm** app. This integration signs in to the same portal with your personal account.
+**AppComm** app. This integration signs in to the portal with **your own account** and reads what
+you see there. That turns into sensors, a calendar, triggers for automations and a dashboard card
+that is built for the phone first.
 
 > [!IMPORTANT]
-> ⚠️ **This is an unofficial integration.** PERDIS is a product of INIT Mobility Software Solutions
-> GmbH, which does not document the interfaces of WebComm or AppComm. The integration reads what
-> the portal shows you after signing in, just like your browser. It is not affiliated with,
-> endorsed or supported by INIT or by any transit operator. A portal update can change the pages;
-> if something stops working, please [open an issue](https://github.com/seb5594/hass-perdis_roster-integration/issues).
+> ### I have nothing to do with PERDIS or INIT – 0 % so far
+> This is a private hobby project. I don't work for INIT Mobility Software Solutions GmbH (the
+> maker of PERDIS, MOBILE-PERDIS, WebComm and AppComm), I'm not a partner, and I have neither
+> documentation nor inside knowledge.
+>
+> - The integration only reads what the portal shows you in the browser after you sign in. There
+>   is no official interface, and a portal update can break it at any time.
+> - INIT and your transit company have neither checked, endorsed nor supported it.
+> - Use it with your own account only, and follow the rules of your employer.
+> - It does not replace the official roster. When in doubt, what the portal says counts.
+> - Use it at your own risk.
+>
+> *PS: If someone at INIT happens to read this and has a spot open on the team – I'd be curious. 😉
+> No pressure, honestly.*
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-en.png" alt="The three dashboard cards: next shift, roster and accounts" width="860">
+  <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/master-card-en.png" alt="The all-in-one card at the width of a phone: the next shift on the left, the roster on the right" width="860">
 </p>
+<p align="center"><sub>The all-in-one card at the width of a phone. All data in the picture is made up.</sub></p>
 
 ## 📑 Contents
 
+- [🚀 Quick start](#-quick-start)
 - [✨ Features](#-features)
 - [🚌 Transit companies](#-transit-companies)
 - [📋 Requirements](#-requirements)
 - [📦 Installation](#-installation)
 - [⚙️ Setup](#️-setup)
 - [🎛️ Options](#️-options)
-- [📊 Entities](#-entities)
 - [🃏 Dashboard cards](#-dashboard-cards)
+- [📱 Phone first](#-phone-first)
+- [🧩 Optional extras](#-optional-extras-from-hacs)
+- [📊 Entities](#-entities)
 - [⚡ Automations](#-automations)
 - [🛠️ Services](#️-services)
 - [📱 AppComm (PERDIS mobile)](#-appcomm-perdis-mobile)
@@ -59,6 +73,17 @@ Netherlands use. Drivers see their roster in the **WebComm** portal in the brows
 - [🔒 Privacy](#-privacy)
 - [🩺 Troubleshooting](#-troubleshooting)
 - [🤝 Contributing](#-contributing)
+- [⚖️ Disclaimer](#️-disclaimer)
+
+## 🚀 Quick start
+
+1. **Install.** Add this repository in HACS and download it (details under
+   [Installation](#-installation)).
+2. **Restart Home Assistant.** This is not a formality: only then the new version runs (and the new
+   cards are served). Which version is running is shown on the device page of the integration.
+3. **Add the integration.** *Settings → Devices & services → Add integration → PERDIS.*
+4. **Pick your company** and sign in with your **personnel number and password** – the same as in the portal.
+5. **Add the card.** Edit a dashboard → *Add card* → **PERDIS · All-in-one**. No entity IDs, no YAML.
 
 ## ✨ Features
 
@@ -80,7 +105,8 @@ Netherlands use. Drivers see their roster in the **WebComm** portal in the brows
 - ⚡ **Device triggers** for the automation editor: *time to get up*, *time to leave*, *shift
   started*, *shift ended*, *free weekend started*, *roster changed* – announced to the second.
 - 🗓️ **Calendar** with every shift and day off, for the calendar dashboard and calendar triggers.
-- 🃏 **Three dashboard cards** that register themselves: next shift, roster and accounts.
+- 🃏 **Dashboard cards** that register themselves: one all-in-one card with tabs or each view on
+  its own – built for the phone first.
 - 💾 **Works through maintenance windows**: the last roster is cached and stays available while
   the portal is down.
 - 🌍 **German and English** throughout: setup, entities, cards, notifications and calendar. The setup dialog and the entity names are also available in **Dutch**; other languages fall back to English.
@@ -114,11 +140,16 @@ so the company can be added to the list.
 
 ## 📋 Requirements
 
-- 🏠 Home Assistant **2025.1** or newer.
-- 👤 Your own account for the WebComm portal of your company (user name or personnel number and
-  password), the same you use in the browser.
+- 🏠 Home Assistant **2023.7** or newer. The CI checks every release since then; last tested up to
+  **2026.9**.
+- 👤 Your own account for the WebComm portal of your company (personnel number or user name and
+  password) – the same you use in the browser.
 - 🌐 Home Assistant must be able to reach the portal. Some companies only allow access from their
   own network; then the integration can't reach it either.
+- 📦 **HACS** is the most convenient way to install, but not required (you can install by hand).
+- 🧩 **Nothing else.** The cards work with Home Assistant alone. Only a few
+  [optional extras](#-optional-extras-from-hacs) need additional cards from HACS – and they are off
+  by default.
 
 ## 📦 Installation
 
@@ -126,35 +157,48 @@ so the company can be added to the list.
 
 1. Click the **HACS · Marketplace** button at the top of this page, or open **HACS** (Home
    Assistant 2026.10 and older) or **Settings → Marketplace** (2026.11 and newer) and search for
-   **PERDIS Duty Roster**. If it is not found, add
+   **PERDIS**. If it is not found, add
    `https://github.com/seb5594/hass-perdis_roster-integration` as a custom repository of the
    category *Integration* first.
-2. Download it and restart Home Assistant.
+2. Download it.
+3. **Restart Home Assistant** – also after every later update. Until the restart the old version
+   keeps running, and the browser keeps getting the old cards.
 
 ### Manual
 
-1. Download `perdis.zip` from the [latest release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
+1. Download `perdis_roster.zip` from the [latest release](https://github.com/seb5594/hass-perdis_roster-integration/releases/latest).
 2. Unpack it into `config/custom_components/perdis_roster/`, so that `manifest.json` ends up in that folder.
 3. Restart Home Assistant.
 
 ## ⚙️ Setup
 
-1. Go to **Settings → Devices & services → Add integration** and search for **PERDIS Duty Roster**.
+1. **Settings → Devices & services → Add integration** and search for **PERDIS**.
 2. Choose how to find your portal:
    - 🚌 **Pick my transit company from the list**, or
-   - ✍️ **Enter the portal address myself** – paste the address from the browser. Leave *Kind of
-     portal* on **WebComm** unless your company gave you an AppComm service address.
-3. Enter your **user name / personnel number** and **password**. The dialog signs in once to check
-   them, then the roster appears within a few seconds.
+   - ✍️ **Enter the portal address myself** – paste the address from the browser (a plain host name
+     works too; the integration adds `/WebComm/` itself). Leave *Kind of portal* on **WebComm**
+     unless your company gave you an AppComm service address (see [AppComm](#-appcomm-perdis-mobile)).
+3. Enter your **user name / personnel number** and **password**. The title names the connection,
+   e.g. "PERDIS WebComm · Sign in to …". The dialog signs in once to check them; a few seconds
+   later the roster appears.
+4. **Set your times** (*Configure* on the entry): how long before the shift you get up (90 min) and
+   how long your way to work is (30 min). That gives the wake-up and leave-home times.
 
-The account is named after your personnel number and surname, e.g. **12345 - Mustermann** (the
-surname is read from the portal header); when the portal shows no name, the number alone is used.
+The account is named **short name - personnel number** for a company from the list, e.g. **VGF -
+12345**. With an address you entered yourself it is named after the personnel number and surname
+(the surname is read from the portal header), and when the portal shows no name, the number alone.
 
 Several accounts (for example of a couple who both drive) can be added side by side; each gets
 its own device with its own entities.
 
 When you change your password in the portal, Home Assistant shows a **repair notice** and asks
 for the new one – no need to remove the integration.
+
+> [!TIP]
+> **A message to your phone (WhatsApp too):** *Configure → Action on roster changes* is Home
+> Assistant's full action editor. Pick your notification service or a script there and enter
+> `{{ title }}` as the *title* and `{{ message }}` as the *message* – you get exactly the text
+> Home Assistant shows itself.
 
 ## 🎛️ Options
 
@@ -184,76 +228,6 @@ integration finds the roster, account and weekend points pages in the portal men
 one is not found (see [Troubleshooting](#-troubleshooting)), enter its path here, e.g.
 `Dienstplan.aspx`.
 
-## 📊 Entities
-
-> [!NOTE]
-> Only the sensors a portal can actually fill are created. At setup the integration probes which
-> pages your portal serves and which account values it returns; a portal that does not expose, for
-> example, weekend points simply shows no weekend-point sensors instead of a row of "unknown". Add
-> the integration again (reload) after your operator unlocks a new feature.
-
-All entities belong to one device per account. The entity IDs below assume an account named
-*Rheinbahn (4711)* and Home Assistant in English; yours start with the name of your account.
-
-### 🕐 Next shift
-
-| Entity | Example | Notes |
-| --- | --- | --- |
-| `sensor.…_next_shift` | `4711` | Running or next shift. Attributes: date, start, end, places, lines, hours, category, minutes until start/end, wake-up and leave-home time, rest before |
-| `sensor.…_next_shift_start` / `_end` | timestamp | Show as relative time ("in 5 hours") |
-| `sensor.…_next_shift_location` | `Betriebshof Musterstadt` | Reporting point |
-| `sensor.…_next_shift_type` | `early` | early, day, late, night or split |
-| `sensor.…_wake_up_time` | timestamp | Shift start minus your wake-up lead |
-| `sensor.…_leave_home` | timestamp | Shift start minus your way to work |
-| `sensor.…_rest_before_next_shift` | `1 day 3 hours 20 minutes` | End of the previous shift until the start of the next, in days, hours and minutes (the hours are in the `hours` attribute) |
-
-### 📅 Days
-
-| Entity | Example | Notes |
-| --- | --- | --- |
-| `sensor.…_today` / `_tomorrow` | `work` | Duty, reserve, training, day off, vacation, time off in lieu, sick leave |
-| `sensor.…_next_day_off` | `2026-11-26` | Today when you are off |
-| `sensor.…_days_until_day_off` | `3 d` | |
-| `sensor.…_working_days_in_a_row` | `3 d` | From today until the next day off |
-| `sensor.…_next_free_weekend` | `2026-11-28` | Saturday of the next weekend with both days off |
-| `sensor.…_free_weekends_ahead` | `2` | Free weekends in the roster you can see |
-| `sensor.…_planned_hours_this_week` / `_month` | `38.5 h` | Attributes count the duties per type and shift category |
-
-### 💼 Accounts
-
-| Entity | Example | Notes |
-| --- | --- | --- |
-| `sensor.…_overtime_balance` | `14.5 h` | Attributes: target and actual hours, every balance the portal shows |
-| `sensor.…_time_account_today` | `-0.5 h` | Today's day on the daily-values page; attributes: target, actual and running account hours, plus the last ten days |
-| `sensor.…_vacation_left` | `12.5 d` | Attributes: planned days, entitlement, days left after the planned vacation |
-| `sensor.…_weekend_points` | `38.5 pts` | Attributes: group average, recent entries |
-| `sensor.…_weekend_points_vs_average` | `-3.5 pts` | Negative: fewer points than your group |
-| `sensor.…_free_weekends_this_year` | `7` | As counted by the portal |
-
-### 🔎 Yes / no
-
-| Entity | On when |
-| --- | --- |
-| `binary_sensor.…_on_duty` | A shift is running |
-| `binary_sensor.…_day_off_today` / `_tomorrow` | The day is off, vacation or time off in lieu |
-| `binary_sensor.…_split_shift_today` | Today's duty has a long break in between |
-| `binary_sensor.…_short_rest` | The rest before the next shift is shorter than your minimum |
-| `binary_sensor.…_portal` | The last refresh reached the portal (diagnostic) |
-
-### 🗂️ Lists and calendar
-
-| Entity | Notes |
-| --- | --- |
-| `sensor.…_roster` | Number of days in the next six weeks; the `days` attribute feeds the roster card |
-| `sensor.…_roster_changes` | Changes of the last 14 days, each with a readable summary |
-| `sensor.…_last_refresh` | Last successful refresh, last error and the pages found (diagnostic) |
-| `sensor.…_roster_records` | Longest shift, earliest start and latest end of the loaded roster (diagnostic) |
-| `sensor.…_detailed_shifts` | How many of the upcoming shifts have their leg-by-leg detail (diagnostic) |
-| `button.…_refresh_roster` | Asks the portal right now; the same as the `perdis_roster.refresh` action |
-| `calendar.…_duties` | Shifts as timed entries, days off and absences as all-day entries |
-
-Long lists are kept out of the recorder database, so the history stays small.
-
 ## 🃏 Dashboard cards
 
 The cards are part of the integration and register themselves – there is **no resource to add**.
@@ -276,7 +250,9 @@ Without settings a card shows the first PERDIS account.
 | 🕐 `perdis-shift-card` | The next shift: duty, shift type, countdown, times, reporting point, lines, wake-up and leave-home time, rest warning, progress while it runs |
 | 📋 `perdis-roster-card` | The coming days grouped by calendar week, colored by type, with changed days marked |
 | 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week or month |
-| 🧾 `perdis-shift-detail-card` | The next shift broken into its legs as a real table: reporting point, time, line, course and relief direction, with the breaks called out |
+| 🧾 `perdis-shift-detail-card` | The shifts to page through, each leg as a real table: from → to, time, line, course and relief, with the breaks merged |
+| 🗓️ `perdis-calendar-card` | A month calendar of your shifts; finds the calendar entity by itself |
+| 🔁 `perdis-swap-card` | The open duty swaps the portal shows |
 
 Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 
@@ -290,11 +266,31 @@ Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 | `tap_action` | more-info | A full Lovelace action (`more-info`, `navigate`, `url`, `perform-action`, `none`) |
 
 <details>
+<summary>🧩 All-in-one card options</summary>
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `tabs` | shift, roster, accounts, calendar | Which tabs and in which order: `shift`, `detail`, `roster`, `accounts`, `calendar`, `swaps`. In the editor with ticks and arrows |
+| `logo` | – | Address of your own image (e.g. `/local/logo.png`) instead of the name badge |
+| `show_open` | `true` | Show the **PERDIS** button that opens your portal |
+| `open_url` | your portal | Your own target for the button: an address, or `app://package.name` to start an app in the Android Companion app |
+| `show_trend` / `trend_days` | off / `14` | [Extra](#-optional-extras-from-hacs): time account trend |
+| `use_calendar_card_pro` / `calendar_days` | off / `14` | [Extra](#-optional-extras-from-hacs): calendar as a list |
+
+```yaml
+type: custom:perdis-card
+tabs: [shift, roster, accounts, calendar]
+open_url: https://perdis.example.org/WebComm/
+```
+
+</details>
+
+<details>
 <summary>🕐 Shift card options</summary>
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
+| `show_facts` | all | Which fact tiles to show (in this order): `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
 | `show_location` | `true` | Show the reporting point |
 | `show_lines` | `true` | Show the line badges |
 | `show_countdown` | `true` | Show the countdown pill |
@@ -337,8 +333,9 @@ group_by_week: false
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `show_tiles` | 5 tiles | Which tiles and in which order: `overtime`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
+| `show_tiles` | 6 tiles | Which tiles and in which order: `overtime`, `daily`, `vacation`, `weekend_points`, `free_weekends`, `planned_week`, `planned_month` |
 | `columns` | `0` (auto) | Fix the number of columns (1–4) |
+| `show_trend` / `trend_days` | off / `14` | [Extra](#-optional-extras-from-hacs): time account trend |
 
 ```yaml
 type: custom:perdis-accounts-card
@@ -352,6 +349,124 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, for a second account
 <p align="center">
   <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/.github/images/cards-de-dark.png" alt="The cards in German with a dark theme" width="860">
 </p>
+
+## 📱 Phone first
+
+I look at my roster almost only on the phone, so the cards are built for that first and for tablet
+and desktop second:
+
+- 👆 **Big tap targets** and actions with a word under the symbol instead of a bare icon:
+  *Refresh* asks the portal right now, *PERDIS* opens it.
+- 📏 The header wraps on very narrow screens instead of squeezing the text away. I checked it at
+  320, 360 and 390 pixels wide.
+- 👉 The tabs of the all-in-one card swipe sideways.
+- 🗣️ **Numbers in words**: "1 hour 14 minutes", "in 2 days" – with the right singular and
+  plural, so you don't have to do the maths.
+- 🌐 If the portal is installed as a **PWA** ("Add to home screen"), the *PERDIS* button opens it in
+  that app, provided Android has registered the app for that address.
+- ♻️ After an update the Companion app sometimes still shows the old card. Then reset the frontend
+  cache (under *Troubleshooting*, depending on the app version), see
+  [Troubleshooting](#-troubleshooting).
+
+## 🧩 Optional extras (from HACS)
+
+Everything above runs on Home Assistant alone – **you don't have to install anything.** A few
+extras draw with cards from the community, though, so they need something additional from HACS
+(listed there under *Frontend*, in newer HACS versions *Dashboard*; they are not integrations).
+**All extras are off by default.**
+
+| Extra | What it does | Needs from HACS | Switch on |
+| --- | --- | --- | --- |
+| 📈 Time account trend | A line of your time account over the last days under the accounts tiles | [mini-graph-card](https://github.com/kalkih/mini-graph-card) | *Accounts* panel: `show_trend`, length with `trend_days` |
+| 🗒️ Calendar as a list | A clearer list of your shifts instead of Home Assistant's own calendar card | [Calendar Card Pro](https://github.com/alexpfau/calendar-card-pro) | *Calendar* panel: `use_calendar_card_pro`, length with `calendar_days` |
+
+How it works:
+
+1. Install the card from HACS and reload the page.
+2. Open the PERDIS card in the editor → section **Extras**. Switch the extra on there.
+3. If the card from HACS is **not** installed, the switch stays greyed out and says what is
+   missing. The editor checks that in the browser every time it is opened; if you install the card
+   later, it catches up by itself. If an extra is `true` in YAML but the card is missing, the PERDIS
+   card shows a small note instead of an error.
+
+These extras are available in the **all-in-one card** and in the individual card. The time account
+trend draws the sensor *Overtime balance (hours)* (diagnostic group).
+
+> [!NOTE]
+> To be honest: the extras are less tested than the rest. I know the options of the other cards
+> from their documentation but cannot try every version of them. If something goes wrong, simply
+> leave the extra off or [tell me](https://github.com/seb5594/hass-perdis_roster-integration/issues).
+
+## 📊 Entities
+
+> [!NOTE]
+> Only the sensors a portal can actually fill are created. At setup the integration probes which
+> pages your portal serves and which account values it returns; a portal that does not expose, for
+> example, weekend points simply shows no weekend-point sensors instead of a row of "unknown". Add
+> the integration again (reload) after your operator unlocks a new feature.
+
+All entities belong to one device per account. The entity IDs below assume an account named
+*Rheinbahn (4711)* and Home Assistant in English; yours start with the name of your account.
+
+### 🕐 Next shift
+
+| Entity | Example | Notes |
+| --- | --- | --- |
+| `sensor.…_next_shift` | `4711` | Running or next shift. Attributes: date, start, end, places, lines, hours, category, minutes until start/end, wake-up and leave-home time, rest before |
+| `sensor.…_next_shift_start` / `_end` | timestamp | Show as relative time ("in 5 hours") |
+| `sensor.…_next_shift_location` | `Betriebshof Musterstadt` | Reporting point |
+| `sensor.…_next_shift_type` | `early` | early, day, late, night or split |
+| `sensor.…_wake_up_time` | timestamp | Shift start minus your wake-up lead |
+| `sensor.…_leave_home` | timestamp | Shift start minus your way to work |
+| `sensor.…_rest_before_next_shift` | `1 day 3 hours 20 minutes` | End of the previous shift until the start of the next, in days, hours and minutes (the hours are in the `hours` attribute) |
+
+### 📅 Days
+
+| Entity | Example | Notes |
+| --- | --- | --- |
+| `sensor.…_today` / `_tomorrow` | `work` | Duty, reserve, training, day off, vacation, time off in lieu, sick leave |
+| `sensor.…_next_day_off` | `2026-11-26` | Today when you are off |
+| `sensor.…_days_until_day_off` | `3 d` | |
+| `sensor.…_working_days_in_a_row` | `3 d` | From today until the next day off |
+| `sensor.…_next_free_weekend` | `2026-11-28` | Saturday of the next weekend with both days off |
+| `sensor.…_free_weekends_ahead` | `2` | Free weekends in the roster you can see |
+| `sensor.…_planned_hours_this_week` / `_month` | `38.5 h` | Attributes count the duties per type and shift category |
+
+### 💼 Accounts
+
+| Entity | Example | Notes |
+| --- | --- | --- |
+| `sensor.…_overtime_balance` | `14:30` | As in the portal (hours:minutes). Attributes: the same as a decimal (`hours`), target and actual hours, every balance the portal shows |
+| `sensor.…_overtime_balance_hours` | `14.5 h` | The same as a plain number, for graphs and automations (diagnostic) |
+| `sensor.…_time_account_today` | `-0.5 h` | Today's day on the daily-values page; attributes: target, actual and running account hours, plus the last ten days |
+| `sensor.…_vacation_left` | `12.5 d` | Attributes: planned days, entitlement, days left after the planned vacation |
+| `sensor.…_weekend_points` | `38.5 pts` | Attributes: group average, recent entries |
+| `sensor.…_weekend_points_vs_average` | `-3.5 pts` | Negative: fewer points than your group |
+| `sensor.…_free_weekends_this_year` | `7` | As counted by the portal |
+
+### 🔎 Yes / no
+
+| Entity | On when |
+| --- | --- |
+| `binary_sensor.…_on_duty` | A shift is running |
+| `binary_sensor.…_day_off_today` / `_tomorrow` | The day is off, vacation or time off in lieu |
+| `binary_sensor.…_split_shift_today` | Today's duty has a long break in between |
+| `binary_sensor.…_short_rest` | The rest before the next shift is shorter than your minimum |
+| `binary_sensor.…_portal` | The last refresh reached the portal (diagnostic) |
+
+### 🗂️ Lists and calendar
+
+| Entity | Notes |
+| --- | --- |
+| `sensor.…_roster` | Number of days in the next six weeks; the `days` attribute feeds the roster card |
+| `sensor.…_roster_changes` | Changes of the last 14 days, each with a readable summary |
+| `sensor.…_last_refresh` | Last successful refresh, last error and the pages found (diagnostic) |
+| `sensor.…_roster_records` | Longest shift, earliest start and latest end of the loaded roster (diagnostic) |
+| `sensor.…_detailed_shifts` | How many of the upcoming shifts have their leg-by-leg detail (diagnostic) |
+| `button.…_refresh_roster` | Asks the portal right now; the same as the `perdis_roster.refresh` action |
+| `calendar.…_duties` | Shifts as timed entries, days off and absences as all-day entries |
+
+Long lists are kept out of the recorder database, so the history stays small.
 
 ## ⚡ Automations
 
@@ -540,6 +655,8 @@ password or token) helps everyone.
 | *The portal could not be reached* | Open the address in a browser on the same network as Home Assistant. Some portals are only reachable from the company network. |
 | *Not like a PERDIS portal* | Check the address; it must end in the folder of the portal (e.g. `/WebComm/`). |
 | Roster stays empty | Open **Last refresh** (diagnostic) and look at the `pages` attribute. If `roster` is missing, enter the path of the roster page in the advanced options. |
+| I updated, but everything looks as before | **Restart** Home Assistant. The device page of the integration shows the version that is really running. Then reload the browser with the cache cleared; in the Companion app reset the frontend cache. |
+| A new sensor is missing (e.g. *Roster records*) | It is in the **Diagnostic** group of the device page, not under *Sensors*. If it is not there either, the old version is still running (see above). |
 | Accounts or weekend points are unknown | Not every company shows them. If they are in the portal under a different name, please open an issue with the label text. |
 
 Download the **diagnostics** (device page → ⋮ → *Download diagnostics*) for an issue. For more
@@ -564,8 +681,8 @@ logger:
 
 PERDIS, MOBILE-PERDIS, WebComm and AppComm are products and possibly trademarks of INIT Mobility
 Software Solutions GmbH. Company names belong to their owners and are only used to point to their
-portals. This project is not affiliated with any of them. Use it with your own account only and
-follow the rules of your employer.
+portals. This project is not affiliated with any of them (see the box at the very top). Use it
+with your own account only and follow the rules of your employer.
 
 <!-- support:begin (generated, shared text) -->
 ## Say thanks

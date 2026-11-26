@@ -19,8 +19,47 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.7";
+const VERSION = "2026.11.26.8";
 const DOMAIN = "perdis_roster";
+
+// --- Optional extras -----------------------------------------------------------------------
+// Everything in these cards works on Home Assistant alone. A few extras need a card from HACS
+// (Frontend); they are off by default, and the editor only lets you switch one on while that card
+// is really installed. It looks in the browser, at the moment the editor is open.
+
+const OPTIONAL = {
+  "mini-graph-card": { tag: "mini-graph-card", name: "mini-graph-card", repo: "kalkih/mini-graph-card" },
+  "calendar-card-pro": { tag: "calendar-card-pro", name: "Calendar Card Pro", repo: "alexpfau/calendar-card-pro" },
+};
+// Which editor option needs which extra.
+const OPTION_NEEDS = { show_trend: "mini-graph-card", use_calendar_card_pro: "calendar-card-pro" };
+
+function hasExtra(key) {
+  return Boolean(customElements.get(OPTIONAL[key].tag));
+}
+
+/** An editor field for an extra: a switch that is disabled while the card it needs is missing. */
+function extraField(name) {
+  return { name, selector: { boolean: {} }, disabled: !hasExtra(OPTION_NEEDS[name]) };
+}
+
+/** The help text of an editor field, with a note when the extra it needs is not installed. */
+function helperFor(hass, name) {
+  const t = texts(hass);
+  const base = t.helper[name] || "";
+  const need = OPTION_NEEDS[name];
+  if (!need || hasExtra(need)) return base;
+  return `${base} ${t.missingExtra.replace("{name}", OPTIONAL[need].name)}`.trim();
+}
+
+/** Re-render an editor as soon as an extra it was waiting for is installed (loaded late). */
+function watchExtras(editor) {
+  if (editor._watching) return;
+  editor._watching = true;
+  for (const key of Object.keys(OPTIONAL)) {
+    if (!hasExtra(key)) customElements.whenDefined(OPTIONAL[key].tag).then(() => editor._render());
+  }
+}
 
 // --- Texts ---------------------------------------------------------------------------------
 
@@ -49,7 +88,9 @@ const TEXTS = {
     hours: "h",
     days: "days",
     clock: "",
-    longWord: "LONG", open: "Open PERDIS", updated: "Updated", justNow: "just now", updating: "Updating…", refreshRoster: "Refresh roster",
+    longWord: "LONG", open: "Open PERDIS", refreshShort: "Refresh", trend: "Time account trend",
+    missingExtra: "Not installed: add “{name}” in HACS (Frontend / Dashboard) and reload the page.",
+    extraHint: "needs “{name}” from HACS", updated: "Updated", justNow: "just now", updating: "Updating…", refreshRoster: "Refresh roster",
     units: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
     unitsIn: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
     points: "pts",
@@ -120,6 +161,11 @@ const TEXTS = {
       tabs: "Tabs to show",
       logo: "Logo (image address)",
       show_open: "Show the button that opens PERDIS",
+      sec_extras: "Extras (need cards from HACS)",
+      show_trend: "Show a time account trend (mini-graph-card)",
+      trend_days: "Trend length (days)",
+      use_calendar_card_pro: "List the calendar with Calendar Card Pro",
+      calendar_days: "Days to list (Calendar Card Pro)",
       open_url: "Open button: address or app",
       // Section headers
       sec_content: "Content",
@@ -133,6 +179,8 @@ const TEXTS = {
       accent: "Leave empty to colour the card by the shift type.",
       hide_types: "Leave empty to show every day.",
       logo: "Leave empty for the operator's name badge. Example: /local/my-logo.png",
+      show_trend: "Off by default. A line of your time account over the last days under the tiles.",
+      use_calendar_card_pro: "Off by default. A clearer list of your shifts instead of Home Assistant's own calendar card.",
       open_url: "Leave empty to open your portal. An address (https://…) opens in the browser, or in the installed PWA if it covers that address; app://package.name starts an app on Android.",
     },
   },
@@ -160,7 +208,9 @@ const TEXTS = {
     hours: "Std.",
     days: "Tage",
     clock: "Uhr",
-    longWord: "LANGE", open: "PERDIS öffnen", updated: "Aktualisiert", justNow: "gerade eben", updating: "Aktualisiere…",
+    longWord: "LANGE", open: "PERDIS öffnen", refreshShort: "Aktualisieren", trend: "Zeitkonto-Verlauf",
+    missingExtra: "Nicht installiert: „{name}“ in HACS (Frontend / Dashboard) hinzufügen und die Seite neu laden.",
+    extraHint: "braucht „{name}“ aus HACS", updated: "Aktualisiert", justNow: "gerade eben", updating: "Aktualisiere…",
     refreshRoster: "Dienstplan aktualisieren",
     units: { day: ["Tag", "Tage"], hour: ["Stunde", "Stunden"], minute: ["Minute", "Minuten"] },
     // After "in" German takes the dative: "in 2 Tagen", "in 1 Tag".
@@ -226,6 +276,11 @@ const TEXTS = {
       tabs: "Angezeigte Reiter",
       logo: "Logo (Bildadresse)",
       show_open: "Button zeigen, der PERDIS öffnet",
+      sec_extras: "Extras (brauchen Karten aus HACS)",
+      show_trend: "Zeitkonto-Verlauf zeigen (mini-graph-card)",
+      trend_days: "Länge des Verlaufs (Tage)",
+      use_calendar_card_pro: "Kalender mit Calendar Card Pro auflisten",
+      calendar_days: "Tage in der Liste (Calendar Card Pro)",
       open_url: "Öffnen-Button: Adresse oder App",
       sec_content: "Inhalt",
       sec_appearance: "Darstellung",
@@ -238,6 +293,8 @@ const TEXTS = {
       accent: "Leer lassen, um die Karte nach der Dienstart einzufärben.",
       hide_types: "Leer lassen, um jeden Tag anzuzeigen.",
       logo: "Leer lassen für das Namens-Badge des Betriebs. Beispiel: /local/mein-logo.png",
+      show_trend: "Standardmäßig aus. Eine Linie deines Zeitkontos der letzten Tage unter den Kacheln.",
+      use_calendar_card_pro: "Standardmäßig aus. Eine übersichtlichere Liste deiner Dienste statt der Kalenderkarte von Home Assistant.",
       open_url: "Leer lassen, um dein Portal zu öffnen. Eine Adresse (https://…) öffnet im Browser, oder in der installierten PWA, wenn sie diese Adresse abdeckt; app://paketname startet auf Android eine App.",
     },
   },
@@ -629,7 +686,8 @@ function editorFor(buildSchema) {
       this._form.data = this._config;
       this._form.schema = buildSchema(this._hass, this._config);
       this._form.computeLabel = (schema) => t.editor[schema.name] || schema.name;
-      this._form.computeHelper = (schema) => t.helper[schema.name] || "";
+      this._form.computeHelper = (schema) => helperFor(this._hass, schema.name);
+      watchExtras(this);
     }
   };
 }
@@ -961,6 +1019,7 @@ const ACCOUNTS_STYLE = `
   .tile .hint { font-size: 0.78rem; color: var(--secondary-text-color); margin-top: 2px; }
   .positive { color: var(--success-color, #43a047); }
   .negative { color: var(--error-color, #db4437); }
+  .trend { margin-top: 12px; --ha-card-box-shadow: none; --ha-card-border-width: 0; --ha-card-background: transparent; }
   .meter { position: relative; height: 6px; border-radius: 3px; background: var(--divider-color); margin-top: 8px; }
   .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent, var(--primary-color)); }
   .meter .mark { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--primary-text-color); }
@@ -1064,14 +1123,44 @@ class PerdisAccountsCard extends PerdisCardBase {
     const gridStyle = columns > 0 ? `style="grid-template-columns:repeat(${columns},1fr)"` : "";
     const accent = accentOf(config, "work");
 
-    this.frame(title, `<div class="content"><div class="tiles${gridClass}" ${gridStyle}>${tiles}</div></div>`,
+    const trend = config.show_trend === true ? `<div class="trend"></div>` : "";
+    this.frame(title, `<div class="content"><div class="tiles${gridClass}" ${gridStyle}>${tiles}</div>${trend}</div>`,
       ACCOUNTS_STYLE, accent);
+    if (trend) this._mountTrend();
     this.shadowRoot.querySelectorAll(".tile").forEach((element) => {
       element.addEventListener("click", () => {
         if (config.tap_action) handleAction(this, this._hass, config.tap_action, this._entities[element.dataset.role]);
         else handleAction(this, this._hass, { action: "more-info" }, this._entities[element.dataset.role]);
       });
     });
+  }
+
+  /**
+   * The time account as a line over the last days, drawn by mini-graph-card. An extra, off by
+   * default: where the card is not installed, a short note says what is missing instead.
+   */
+  _mountTrend() {
+    const slot = this.shadowRoot.querySelector(".trend");
+    const t = texts(this._hass);
+    if (!slot) return;
+    if (!hasExtra("mini-graph-card")) {
+      slot.innerHTML = `<div class="hint">${escapeHtml(t.trend)}: ${escapeHtml(t.extraHint.replace("{name}", OPTIONAL["mini-graph-card"].name))}</div>`;
+      return;
+    }
+    const entity = this._entities.overtime_hours;
+    if (!entity) return;
+    const days = Number(this._config.trend_days) || 14;
+    if (!this._trendCard || this._trendKey !== `${entity}|${days}`) {
+      const card = document.createElement("mini-graph-card");
+      card.setConfig({
+        type: "custom:mini-graph-card", name: t.trend, entities: [entity], hours_to_show: days * 24,
+        points_per_hour: 0.5, line_width: 3, animate: true, show: { icon: false },
+      });
+      this._trendCard = card;
+      this._trendKey = `${entity}|${days}`;
+    }
+    this._trendCard.hass = this._hass;
+    slot.appendChild(this._trendCard);
   }
 
   getCardSize() {
@@ -1092,6 +1181,10 @@ const ACCOUNTS_EDITOR = (hass) => [
   section(hass, "sec_appearance", [
     { type: "grid", schema: [field.showHeader, field.icon] },
     field.accent,
+  ]),
+  section(hass, "sec_extras", [
+    extraField("show_trend"),
+    { name: "trend_days", selector: { number: { min: 3, max: 60, mode: "slider" } } },
   ]),
   section(hass, "sec_behavior", [field.tapAction]),
 ];
@@ -1489,16 +1582,24 @@ class PerdisCalendarCard extends PerdisCardBase {
     }
     try {
       const helpers = await window.loadCardHelpers();
-      const card = helpers.createCardElement({
-        type: "calendar",
-        initial_view: this._config.initial_view || "dayGridMonth",
-        title: this._config.title || "",
-        entities: [entityId],
-      });
+      // Home Assistant's own calendar card, unless the extra is switched on and installed.
+      const wantsPro = this._config.use_calendar_card_pro === true;
+      const usePro = wantsPro && hasExtra("calendar-card-pro");
+      const card = helpers.createCardElement(usePro
+        ? { type: "custom:calendar-card-pro", title: this._config.title || "", entities: [entityId],
+            days_to_show: Number(this._config.calendar_days) || 14 }
+        : { type: "calendar", initial_view: this._config.initial_view || "dayGridMonth",
+            title: this._config.title || "", entities: [entityId] });
       card.hass = this._hass;
       this._inner = card;
       this.shadowRoot.innerHTML = "";
       this.shadowRoot.appendChild(card);
+      if (wantsPro && !usePro) {
+        const note = document.createElement("div");
+        note.style.cssText = "padding:6px 16px 10px;font-size:0.8rem;color:var(--secondary-text-color)";
+        note.textContent = `${OPTIONAL["calendar-card-pro"].name}: ${texts(this._hass).extraHint.replace("{name}", OPTIONAL["calendar-card-pro"].name)}`;
+        this.shadowRoot.appendChild(note);
+      }
     } catch (error) {
       this.shadowRoot.innerHTML =
         `<style>${BASE_STYLE}</style><ha-card><div class="empty">${escapeHtml(String(error))}</div></ha-card>`;
@@ -1521,6 +1622,10 @@ const CALENDAR_EDITOR = (hass) => [
     field.select("initial_view", ["dayGridMonth", "listWeek", "listMonth"].map(
       (value) => ({ value, label: texts(hass).views[value] }))),
   ]),
+  section(hass, "sec_extras", [
+    extraField("use_calendar_card_pro"),
+    { name: "calendar_days", selector: { number: { min: 3, max: 60, mode: "slider" } } },
+  ]),
 ];
 
 // --- All-in-one card (a tab bar over the other cards) -------------------------------------------
@@ -1537,24 +1642,26 @@ const MASTER_STYLE = `
   .tab.on { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
   .tab ha-icon { --mdc-icon-size: 22px; }
   .panel { min-height: 40px; }
-  .brand { display: flex; align-items: center; gap: 12px; padding: 14px 16px 6px; }
+  .brand { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 10px; padding: 12px 14px 6px; }
   .brand .badge { background: var(--primary-color); color: var(--text-primary-color, #fff); font-weight: 700;
                   letter-spacing: 0.5px; padding: 5px 11px; border-radius: 10px; font-size: 0.95rem; }
   .brand .logo { height: 34px; max-width: 140px; object-fit: contain; }
-  .brand .who { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+  .brand .who { display: flex; flex-direction: column; flex: 1 1 80px; min-width: 0; }
   .brand .kicker { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.6px; color: var(--secondary-text-color);
                    line-height: 1.2; }
-  .brand .actions { display: flex; gap: 8px; flex: 0 0 auto; }
+  .brand .actions { display: flex; gap: 8px; flex: 0 0 auto; margin-left: auto; }
   .brand .name { font-size: 1.05rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .brand .stamp { font-size: 0.75rem; color: var(--secondary-text-color); line-height: 1.3; }
   .brand .stamp.warn { color: var(--warning-color, #ffa600); }
-  .refresh, .open { flex: 0 0 auto; width: 40px; height: 40px; border: none; border-radius: 50%; cursor: pointer;
-             display: inline-flex; align-items: center; justify-content: center; font: inherit;
-             color: var(--primary-color);
-             background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color));
-             transition: background 150ms ease, transform 150ms ease, color 150ms ease; }
-  .refresh:hover, .open:hover { background: color-mix(in srgb, var(--primary-color) 24%, var(--card-background-color)); }
-  .refresh:active, .open:active { transform: scale(0.9); }
+  .action { flex: 0 0 auto; width: 66px; box-sizing: border-box; padding: 7px 2px 6px; border: none; border-radius: 14px; cursor: pointer;
+            display: inline-flex; flex-direction: column; align-items: center; gap: 3px; font: inherit;
+            color: var(--primary-color);
+            background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color));
+            transition: background 150ms ease, transform 150ms ease, color 150ms ease; }
+  .action ha-icon { --mdc-icon-size: 22px; }
+  .action span { font-size: 0.62rem; white-space: nowrap; font-weight: 600; line-height: 1.1; color: var(--primary-text-color); }
+  .action:hover { background: color-mix(in srgb, var(--primary-color) 24%, var(--card-background-color)); }
+  .action:active { transform: scale(0.94); }
   .refresh[disabled] { cursor: default; }
   .refresh.busy ha-icon { animation: perdis-spin 1s linear infinite; }
   .refresh.ok { color: var(--success-color, #43a047);
@@ -1589,6 +1696,11 @@ class PerdisMasterCard extends PerdisCardBase {
     return wanted.length ? wanted : this.constructor.defaults().tabs;
   }
 
+  setConfig(config) {
+    this._cards = {};  // the panels are built from the config, so a new config builds them anew
+    super.setConfig(config);
+  }
+
   /** The live child card for a tab, created once and kept so its state survives tab switches. */
   _panel(key) {
     this._cards = this._cards || {};
@@ -1597,6 +1709,10 @@ class PerdisMasterCard extends PerdisCardBase {
       card._embedded = true;  // render without its own ha-card; the master provides the one frame
       const config = { show_header: false };
       if (this._config.device_id) config.device_id = this._config.device_id;
+      // The extras are switched on in the all-in-one card and handed on to the panels they belong to.
+      for (const option of ["show_trend", "trend_days", "use_calendar_card_pro", "calendar_days"]) {
+        if (this._config[option] !== undefined) config[option] = this._config[option];
+      }
       card.setConfig(config);
       this._cards[key] = card;
     }
@@ -1621,17 +1737,19 @@ class PerdisMasterCard extends PerdisCardBase {
       : (badge || `<ha-icon icon="${escapeHtml(this._config.icon || DEFAULT_HEADER_ICON)}"></ha-icon>`);
     if (!name && !mark) return "";
     const t = texts(this._hass);
+    // Both actions are a symbol over a short word, so it is clear at a glance what each one does.
     const refresh = this._entities?.refresh
-      ? `<button class="refresh${this._refreshing ? " busy" : ""}${this._flash ? " ok" : ""}"`
+      ? `<button class="action refresh${this._refreshing ? " busy" : ""}${this._flash ? " ok" : ""}"`
         + ` aria-label="${escapeHtml(t.refreshRoster)}" title="${escapeHtml(t.refreshRoster)}"`
         + `${this._refreshing ? " disabled" : ""}>`
-        + `<ha-icon icon="${this._flash ? "mdi:check" : "mdi:refresh"}"></ha-icon></button>`
+        + `<ha-icon icon="${this._flash ? "mdi:check" : "mdi:refresh"}"></ha-icon>`
+        + `<span>${escapeHtml(t.refreshShort)}</span></button>`
       : "";
     // The open button: the portal by default, or whatever `open_url` names (an address or an app).
     const target = this._config.open_url || roster.portal_url || "";
     const open = this._config.show_open !== false && target
-      ? `<button class="open" aria-label="${escapeHtml(t.open)}" title="${escapeHtml(t.open)}">`
-        + `<ha-icon icon="mdi:open-in-new"></ha-icon></button>`
+      ? `<button class="action open" aria-label="${escapeHtml(t.open)}" title="${escapeHtml(t.open)}">`
+        + `<ha-icon icon="mdi:open-in-app"></ha-icon><span>PERDIS</span></button>`
       : "";
     // PERDIS and, right next to it, how the portal is reached: "PERDIS WebComm" or "PERDIS AppComm".
     const kicker = `PERDIS${roster.portal ? ` ${roster.portal}` : ""}`;
@@ -1826,9 +1944,14 @@ class PerdisMasterEditor extends HTMLElement {
       field.device, field.title, { name: "logo", selector: { text: {} } },
       { type: "grid", schema: [field.showHeader, field.icon] },
       field.boolean("show_open"), { name: "open_url", selector: { text: {} } },
+      { type: "expandable", name: "sec_extras", flatten: true, title: t.editor.sec_extras, schema: [
+        extraField("show_trend"), { name: "trend_days", selector: { number: { min: 3, max: 60, mode: "slider" } } },
+        extraField("use_calendar_card_pro"), { name: "calendar_days", selector: { number: { min: 3, max: 60, mode: "slider" } } },
+      ] },
     ];
     this._form.computeLabel = (schema) => t.editor[schema.name] || schema.name;
-    this._form.computeHelper = (schema) => t.helper[schema.name] || "";
+    this._form.computeHelper = (schema) => helperFor(this._hass, schema.name);
+    watchExtras(this);
 
     const enabled = this._enabled();
     const enabledSet = new Set(enabled);
