@@ -35,7 +35,7 @@ that is built for the phone first.
 > [!IMPORTANT]
 > ### I have nothing to do with PERDIS or INIT – 0 % so far
 > This is a private hobby project. I don't work for INIT Mobility Software Solutions GmbH (the
-> maker of PERDIS, MOBILE-PERDIS, WebComm and AppComm), I'm not a partner, and I have neither
+> provider of MOBILE-PERDIS, including WebComm and AppComm), I'm not a partner, and I have neither
 > documentation nor inside knowledge.
 >
 > - The integration only reads what the portal shows you in the browser after you sign in. There
@@ -679,8 +679,8 @@ logger:
 
 ## ⚖️ Disclaimer
 
-PERDIS, MOBILE-PERDIS, WebComm and AppComm are products and possibly trademarks of INIT Mobility
-Software Solutions GmbH. Company names belong to their owners and are only used to point to their
+MOBILE-PERDIS is offered by **INIT Mobility Software Solutions GmbH**. PERDIS, MOBILE-PERDIS,
+WebComm and AppComm are products and possibly trademarks of that company or of the INIT group. Company names belong to their owners and are only used to point to their
 portals. This project is not affiliated with any of them (see the box at the very top). Use it
 with your own account only and follow the rules of your employer.
 

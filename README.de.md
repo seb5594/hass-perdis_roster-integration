@@ -20,7 +20,7 @@ Auslöser für Automationen und eine Dashboard-Karte, die zuerst fürs Handy geb
 > [!IMPORTANT]
 > ### Ich habe nichts mit PERDIS oder INIT zu tun – bisher zu 0 %
 > Das hier ist ein privates Hobbyprojekt. Ich arbeite nicht bei der INIT Mobility Software
-> Solutions GmbH (die Herstellerin von PERDIS, MOBILE-PERDIS, WebComm und AppComm), bin kein Partner
+> Solutions GmbH (die Anbieterin von MOBILE-PERDIS, mit WebComm und AppComm), bin kein Partner
 > und habe weder eine Dokumentation noch Insiderwissen.
 >
 > - Die Integration liest nur, was das Portal dir nach der Anmeldung im Browser zeigt. Eine
@@ -649,8 +649,8 @@ logger:
 
 ## ⚖️ Hinweis
 
-PERDIS, MOBILE-PERDIS, WebComm und AppComm sind Produkte und ggf. Marken der INIT Mobility
-Software Solutions GmbH. Unternehmensnamen gehören ihren Inhabern und dienen nur dem Hinweis auf
+MOBILE-PERDIS wird von der **INIT Mobility Software Solutions GmbH** angeboten. PERDIS, MOBILE-PERDIS,
+WebComm und AppComm sind Produkte und ggf. Marken dieser Firma bzw. der INIT-Gruppe. Unternehmensnamen gehören ihren Inhabern und dienen nur dem Hinweis auf
 deren Portale. Dieses Projekt steht mit keinem von ihnen in Verbindung (siehe den Kasten ganz
 oben). Nutze es nur mit deinem eigenen Konto und halte dich an die Regeln deines Arbeitgebers.
 
