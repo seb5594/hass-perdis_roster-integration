@@ -11,7 +11,7 @@ except ImportError:  # pragma: no cover - older cores keep it in helpers.entity
 from homeassistant.helpers.entity import EntityDescription
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_BASE_URL, CONF_PORTAL_TYPE, DOMAIN, MANUFACTURER
+from .const import CONF_BASE_URL, CONF_PORTAL_TYPE, DOMAIN, MANUFACTURER, VERSION_KEY
 from .coordinator import PerdisCoordinator
 from .operators import find_operator_by_url
 
@@ -49,6 +49,9 @@ class PerdisEntity(CoordinatorEntity[PerdisCoordinator]):
             manufacturer=MANUFACTURER,
             model=f"PERDIS {portal}" + (f" · {operator.name}" if operator else ""),
             configuration_url=entry.data[CONF_BASE_URL],
+            # The version that is running, not the one on disk: after an update it shows the old
+            # one until Home Assistant restarts, which is exactly what is worth seeing.
+            sw_version=coordinator.hass.data.get(VERSION_KEY),
             entry_type=DeviceEntryType.SERVICE,
         )
 

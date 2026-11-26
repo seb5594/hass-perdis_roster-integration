@@ -83,7 +83,7 @@ Netherlands use. Drivers see their roster in the **WebComm** portal in the brows
 - 🃏 **Three dashboard cards** that register themselves: next shift, roster and accounts.
 - 💾 **Works through maintenance windows**: the last roster is cached and stays available while
   the portal is down.
-- 🌍 **German and English** throughout: setup, entities, cards, notifications and calendar.
+- 🌍 **German and English** throughout: setup, entities, cards, notifications and calendar. The setup dialog and the entity names are also available in **Dutch**; other languages fall back to English.
 - 🪶 **Light**: no extra Python packages, one portal request sequence every 30 minutes, the cache is
   only written to disk when the roster really changed.
 
@@ -249,7 +249,7 @@ All entities belong to one device per account. The entity IDs below assume an ac
 | `sensor.…_last_refresh` | Last successful refresh, last error and the pages found (diagnostic) |
 | `sensor.…_roster_records` | Longest shift, earliest start and latest end of the loaded roster (diagnostic) |
 | `sensor.…_detailed_shifts` | How many of the upcoming shifts have their leg-by-leg detail (diagnostic) |
-| `button.…_refresh_now` | Asks the portal right now; the same as the `perdis_roster.refresh` action |
+| `button.…_refresh_roster` | Asks the portal right now; the same as the `perdis_roster.refresh` action |
 | `calendar.…_duties` | Shifts as timed entries, days off and absences as all-day entries |
 
 Long lists are kept out of the recorder database, so the history stays small.

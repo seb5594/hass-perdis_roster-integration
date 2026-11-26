@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026.11.26.6
+
+- 🔄 The **all-in-one card** has the refresh built in: a round button in its header asks the portal
+  right now, spins while it works and shows a check mark when the roster is fresh; under the
+  account it says how long ago the roster was fetched ("Aktualisiert vor 5 Minuten"). The button
+  entity is now called "Refresh roster" / "Dienstplan aktualisieren".
+- 🏷️ The device page shows the **version that is running**. After an update through HACS Home
+  Assistant has to be restarted; until then it still runs (and serves the cards of) the old
+  version, which is easy to miss — now it is visible.
+- 🌍 The German name is **"Perdis Dienstplan"**. New **Dutch** translation of the setup dialog and
+  the entity names ("Dienstrooster van Perdis"); the cards and the notification texts are still
+  German and English only.
+
 ## 2026.11.26.5
 
 - 🌍 The integration's display name follows the server language: **"Perdis-Dienstplan"** on a German

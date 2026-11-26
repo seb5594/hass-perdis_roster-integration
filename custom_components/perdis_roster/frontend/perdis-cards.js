@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.5";
+const VERSION = "2026.11.26.6";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -49,6 +49,7 @@ const TEXTS = {
     hours: "h",
     days: "days",
     clock: "",
+    updated: "Updated", justNow: "just now", updating: "Updating…", refreshRoster: "Refresh roster",
     units: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
     unitsIn: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
     points: "pts",
@@ -156,6 +157,8 @@ const TEXTS = {
     hours: "Std.",
     days: "Tage",
     clock: "Uhr",
+    updated: "Aktualisiert", justNow: "gerade eben", updating: "Aktualisiere…",
+    refreshRoster: "Dienstplan aktualisieren",
     units: { day: ["Tag", "Tage"], hour: ["Stunde", "Stunden"], minute: ["Minute", "Minuten"] },
     // After "in" German takes the dative: "in 2 Tagen", "in 1 Tag".
     unitsIn: { day: ["Tag", "Tagen"], hour: ["Stunde", "Stunden"], minute: ["Minute", "Minuten"] },
@@ -414,6 +417,18 @@ function formatCountdown(hass, minutes) {
   return formatDuration(hass, shown, true);
 }
 
+/** How long ago a moment was, in the user's language: "vor 5 Minuten", or "gerade eben" within a minute. */
+function formatAgo(hass, iso) {
+  const moment = iso ? new Date(iso) : null;
+  if (!moment || Number.isNaN(moment.getTime())) return "";
+  const minutes = Math.floor((Date.now() - moment.getTime()) / 60000);
+  if (minutes < 1) return texts(hass).justNow;
+  const rtf = new Intl.RelativeTimeFormat(hass?.locale?.language || "en", { numeric: "always" });
+  if (minutes < 60) return rtf.format(-minutes, "minute");
+  if (minutes < 2880) return rtf.format(-Math.floor(minutes / 60), "hour");
+  return rtf.format(-Math.floor(minutes / 1440), "day");
+}
+
 /** "Tag" or "Tage" by the number: the unit word of a count, e.g. for the days of vacation left. */
 function unitLabel(hass, unit, count) {
   return texts(hass).units[unit][Number(count) === 1 ? 0 : 1];
@@ -628,9 +643,9 @@ const SHIFT_STYLE = `
           background: var(--secondary-background-color);
           background: color-mix(in srgb, var(--accent) 14%, var(--card-background-color)); }
   .hero::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--accent); }
-  .duty { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .duty { display: flex; align-items: baseline; gap: 6px 12px; flex-wrap: wrap; }
   .duty .code { font-size: 2.1rem; font-weight: 700; line-height: 1.05; letter-spacing: -0.5px; }
-  .when { margin-top: 2px; font-size: 1rem; }
+  .when { margin-top: 6px; font-size: 1rem; }
   .times { font-size: 1.7rem; font-weight: 500; margin: 10px 0 2px; letter-spacing: 0.5px; }
   .place { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
   .lines { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
@@ -1476,7 +1491,23 @@ const MASTER_STYLE = `
   .brand .badge { background: var(--primary-color); color: var(--text-primary-color, #fff); font-weight: 700;
                   letter-spacing: 0.5px; padding: 5px 11px; border-radius: 10px; font-size: 0.95rem; }
   .brand .logo { height: 34px; max-width: 140px; object-fit: contain; }
+  .brand .who { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
   .brand .name { font-size: 1.05rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .brand .stamp { font-size: 0.75rem; color: var(--secondary-text-color); line-height: 1.3; }
+  .brand .stamp.warn { color: var(--warning-color, #ffa600); }
+  .refresh { flex: 0 0 auto; width: 40px; height: 40px; border: none; border-radius: 50%; cursor: pointer;
+             display: inline-flex; align-items: center; justify-content: center; font: inherit;
+             color: var(--primary-color);
+             background: color-mix(in srgb, var(--primary-color) 14%, var(--card-background-color));
+             transition: background 150ms ease, transform 150ms ease, color 150ms ease; }
+  .refresh:hover { background: color-mix(in srgb, var(--primary-color) 24%, var(--card-background-color)); }
+  .refresh:active { transform: scale(0.9); }
+  .refresh[disabled] { cursor: default; }
+  .refresh.busy ha-icon { animation: perdis-spin 1s linear infinite; }
+  .refresh.ok { color: var(--success-color, #43a047);
+                background: color-mix(in srgb, var(--success-color, #43a047) 16%, var(--card-background-color)); }
+  @keyframes perdis-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .refresh.busy ha-icon { animation-duration: 3s; } }
 `;
 
 // The panels the all-in-one card switches between: each one simply reuses the matching standalone
@@ -1536,7 +1567,65 @@ class PerdisMasterCard extends PerdisCardBase {
       ? `<img class="logo" src="${escapeHtml(this._config.logo)}" alt="${escapeHtml(operator)}">`
       : (badge || `<ha-icon icon="${escapeHtml(this._config.icon || DEFAULT_HEADER_ICON)}"></ha-icon>`);
     if (!name && !mark) return "";
-    return `<div class="brand" data-badge="${escapeHtml(badge)}">${mark}<span class="name">${escapeHtml(name)}</span></div>`;
+    const t = texts(this._hass);
+    const refresh = this._entities?.refresh
+      ? `<button class="refresh${this._refreshing ? " busy" : ""}${this._flash ? " ok" : ""}"`
+        + ` aria-label="${escapeHtml(t.refreshRoster)}" title="${escapeHtml(t.refreshRoster)}"`
+        + `${this._refreshing ? " disabled" : ""}>`
+        + `<ha-icon icon="${this._flash ? "mdi:check" : "mdi:refresh"}"></ha-icon></button>`
+      : "";
+    return `<div class="brand" data-badge="${escapeHtml(badge)}">${mark}`
+      + `<div class="who"><span class="name">${escapeHtml(name)}</span>`
+      + `<span class="stamp${roster.online === false ? " warn" : ""}">${escapeHtml(this._stamp())}</span></div>`
+      + `${refresh}</div>`;
+  }
+
+  /** "Aktualisiert vor 5 Minuten", or "Aktualisiere…" while a refresh runs. */
+  _stamp() {
+    const t = texts(this._hass);
+    if (this._refreshing) return t.updating;
+    const ago = formatAgo(this._hass, this._lastRefresh());
+    return ago ? `${t.updated} ${ago}` : "";
+  }
+
+  _lastRefresh() {
+    const id = this._entities?.last_refresh;
+    const state = id ? this._hass.states[id]?.state : null;
+    return state && state !== "unknown" && state !== "unavailable" ? state : null;
+  }
+
+  /** Ask the portal now (the refresh button entity) and spin until the roster was fetched again. */
+  _refresh() {
+    const id = this._entities?.refresh;
+    if (!id || this._refreshing) return;
+    this._refreshing = true;
+    this._refreshBaseline = this._lastRefresh();
+    this._hass.callService("button", "press", { entity_id: id });
+    // A portal that does not answer must not leave the button spinning for ever.
+    clearTimeout(this._refreshTimeout);
+    this._refreshTimeout = setTimeout(() => this._finishRefresh(false), 30000);
+    this._render();
+  }
+
+  _finishRefresh(succeeded) {
+    clearTimeout(this._refreshTimeout);
+    this._refreshing = false;
+    this._flash = succeeded;
+    if (succeeded) setTimeout(() => { this._flash = false; this._render(); }, 1800);
+    this._render();
+  }
+
+  connectedCallback() {
+    // The "vor 5 Minuten" caption ages on its own, so it is refreshed without a full render.
+    this._ticker = setInterval(() => {
+      const stamp = this.shadowRoot?.querySelector(".brand .stamp");
+      if (stamp && this._hass) stamp.textContent = this._stamp();
+    }, 30000);
+  }
+
+  disconnectedCallback() {
+    clearInterval(this._ticker);
+    clearTimeout(this._refreshTimeout);
   }
 
   _render() {
@@ -1544,6 +1633,13 @@ class PerdisMasterCard extends PerdisCardBase {
     const t = texts(this._hass);
     const tabs = this._activeTabs();
     if (!this._active || !tabs.includes(this._active)) this._active = tabs[0];
+    // The refresh is done as soon as the last-refresh sensor shows a newer moment than at the click.
+    if (this._refreshing && this._lastRefresh() !== this._refreshBaseline) {
+      this._refreshing = false;
+      this._flash = true;
+      clearTimeout(this._refreshTimeout);
+      setTimeout(() => { this._flash = false; this._render(); }, 1800);
+    }
     const header = this._config.show_header !== false ? this._brand() : "";
     const bar = tabs.map((key) => {
       const panel = PANELS[key];
@@ -1564,6 +1660,7 @@ class PerdisMasterCard extends PerdisCardBase {
         if (fallback) logo.outerHTML = fallback; else logo.remove();
       });
     }
+    this.shadowRoot.querySelector(".refresh")?.addEventListener("click", () => this._refresh());
     this.shadowRoot.querySelectorAll(".tab").forEach((button) =>
       button.addEventListener("click", () => {
         this._active = button.dataset.tab;

@@ -1,0 +1,313 @@
+{
+  "title": "Dienstrooster van Perdis",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Koppel je Perdis-dienstrooster",
+        "description": "Hoe wil je je portaal vinden?\n\nOnofficiële integratie: INIT documenteert de Perdis-interfaces niet, dus het leest af wat het portaal je in de browser laat zien. Je wachtwoord blijft in Home Assistant opgeslagen.",
+        "menu_options": {
+          "operator": "Kies mijn vervoersbedrijf uit de lijst",
+          "manual": "Het adres van het portaal zelf invoeren"
+        }
+      },
+      "operator": {
+        "title": "Je vervoersbedrijf",
+        "description": "Deze bedrijven beheren een openbaar Perdis WebComm-portaal. Staat die van jou er niet bij? Ga dan terug en voer het adres in dat je in de browser hebt geopend.",
+        "data": {
+          "operator": "Vervoersbedrijf"
+        }
+      },
+      "manual": {
+        "title": "Adres van je Perdis-portaal",
+        "description": "Kopieer het adres uit de browser, bijvoorbeeld `{example_url}`. Een gewone hostnaam is ook voldoende.",
+        "data": {
+          "base_url": "Adres van het portaal",
+          "portal_type": "Soort portaal",
+          "verify_ssl": "Controleer het certificaat"
+        },
+        "data_description": {
+          "base_url": "De pagina waarop je je aanmeldt met je personeelsnummer.",
+          "portal_type": "Kies voor WebComm, tenzij je bedrijf je een AppComm-serviceadres heeft gegeven.",
+          "verify_ssl": "Schakel deze functie alleen uit voor portalen met een zelfondertekend certificaat."
+        }
+      },
+      "credentials": {
+        "title": "Log in bij {operator}",
+        "description": "Gebruik dezelfde gebruikersnaam en hetzelfde wachtwoord als op {url}. Deze worden uitsluitend naar dat portaal verzonden.",
+        "data": {
+          "username": "Gebruikersnaam / personeelsnummer",
+          "password": "Wachtwoord"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Wachtwoord gewijzigd?",
+        "description": "Het portaal {url} accepteert het wachtwoord van {username} niet meer. Voer het huidige wachtwoord in.",
+        "data": {
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Het portaal heeft de gebruikersnaam of het wachtwoord niet geaccepteerd.",
+      "cannot_connect": "Het portaal kon niet worden bereikt. Controleer het adres en je internetverbinding.",
+      "not_a_portal": "Dit adres werkt wel, maar niet zoals een Perdis-portaal. Controleer het adres en het type portaal.",
+      "invalid_url": "Dit is geen geldig webadres.",
+      "unknown": "Onverwachte fout; raadpleeg het logboek voor meer informatie."
+    },
+    "abort": {
+      "already_configured": "Dit account is al aangemaakt.",
+      "reauth_successful": "Het nieuwe wachtwoord werkt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Je persoonlijke tijden",
+        "description": "Deze waarden zijn alleen van invloed op wat Home Assistant op basis van je rooster berekent.",
+        "data": {
+          "wake_up_lead_minutes": "Sta op voordat de dienst begint",
+          "commute_minutes": "Reistijd naar het werk",
+          "minimum_rest_hours": "Minimale rusttijd tussen diensten",
+          "notify_changes": "Houd mij op de hoogte van wijzigingen in mijn dienstrooster",
+          "scan_interval": "Kijk op het portaal of er nieuwe gegevens zijn, elke",
+          "lookahead_days": "Aantal dagen vooruit",
+          "lookback_days": "Aantal afgelopen dagen dat moet worden bewaard",
+          "detail_days": "Laad de exacte diensttijden voor dit aantal dagen vooruit",
+          "person": "Medewerker (persoon) aan wie dit rooster toebehoort",
+          "notify_target": "Meldingsdienst voor wijzigingen in het dienstrooster",
+          "calendar_leg_events": "Kalender: één vermelding per deel van een dienst",
+          "notify_action": "Actie die moet worden uitgevoerd wanneer het dienstrooster verandert"
+        },
+        "data_description": {
+          "wake_up_lead_minutes": "Hiermee stel je je wektijd en de trigger daarvoor in.",
+          "commute_minutes": "Hiermee stel je in hoe laat je het huis verlaat en wat de aanleiding daarvoor is.",
+          "minimum_rest_hours": "Bij een kortere rustperiode wordt de waarschuwing voor een korte rustperiode geactiveerd (EU-regel: 11 uur).",
+          "scan_interval": "Dienstroosters veranderen zelden van minuut tot minuut; 30 minuten is ruim voldoende.",
+          "detail_days": "Alleen het maandrooster is gratis; de exacte tijden van een dienst kosten de eerste keer één extra verzoek en worden daarna hergebruikt totdat de dienst verandert. Bij elke verversing worden er een paar opgehaald. Met 0 wordt deze functie uitgeschakeld.",
+          "person": "Wordt gebruikt als context en doorgegeven aan een melding/script dat je hieronder instelt.",
+          "notify_target": "Een dienst zoals notify.mobile_app_phone of een script zoals script.my_script dat wordt aangeroepen bij een wijziging in het dienstrooster. Laat dit veld leeg om alleen de melding in reparatiestijl te gebruiken.",
+          "notify_action": "De volledige actie-editor: kies een dienst en vul de velden in, of stel een reeks samen. Voer in de velden voor titel en bericht {title_template} en {message_template} in om precies door te geven wat er in de melding in Home Assistant wordt weergegeven. Ook beschikbaar: {more_variables}."
+        },
+        "sections": {
+          "advanced": {
+            "name": "Portaalpagina's (voor gevorderde gebruikers)",
+            "description": "Laat leeg: de integratie zoekt de pagina’s zelf op in het portaalmenu. Vul alleen een pad in als een pagina niet wordt gevonden (zie de diagnostiek).",
+            "data": {
+              "roster_page": "Pagina met dienstroosters",
+              "balances_page": "Pagina ‘Saldi’",
+              "weekend_points_page": "Puntenpagina voor het weekend",
+              "appcomm_login_path": "Inlogpad voor AppComm",
+              "appcomm_roster_path": "AppComm-dienstroosterpad",
+              "appcomm_balances_path": "AppComm-pad voor de tijdssaldi",
+              "appcomm_weekend_points_path": "AppComm-traject voor weekendpunten"
+            }
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "portal_type": {
+      "options": {
+        "webcomm": "WebComm (het portaal in de browser)",
+        "appcomm": "AppComm-dienst (experimenteel)"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "next_shift": {
+        "name": "Volgende dienst"
+      },
+      "next_shift_start": {
+        "name": "Begin van de volgende dienst"
+      },
+      "next_shift_end": {
+        "name": "Einde van de volgende dienst"
+      },
+      "next_shift_location": {
+        "name": "Locatie van de volgende dienst"
+      },
+      "next_shift_category": {
+        "name": "Soort van de volgende dienst",
+        "state": {
+          "early": "Vroege dienst",
+          "day": "Dagdienst",
+          "late": "Avonddienst",
+          "night": "Nachtdienst",
+          "split": "Gesplitste dienst"
+        }
+      },
+      "wake_up": {
+        "name": "Tijd om op te staan"
+      },
+      "leave_home": {
+        "name": "Tijd om van huis te gaan"
+      },
+      "rest_before_next_shift": {
+        "name": "Rust voor de volgende dienst"
+      },
+      "today": {
+        "name": "Vandaag",
+        "state": {
+          "work": "Dienst",
+          "reserve": "Wachtdienst",
+          "training": "Opleiding",
+          "free": "Vrije dag",
+          "vacation": "Vakantie",
+          "compensation": "Compensatieverlof",
+          "sick": "Ziekteverlof",
+          "unknown": "Onbekend"
+        }
+      },
+      "tomorrow": {
+        "name": "Morgen",
+        "state": {
+          "work": "Dienst",
+          "reserve": "Wachtdienst",
+          "training": "Opleiding",
+          "free": "Vrije dag",
+          "vacation": "Vakantie",
+          "compensation": "Compensatieverlof",
+          "sick": "Ziekteverlof",
+          "unknown": "Onbekend"
+        }
+      },
+      "next_day_off": {
+        "name": "Volgende vrije dag"
+      },
+      "days_until_day_off": {
+        "name": "Aantal dagen tot de vrije dag"
+      },
+      "working_days_in_a_row": {
+        "name": "Aantal opeenvolgende werkdagen"
+      },
+      "next_free_weekend": {
+        "name": "Het volgende vrije weekend"
+      },
+      "free_weekends_ahead": {
+        "name": "Aankomende vrije weekenden"
+      },
+      "planned_hours_week": {
+        "name": "Geplande uren deze week"
+      },
+      "planned_hours_month": {
+        "name": "Geplande uren deze maand"
+      },
+      "overtime": {
+        "name": "Saldo overuren"
+      },
+      "daily_balance": {
+        "name": "Tijdsbalans van vandaag"
+      },
+      "vacation_remaining": {
+        "name": "Resterende vakantiedagen"
+      },
+      "weekend_points": {
+        "name": "Weekendpunten"
+      },
+      "weekend_points_difference": {
+        "name": "Weekendpunten versus gemiddelde"
+      },
+      "free_weekends_year": {
+        "name": "Vrije weekenden dit jaar"
+      },
+      "roster": {
+        "name": "Dienstrooster"
+      },
+      "schedule_changes": {
+        "name": "Wijzigingen in het dienstrooster"
+      },
+      "duty_swaps": {
+        "name": "Openstaande dienstwissels"
+      },
+      "last_refresh": {
+        "name": "Laatste vernieuwing"
+      },
+      "roster_records": {
+        "name": "Gegevens over het dienstrooster"
+      },
+      "detailed_shifts": {
+        "name": "Diensten met details"
+      }
+    },
+    "binary_sensor": {
+      "on_duty": {
+        "name": "Momenteel in dienst"
+      },
+      "day_off_today": {
+        "name": "Vrije dag: vandaag"
+      },
+      "day_off_tomorrow": {
+        "name": "Vrije dag: morgen"
+      },
+      "split_shift_today": {
+        "name": "Gesplitste dienst: vandaag"
+      },
+      "short_rest": {
+        "name": "Verkorte rustperiode"
+      },
+      "portal_online": {
+        "name": "Portaal"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Dienstrooster vernieuwen"
+      }
+    },
+    "calendar": {
+      "duties": {
+        "name": "Diensten"
+      }
+    }
+  },
+  "device_automation": {
+    "trigger_type": {
+      "wake_up": "Tijd om op te staan",
+      "leave_home": "Tijd om te vertrekken",
+      "shift_started": "De dienst is begonnen",
+      "shift_ended": "Dienst afgelopen",
+      "free_weekend_started": "Het vrije weekend is begonnen",
+      "schedule_changed": "Dienstrooster gewijzigd"
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Dienstrooster vernieuwen",
+      "description": "Vraagt het portaal nu om het dienstrooster, in plaats van te wachten tot de volgende controle.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Laat dit veld leeg om alle accounts te vernieuwen."
+        }
+      }
+    },
+    "get_duties": {
+      "name": "De lijst met diensten ophalen",
+      "description": "Geeft de lijst weer met diensten die tussen twee datums vallen, bijvoorbeeld voor een script of een melding.",
+      "fields": {
+        "config_entry_id": {
+          "name": "Account",
+          "description": "Laat dit veld leeg om de diensten van alle accounts op te halen."
+        },
+        "start_date": {
+          "name": "Van",
+          "description": "Eerste dag. Als dit veld leeg blijft, wordt ‘vandaag’ gebruikt."
+        },
+        "end_date": {
+          "name": "Tot",
+          "description": "Laatste dag. Als dit veld leeg wordt gelaten, wordt twee weken na de eerste dag gehanteerd."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "no_loaded_entry": {
+      "message": "Er is geen Perdis-account geladen."
+    },
+    "end_before_start": {
+      "message": "De laatste dag ligt vóór de eerste dag."
+    }
+  }
+}
