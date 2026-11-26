@@ -7,6 +7,7 @@ locally: python .engine/.scripts/ha_matrix.py run 2026.9.4
 
 from datetime import date, datetime
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import aiohttp
 from conftest import PASSWORD, USERNAME
@@ -18,7 +19,7 @@ from homeassistant.config_entries import ConfigEntryState
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
-from pytest_homeassistant_custom_component.common import async_fire_time_changed
+from pytest_homeassistant_custom_component.common import async_fire_time_changed, async_mock_service
 
 DOMAIN = next((Path(__file__).resolve().parents[2] / "custom_components").iterdir()).name
 # Two o'clock in the night before the first duty of the fixtures (Monday 23 November 2026, 05:12).
@@ -394,3 +395,106 @@ async def test_open_duty_swaps_are_listed(hass, fake_webcomm):
     assert swaps.attributes["request_to"] == "2026-12-09"
 
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+def test_a_duration_reads_in_its_largest_units_with_the_right_plural():
+    from custom_components.perdis_roster.sensor import _duration_text
+
+    assert _duration_text(0, "de") == "0 Minuten"
+    assert _duration_text(1, "de") == "1 Minute"
+    assert _duration_text(45, "de") == "45 Minuten"
+    assert _duration_text(60, "de") == "1 Stunde"
+    assert _duration_text(61, "de") == "1 Stunde 1 Minute"
+    assert _duration_text(11 * 60 + 30, "de") == "11 Stunden 30 Minuten"
+    assert _duration_text(1440, "de") == "1 Tag"
+    assert _duration_text(2 * 1440 + 3 * 60, "de") == "2 Tage 3 Stunden"
+    assert _duration_text(int(255.8 * 60), "de") == "10 Tage 15 Stunden 48 Minuten"
+    assert _duration_text(90, "en") == "1 hour 30 minutes"
+    assert _duration_text(None, "de") is None
+
+
+async def test_the_refresh_button_asks_the_portal_again(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    entity_id = er.async_get(hass).async_get_entity_id("button", DOMAIN, f"{entry.entry_id}_refresh")
+    assert entity_id is not None
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinator.async_request_refresh = AsyncMock()
+    await hass.services.async_call("button", "press", {"entity_id": entity_id}, blocking=True)
+    coordinator.async_request_refresh.assert_awaited_once()
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_roster_records_and_the_diagnostic_sensors(hass, fake_webcomm):
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    registry = er.async_get(hass)
+    for key in ("roster_records", "detailed_shifts", "roster", "next_shift_start", "days_until_day_off"):
+        entity = registry.async_get(registry.async_get_entity_id("sensor", DOMAIN, f"{entry_of(hass).entry_id}_{key}"))
+        assert entity.entity_category == "diagnostic", key
+
+    records = state_of(hass, "sensor", "roster_records")
+    assert int(records.state) >= 3
+    assert records.attributes["longest_shift_hours"] > 8
+    assert records.attributes["earliest_start"] == "05:12"
+    # A night shift runs past midnight: the portal's own "26:05", not "02:05".
+    assert records.attributes["latest_end"] == "26:05"
+    assert records.attributes["latest_end_date"] == "2026-11-27"
+    assert int(state_of(hass, "sensor", "detailed_shifts").state) >= 1
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_german_servers_read_units_and_durations_in_german(hass, fake_webcomm):
+    hass.config.language = "de"
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    vacation = state_of(hass, "sensor", "vacation_remaining")
+    assert vacation.state == "12.5" and vacation.attributes["unit_of_measurement"] == "Tage"
+    assert state_of(hass, "sensor", "planned_hours_week").attributes["unit_of_measurement"] == "Std."
+    assert state_of(hass, "sensor", "days_until_day_off").attributes["unit_of_measurement"] == "Tage"
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+# Home Assistant's script helper schedules its shutdown watcher once an action ran; the test harness
+# would flag that timer as lingering, and it is expected here.
+@pytest.mark.parametrize("expected_lingering_timers", [True])
+async def test_the_change_action_receives_the_notification_text(hass, fake_webcomm):
+    """The action built in the options UI gets exactly the title and message of the notification."""
+    from custom_components.perdis_roster.models import ChangeKind, ScheduleChange
+
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "notify_action": [
+        {"service": "test.capture", "data": {"title": "{{ title }}", "message": "{{ message }}"}}]})
+    await hass.async_block_till_done()
+    calls = async_mock_service(hass, "test", "capture")
+
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    duty = coordinator.insights.duties[0]
+    change = ScheduleChange(duty.day, ChangeKind.TIMES, coordinator.data.snapshot.fetched_at, duty, duty)
+    coordinator._announce_changes([change])
+    await hass.async_block_till_done()
+
+    assert len(calls) == 1
+    assert calls[0].data["title"] == f"{entry.title}: Roster change"
+    assert calls[0].data["message"].startswith("- ") and "\n" in calls[0].data["message"]
+    await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_a_saved_notification_service_is_offered_as_an_action(hass, fake_webcomm):
+    """Saving the options must not drop a service chosen with an older version of the form."""
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    entry = entry_of(hass)
+    hass.config_entries.async_update_entry(entry, options={**entry.options, "notify_target": "notify.phone"})
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    field = next(key for key in result["data_schema"].schema if key == "notify_action")
+    suggested = field.description["suggested_value"]
+    assert suggested[0]["service"] == "notify.phone"
+    assert suggested[0]["data"] == {"title": "{{ title }}", "message": "{{ message }}"}
+    assert "notify_target" not in [str(key) for key in result["data_schema"].schema]
+    await hass.config_entries.async_unload(entry.entry_id)

@@ -85,7 +85,7 @@
           "detail_days": "Only the month roster is free; a shift's exact times cost one extra request the first time, then are reused until the shift changes. A few are fetched per refresh. 0 turns it off.",
           "person": "Used as context and passed to a notification/script you set below.",
           "notify_target": "A service such as notify.mobile_app_phone or a script.my_script to call on a roster change. Leave empty to use only the repair-style notification.",
-          "notify_action": "The full action editor: pick a service and fill its fields, or build a sequence. Available: {{ title }}, {{ message }}, {{ changes }}, {{ person }}."
+          "notify_action": "The full action editor: pick a service and fill in its fields, or build a sequence. In the title and message fields enter {title_template} and {message_template} to pass on exactly what the notification in Home Assistant shows. Also available: {more_variables}."
         },
         "sections": {
           "advanced": {
@@ -222,6 +222,12 @@
       },
       "last_refresh": {
         "name": "Last refresh"
+      },
+      "roster_records": {
+        "name": "Roster records"
+      },
+      "detailed_shifts": {
+        "name": "Shifts with details"
       }
     },
     "binary_sensor": {
@@ -242,6 +248,11 @@
       },
       "portal_online": {
         "name": "Portal"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh now"
       }
     },
     "calendar": {

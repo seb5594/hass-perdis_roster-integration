@@ -34,22 +34,24 @@ from .capabilities import (
 )
 from .changes import describe
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
+from .const import CONF_BASE_URL
 from .entity import ATTR_ROLE, PerdisEntity, description_frozen
 from .insights import ShiftCategory, shift_category
 from .labels import type_label
 from .models import Duty, DutyType
+from .operators import find_operator_by_url
 
-# German readers expect "Std."/"Tage", not the bare "h"/"d" symbols of the core units. The unit is
-# localized per account language; dropping the duration device class with it keeps Home Assistant
-# from rejecting a non-standard duration unit (the numeric value is unaffected).
-LOCALIZED_UNITS: dict[str, dict[str, str]] = {
-    "de": {UnitOfTime.HOURS: "Std.", UnitOfTime.DAYS: "Tage"},
-}
+# German readers expect "Std." and "Tag"/"Tage", not the bare "h"/"d" symbols of the core units. The
+# day unit follows the value ("1 Tag", "2 Tage"); the hour unit has no plural. The unit is
+# localized per account language, and a localized unit drops the duration device class, which would
+# otherwise reject a unit that is not a standard duration unit (the number itself is unaffected).
+HOURS_UNIT = {"de": "Std."}
+DAYS_UNIT = {"de": ("Tag", "Tage")}
 
-# Words for the human-readable rest duration, e.g. "1 Tag 3 Std 20 Min".
-DURATION_WORDS: dict[str, dict[str, str]] = {
-    "de": {"day": "Tag", "days": "Tage", "hours": "Std", "minutes": "Min"},
-    "en": {"day": "day", "days": "days", "hours": "h", "minutes": "min"},
+# One word per unit and number, for the text form of a duration, e.g. "1 Tag 3 Stunden 20 Minuten".
+DURATION_WORDS: dict[str, dict[str, tuple[str, str]]] = {
+    "de": {"day": ("Tag", "Tage"), "hour": ("Stunde", "Stunden"), "minute": ("Minute", "Minuten")},
+    "en": {"day": ("day", "days"), "hour": ("hour", "hours"), "minute": ("minute", "minutes")},
 }
 
 ROSTER_CARD_DAYS = 42  # how far the roster sensor looks ahead for the dashboard card
@@ -81,6 +83,7 @@ def duty_attributes(duty: Duty | None) -> dict[str, Any]:
         "end_location": duty.end_location,
         "lines": list(duty.lines),
         "hours": _hours(duty.worked_minutes),
+        "break_minutes": duty.break_minutes,
         "split_shift": duty.split,
         "category": category.value if category else None,
         "remark": duty.remark,
@@ -120,22 +123,19 @@ def _language(coordinator: PerdisCoordinator) -> str:
 
 
 def _duration_text(minutes: int | None, language: str) -> str | None:
-    """A duration in days, hours and minutes, e.g. "1 Tag 3 Std 20 Min" or "11 Std 30 Min".
+    """A duration in its largest units, e.g. "10 Tage 15 Stunden 48 Minuten" or "45 Minuten".
 
-    Days show from 24 h on (plural "Tage" from 48 h on); the hours are dropped below one hour.
+    Days show from 24 hours on, hours from one hour on; a unit that is zero is left out. The word
+    follows the number, so "1 Tag" and "2 Tage", "1 Stunde" and "2 Stunden".
     """
     if minutes is None:
         return None
     words = DURATION_WORDS.get(language.split("-")[0], DURATION_WORDS["en"])
     days, rest = divmod(max(int(minutes), 0), 1440)
     hours, mins = divmod(rest, 60)
-    parts: list[str] = []
-    if days:
-        parts.append(f"{days} {words['day'] if days == 1 else words['days']}")
-    if days or hours:
-        parts.append(f"{hours} {words['hours']}")
-    parts.append(f"{mins} {words['minutes']}")
-    return " ".join(parts)
+    parts = [f"{count} {words[unit][0 if count == 1 else 1]}"
+             for unit, count in (("day", days), ("hour", hours), ("minute", mins)) if count]
+    return " ".join(parts) or f"0 {words['minute'][1]}"
 
 
 def _shift_label(duty: Duty | None, language: str) -> str | None:
@@ -269,11 +269,16 @@ def _roster_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
         attributes = duty_attributes(duty)
         # The legs ride along so the shift browser can page through each day's detail table.
         days.append({**attributes, "changed": attributes["date"] in changed_days, "legs": _legs(duty)})
+    entry = coordinator.config_entry
+    operator = find_operator_by_url(entry.data[CONF_BASE_URL])
     return {
         "days": days,
         "free_weekends": [saturday.isoformat() for saturday in coordinator.insights.free_weekends],
         "employee": coordinator.data.snapshot.employee_name,
         "online": coordinator.data.online,
+        # For the card header: the operator's short name ("VGF") and the account title.
+        "operator": operator.short if operator else None,
+        "account": entry.title,
     }
 
 
@@ -290,6 +295,42 @@ def _swap_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
         "swaps": [swap.to_dict() for swap in coordinator.swaps],
         "request_from": window[0].isoformat() if window else None,
         "request_to": window[1].isoformat() if window else None,
+    }
+
+
+def _working_shifts(coordinator: PerdisCoordinator) -> list[Duty]:
+    """Every working shift of the loaded roster that has its times."""
+    return [duty for duty in coordinator.insights.duties if duty.is_working and duty.has_times]
+
+
+def _upcoming_shifts(coordinator: PerdisCoordinator) -> list[Duty]:
+    today = coordinator.insights.today
+    return [duty for duty in _working_shifts(coordinator) if duty.day >= today]
+
+
+def _clock(duty: Duty, moment: datetime) -> str:
+    """The time of day since the shift's operating day began, e.g. "26:05" for 02:05 the next night."""
+    midnight = datetime.combine(duty.day, datetime.min.time(), tzinfo=moment.tzinfo)
+    minutes = int((moment - midnight).total_seconds() // 60)
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
+def _records_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
+    """The extremes of the loaded roster: the longest shift, the earliest start and the latest end."""
+    shifts = _working_shifts(coordinator)
+    if not shifts:
+        return {}
+    longest = max(shifts, key=lambda duty: duty.end - duty.start)
+    earliest = min(shifts, key=lambda duty: _clock(duty, duty.start))
+    latest = max(shifts, key=lambda duty: _clock(duty, duty.end))
+    return {
+        "longest_shift_hours": _hours(int((longest.end - longest.start).total_seconds() // 60)),
+        "longest_shift_duty": longest.code or None,
+        "longest_shift_date": longest.day.isoformat(),
+        "earliest_start": _clock(earliest, earliest.start),
+        "earliest_start_date": earliest.day.isoformat(),
+        "latest_end": _clock(latest, latest.end),
+        "latest_end_date": latest.day.isoformat(),
     }
 
 
@@ -360,6 +401,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     ),
     PerdisSensorDescription(
         key="days_until_day_off", native_unit_of_measurement=UnitOfTime.DAYS,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: c.insights.days_until_day_off,
     ),
     PerdisSensorDescription(
@@ -406,7 +448,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         attributes_fn=_daily_values_attributes,
     ),
     PerdisSensorDescription(
-        key="vacation_remaining", role="vacation", state_class=SensorStateClass.MEASUREMENT,
+        key="vacation_remaining", role="vacation",
         native_unit_of_measurement=UnitOfTime.DAYS,
         value_fn=lambda c: _trim(_snapshot(c).balances.vacation_remaining_days),
         attributes_fn=_vacation_attributes,
@@ -420,6 +462,7 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     PerdisSensorDescription(
         key="weekend_points_difference", role="weekend_points_difference", state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=POINTS, value_fn=_points_difference,
+        entity_category=EntityCategory.DIAGNOSTIC,
     ),
     PerdisSensorDescription(
         key="free_weekends_year", role="free_weekends", state_class=SensorStateClass.MEASUREMENT,
@@ -428,12 +471,13 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
     ),
     # Lists for the dashboard cards and automations
     PerdisSensorDescription(
-        key="roster", role="roster",
+        key="roster", role="roster", entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: len(c.insights.window(ROSTER_CARD_DAYS)),
         attributes_fn=_roster_attributes,
     ),
     PerdisSensorDescription(
         key="schedule_changes", role="changes", state_class=SensorStateClass.MEASUREMENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda c: len(c.data.recent_changes),
         attributes_fn=_changes_attributes,
     ),
@@ -441,6 +485,17 @@ SENSORS: tuple[PerdisSensorDescription, ...] = (
         key="duty_swaps", role="dutyswap", state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda c: len(c.swaps),
         attributes_fn=_swap_attributes,
+    ),
+    PerdisSensorDescription(
+        key="roster_records", entity_category=EntityCategory.DIAGNOSTIC,
+        value_fn=lambda c: len(_working_shifts(c)),
+        attributes_fn=_records_attributes,
+    ),
+    PerdisSensorDescription(
+        key="detailed_shifts", entity_category=EntityCategory.DIAGNOSTIC,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda c: sum(1 for duty in _upcoming_shifts(c) if duty.segments),
+        attributes_fn=lambda c: {"upcoming_shifts": len(_upcoming_shifts(c))},
     ),
     PerdisSensorDescription(
         key="last_refresh", device_class=SensorDeviceClass.TIMESTAMP, entity_category=EntityCategory.DIAGNOSTIC,
@@ -497,10 +552,15 @@ class PerdisSensor(PerdisEntity, SensorEntity):
         return self.entity_description.value_fn(self.coordinator)
 
     def _localized_unit(self) -> str | None:
-        """The configured unit, localized for the account's language ("h" -> "Std.")."""
+        """The configured unit in the account's language: "Std.", and "Tag" or "Tage" by the value."""
         base = self.entity_description.native_unit_of_measurement
         language = (self.coordinator.hass.config.language or "en").split("-")[0]
-        return LOCALIZED_UNITS.get(language, {}).get(base, base)
+        if base == UnitOfTime.HOURS:
+            return HOURS_UNIT.get(language, base)
+        if base == UnitOfTime.DAYS and language in DAYS_UNIT:
+            singular, plural = DAYS_UNIT[language]
+            return singular if self.native_value == 1 else plural
+        return base
 
     @property
     def native_unit_of_measurement(self) -> str | None:

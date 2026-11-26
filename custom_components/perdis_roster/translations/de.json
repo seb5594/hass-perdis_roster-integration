@@ -85,7 +85,7 @@
           "detail_days": "Nur der Monatsplan ist kostenlos; die genauen Zeiten je Dienst kosten beim ersten Mal eine zusätzliche Abfrage und werden dann wiederverwendet, bis sich der Dienst ändert. Pro Aktualisierung werden nur wenige geladen. 0 schaltet es aus.",
           "person": "Dient als Kontext und wird an einen unten gesetzten Dienst/ein Skript übergeben.",
           "notify_target": "Ein Dienst wie notify.mobile_app_handy oder ein script.mein_skript, der bei einer Änderung aufgerufen wird. Leer lassen für nur die Standardbenachrichtigung.",
-          "notify_action": "Der volle Aktionen-Editor: Dienst wählen und Felder ausfüllen oder eine Sequenz bauen. Verfügbar: {{ title }}, {{ message }}, {{ changes }}, {{ person }}."
+          "notify_action": "Der volle Aktionen-Editor: Dienst wählen und Felder ausfüllen oder eine Sequenz bauen. Trage bei Titel und Nachricht {title_template} und {message_template} ein, um genau das zu übergeben, was die Benachrichtigung in Home Assistant anzeigt. Außerdem verfügbar: {more_variables}."
         },
         "sections": {
           "advanced": {
@@ -222,6 +222,12 @@
       },
       "last_refresh": {
         "name": "Letzte Aktualisierung"
+      },
+      "roster_records": {
+        "name": "Dienstplan-Rekorde"
+      },
+      "detailed_shifts": {
+        "name": "Dienste mit Details"
       }
     },
     "binary_sensor": {
@@ -242,6 +248,11 @@
       },
       "portal_online": {
         "name": "Portal"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Jetzt aktualisieren"
       }
     },
     "calendar": {

@@ -101,7 +101,7 @@ page in November 2026.
 | rnv Rhein-Neckar-Verkehr | Mannheim / Heidelberg / Ludwigshafen 🇩🇪 | `https://fahrerauskunft.rnv-online.de/WebComm/` |
 | Salzburg AG Verkehr | Salzburg 🇦🇹 | `https://perdis.salzburg-ag.at/WebComm/` |
 | Transdev / Connexxion | Nederland 🇳🇱 | `https://diensten1.transdev.nl/WebComm/` |
-| üstra Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
+| ÜSTRA Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
 | VGF Verkehrsgesellschaft Frankfurt | Frankfurt am Main 🇩🇪 | `https://perdis-info.vgf-ffm.de/WebComm/` |
 | WSW mobil | Wuppertal 🇩🇪 | `https://service.wsw-online.de/WebComm/` ¹ |
 
@@ -171,7 +171,8 @@ for the new one – no need to remove the integration.
 | ⬅️ Days to keep in the past | 7 | Past days that stay in the calendar |
 | 🕐 Fetch exact shift times for this many days ahead | 10 | On portals that show only a duty number per day, each shift's detail page gives its real times, places and lines. One extra request per working day; 0 turns it off |
 | 👤 Employee (person) | – | A person entity the roster belongs to; passed to your notification/script |
-| 🔔 Notification service on roster changes | – | A service such as `notify.mobile_app_phone` or a `script.…` to call on every roster change |
+| 🔔 Action on roster changes | – | The full Home Assistant action editor: pick a service (a `notify.…` or a `script.…`) and fill in its fields, or build a sequence. Enter `{{ title }}` and `{{ message }}` to pass on what the notification shows; `{{ changes }}`, `{{ person }}` and `{{ entry_id }}` are available too |
+| 📅 Calendar: one entry per shift leg | on | Splits each shift into one calendar entry per leg (a drive by line and course, a break as a break); off keeps one entry with the legs in the text |
 
 > [!TIP]
 > If your portal's month view shows only the duty number (no times), the exact start, end, reporting
@@ -204,7 +205,7 @@ All entities belong to one device per account. The entity IDs below assume an ac
 | `sensor.…_next_shift_type` | `early` | early, day, late, night or split |
 | `sensor.…_wake_up_time` | timestamp | Shift start minus your wake-up lead |
 | `sensor.…_leave_home` | timestamp | Shift start minus your way to work |
-| `sensor.…_rest_before_next_shift` | `9.5 h` | End of the previous shift until the start of the next |
+| `sensor.…_rest_before_next_shift` | `1 day 3 hours 20 minutes` | End of the previous shift until the start of the next, in days, hours and minutes (the hours are in the `hours` attribute) |
 
 ### 📅 Days
 
@@ -246,6 +247,9 @@ All entities belong to one device per account. The entity IDs below assume an ac
 | `sensor.…_roster` | Number of days in the next six weeks; the `days` attribute feeds the roster card |
 | `sensor.…_roster_changes` | Changes of the last 14 days, each with a readable summary |
 | `sensor.…_last_refresh` | Last successful refresh, last error and the pages found (diagnostic) |
+| `sensor.…_roster_records` | Longest shift, earliest start and latest end of the loaded roster (diagnostic) |
+| `sensor.…_detailed_shifts` | How many of the upcoming shifts have their leg-by-leg detail (diagnostic) |
+| `button.…_refresh_now` | Asks the portal right now; the same as the `perdis_roster.refresh` action |
 | `calendar.…_duties` | Shifts as timed entries, days off and absences as all-day entries |
 
 Long lists are kept out of the recorder database, so the history stays small.
@@ -268,6 +272,7 @@ Without settings a card shows the first Perdis account.
 
 | Card | Shows |
 | --- | --- |
+| 🧩 `perdis-card` | **All-in-one**: a tab bar over the cards below (next shift, shift browser, roster, accounts, calendar, duty swaps). Switch tabs on and off and reorder them in the editor. The header shows your operator as a badge; set `logo` to your own image (e.g. `/local/logo.png`) to show a logo instead |
 | 🕐 `perdis-shift-card` | The next shift: duty, shift type, countdown, times, reporting point, lines, wake-up and leave-home time, rest warning, progress while it runs |
 | 📋 `perdis-roster-card` | The coming days grouped by calendar week, colored by type, with changed days marked |
 | 💼 `perdis-accounts-card` | Overtime, vacation, weekend points against the average, free weekends and the planned hours of the week or month |
@@ -289,7 +294,7 @@ Everything can be tuned in the editor (or in YAML). Options shared by all cards:
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `paid`, `rest` |
+| `show_facts` | all | Which fact tiles to show: `wake_up`, `leave_home`, `duration`, `paid`, `breaks`, `rest` |
 | `show_location` | `true` | Show the reporting point |
 | `show_lines` | `true` | Show the line badges |
 | `show_countdown` | `true` | Show the countdown pill |
@@ -447,7 +452,7 @@ actions:
   - action: notify.mobile_app_my_phone
     data:
       message: >
-        Only {{ states('sensor.rheinbahn_4711_rest_before_next_shift') }} h of rest before
+        Only {{ states('sensor.rheinbahn_4711_rest_before_next_shift') }} of rest before
         duty {{ states('sensor.rheinbahn_4711_next_shift') }}. Go to bed early!
 ```
 
