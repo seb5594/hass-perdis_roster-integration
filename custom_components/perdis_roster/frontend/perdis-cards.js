@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.8";
+const VERSION = "2026.11.26.9";
 const DOMAIN = "perdis_roster";
 
 // --- Optional extras -----------------------------------------------------------------------

@@ -122,16 +122,28 @@ page in November 2026.
 | --- | --- | --- |
 | BOGESTRA | Bochum / Gelsenkirchen 🇩🇪 | `https://webcomm.bogestra.de/WebComm/` |
 | DVG Duisburger Verkehrsgesellschaft | Duisburg 🇩🇪 | `https://perdis.dvv.de/WebComm/` |
+| ICB In der City Bus | Frankfurt am Main 🇩🇪 | `https://perdis-info.icb-ffm.de/WebComm/` |
+| NVG | nvgweb.de 🇩🇪 | `http://nvgweb.de/WebComm/` ² |
 | RegioBus Hannover | Region Hannover 🇩🇪 | `https://perdis.regiobus.de/WebComm/` |
+| RET Rotterdamse Elektrische Tram | Rotterdam 🇳🇱 | `https://perdismobcomm.ret.nl/WebComm/` |
 | Rheinbahn | Düsseldorf 🇩🇪 | `https://webcom.rheinbahn.de/WebComm/` |
 | rnv Rhein-Neckar-Verkehr | Mannheim / Heidelberg / Ludwigshafen 🇩🇪 | `https://fahrerauskunft.rnv-online.de/WebComm/` |
+| Ruhrbahn | Essen / Mülheim 🇩🇪 | `https://perdisweb.ruhrbahn.de/WebComm/` ² |
 | Salzburg AG Verkehr | Salzburg 🇦🇹 | `https://perdis.salzburg-ag.at/WebComm/` |
+| Stadtwerke Bielefeld | Bielefeld 🇩🇪 | `https://anwendungen.stadtwerke-bielefeld.de/WebComm/` |
+| Stadtwerke Hamm | Hamm 🇩🇪 | `https://perdis.stadtwerke-hamm.de/WebComm/` |
+| Stadtwerke Münster | Münster 🇩🇪 | `https://verkehr.stadtwerke-muenster.de/WebComm/` |
+| Tower Transit Singapore | Singapore 🇸🇬 | `https://perdis.towertransit.sg/WebComm/` |
 | Transdev / Connexxion | Nederland 🇳🇱 | `https://diensten1.transdev.nl/WebComm/` |
 | ÜSTRA Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
 | VGF Verkehrsgesellschaft Frankfurt | Frankfurt am Main 🇩🇪 | `https://perdis-info.vgf-ffm.de/WebComm/` |
 | WSW mobil | Wuppertal 🇩🇪 | `https://service.wsw-online.de/WebComm/` ¹ |
+| WVV Würzburger Versorgungs- und Verkehrs-GmbH | Würzburg 🇩🇪 | `https://perdisapp.wvv.de:1443/WebCommprod/` ² |
 
 ¹ The portal answered "temporarily unavailable" on the day of the check.
+
+² The address was given to me, but I could not open it from here (connection reset). If it does not work for you, please [tell me](https://github.com/seb5594/hass-perdis_roster-integration/issues).
+
 
 🔎 **Your company is missing?** Choose *Enter the portal address myself* and paste the address you
 open in the browser. A plain host name such as `perdis.example.org` works too; the integration
