@@ -60,6 +60,12 @@ class IntegrationLayout(unittest.TestCase):
             for key in re.findall(r'key="([a-z_]+)"', source):
                 self.assertIn(key, self.english["entity"][platform], f"{platform}.{key} has no translation")
 
+    def test_the_integration_title_is_translated_and_english_matches_the_manifest(self):
+        german = json.loads((COMPONENT / "translations/de.json").read_text())
+        self.assertEqual(self.english["title"], self.manifest["name"])
+        self.assertTrue(german["title"])
+        self.assertNotEqual(german["title"], self.english["title"])
+
     def test_device_triggers_are_translated(self):
         source = (COMPONENT / "const.py").read_text()
         block = source[source.index("class TimelineEvent"):]
