@@ -1,6 +1,6 @@
 """Turning the texts a portal shows into dates, times, durations and duty types.
 
-Perdis is used in Germany, Austria, Switzerland and the Netherlands, so every helper accepts the
+PERDIS is used in Germany, Austria, Switzerland and the Netherlands, so every helper accepts the
 spellings found there: `23.11.2026` and `2026-11-23`, `12,5` and `12.5`, `+14:30` and `-2:15 h`.
 """
 

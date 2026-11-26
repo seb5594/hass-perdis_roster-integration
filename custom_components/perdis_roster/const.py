@@ -1,4 +1,4 @@
-"""Constants shared by every module of the Perdis Duty Roster integration."""
+"""Constants shared by every module of the PERDIS Duty Roster integration."""
 
 from __future__ import annotations
 

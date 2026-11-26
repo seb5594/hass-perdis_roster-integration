@@ -1,10 +1,10 @@
 {
-  "title": "Perdis Dienstplan",
+  "title": "PERDIS Dienstplan",
   "config": {
     "step": {
       "user": {
-        "title": "Perdis-Dienstplan verbinden",
-        "description": "Wie möchtest du dein Portal finden?\n\nInoffizielle Integration: INIT dokumentiert die Perdis-Schnittstellen nicht, daher liest sie, was dir das Portal im Browser zeigt. Dein Kennwort bleibt in Home Assistant.",
+        "title": "PERDIS-Dienstplan verbinden",
+        "description": "Wie möchtest du dein Portal finden?\n\nInoffizielle Integration: INIT dokumentiert die PERDIS-Schnittstellen nicht, daher liest sie, was dir das Portal im Browser zeigt. Dein Kennwort bleibt in Home Assistant.",
         "menu_options": {
           "operator": "Mein Verkehrsunternehmen aus der Liste wählen",
           "manual": "Portal-Adresse selbst eingeben"
@@ -12,13 +12,13 @@
       },
       "operator": {
         "title": "Dein Verkehrsunternehmen",
-        "description": "Diese Unternehmen betreiben ein öffentliches Perdis-WebComm-Portal. Deins fehlt? Geh zurück und gib die Adresse ein, die du im Browser öffnest.",
+        "description": "Diese Unternehmen betreiben ein öffentliches PERDIS-WebComm-Portal. Deins fehlt? Geh zurück und gib die Adresse ein, die du im Browser öffnest.",
         "data": {
           "operator": "Verkehrsunternehmen"
         }
       },
       "manual": {
-        "title": "Adresse deines Perdis-Portals",
+        "title": "Adresse deines PERDIS-Portals",
         "description": "Kopiere die Adresse aus dem Browser, z. B. `{example_url}`. Der reine Hostname reicht auch.",
         "data": {
           "base_url": "Portal-Adresse",
@@ -32,7 +32,7 @@
         }
       },
       "credentials": {
-        "title": "Anmeldung bei {operator}",
+        "title": "PERDIS {portal} · Anmeldung bei {operator}",
         "description": "Nutze dieselbe Benutzerkennung und dasselbe Kennwort wie auf {url}. Sie werden nur an dieses Portal gesendet.",
         "data": {
           "username": "Benutzerkennung / Personalnummer",
@@ -50,7 +50,7 @@
     "error": {
       "invalid_auth": "Das Portal hat Benutzerkennung oder Kennwort nicht akzeptiert.",
       "cannot_connect": "Das Portal ist nicht erreichbar. Prüfe die Adresse und deine Internetverbindung.",
-      "not_a_portal": "Die Adresse antwortet, aber nicht wie ein Perdis-Portal. Prüfe Adresse und Art des Portals.",
+      "not_a_portal": "Die Adresse antwortet, aber nicht wie ein PERDIS-Portal. Prüfe Adresse und Art des Portals.",
       "invalid_url": "Das ist keine gültige Webadresse.",
       "unknown": "Unerwarteter Fehler, Details stehen im Protokoll."
     },
@@ -304,7 +304,7 @@
   },
   "exceptions": {
     "no_loaded_entry": {
-      "message": "Es ist kein Perdis-Konto geladen."
+      "message": "Es ist kein PERDIS-Konto geladen."
     },
     "end_before_start": {
       "message": "Der letzte Tag liegt vor dem ersten Tag."

@@ -1,4 +1,4 @@
-"""Plain data classes for everything the integration reads from a Perdis portal.
+"""Plain data classes for everything the integration reads from a PERDIS portal.
 
 The classes are portal independent: the WebComm and the AppComm parser both produce them. A value
 the portal did not report stays `None` instead of a made-up zero, so sensors show "unknown"

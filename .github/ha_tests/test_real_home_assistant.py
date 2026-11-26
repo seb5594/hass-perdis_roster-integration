@@ -504,8 +504,8 @@ async def test_the_integration_name_follows_the_server_language(hass):
     """The name is German or Dutch where the server is; every other language gets the English name."""
     from homeassistant.helpers.translation import async_get_translations
 
-    names = (("de", "Perdis Dienstplan"), ("nl", "Dienstrooster van Perdis"),
-             ("en", "Perdis Duty Roster"), ("fr", "Perdis Duty Roster"))
+    names = (("de", "PERDIS Dienstplan"), ("nl", "Dienstrooster van PERDIS"),
+             ("en", "PERDIS Duty Roster"), ("fr", "PERDIS Duty Roster"))
     for language, expected in names:
         found = await async_get_translations(hass, language, "title", [DOMAIN])
         assert found.get(f"component.{DOMAIN}.title") == expected, language
@@ -526,3 +526,18 @@ async def test_the_device_shows_the_running_version_and_the_cards_find_the_butto
     assert button.attributes["perdis_role"] == "refresh"
     assert state_of(hass, "sensor", "last_refresh").attributes["perdis_role"] == "last_refresh"
     await hass.config_entries.async_unload(entry.entry_id)
+
+
+async def test_the_roster_sensor_tells_the_card_how_the_portal_is_reached(hass, fake_webcomm):
+    """The card header shows "PERDIS WebComm" and opens the portal; the pay tile needs exact minutes."""
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    roster = state_of(hass, "sensor", "roster")
+    assert roster.attributes["portal"] == "WebComm"
+    assert roster.attributes["portal_url"] == entry_of(hass).data["base_url"]
+    assert roster.attributes["account"] == entry_of(hass).title
+    # The paid minutes ride on the shift so the pay tile can add up exactly, not from rounded hours.
+    shift = state_of(hass, "sensor", "next_shift").attributes
+    assert isinstance(shift["worked_minutes"], int) and shift["worked_minutes"] > 0
+    assert abs(shift["worked_minutes"] / 60 - shift["hours"]) < 0.01
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)

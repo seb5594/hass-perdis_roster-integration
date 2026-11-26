@@ -1,7 +1,7 @@
 <h1 align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/dark_logo@2x.png">
-    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="Perdis Duty Roster" width="344" height="160">
+    <img src="https://raw.githubusercontent.com/seb5594/hass-perdis_roster-integration/main/custom_components/perdis_roster/brand/logo@2x.png" alt="PERDIS Duty Roster" width="344" height="160">
   </picture>
 </h1>
 
@@ -41,7 +41,7 @@ persönlichen Konto am selben Portal an.
 - [🃏 Dashboard-Karten](#-dashboard-karten)
 - [⚡ Automationen](#-automationen)
 - [🛠️ Aktionen](#️-aktionen)
-- [📱 AppComm (Perdis mobil)](#-appcomm-perdis-mobil)
+- [📱 AppComm (PERDIS mobil)](#-appcomm-perdis-mobil)
 - [🧠 So funktioniert es](#-so-funktioniert-es)
 - [🔒 Datenschutz](#-datenschutz)
 - [🩺 Fehlersuche](#-fehlersuche)
@@ -113,7 +113,7 @@ dann kommt das Unternehmen in die Liste.
 ### HACS / Marketplace (empfohlen)
 
 1. Klicke oben auf den Button **HACS · Marketplace** oder öffne **HACS** (Home Assistant 2026.10
-   und älter) bzw. **Einstellungen → Marketplace** (ab 2026.11) und suche nach **Perdis Duty
+   und älter) bzw. **Einstellungen → Marketplace** (ab 2026.11) und suche nach **PERDIS Duty
    Roster**. Wird es nicht gefunden, füge zuerst
    `https://github.com/seb5594/hass-perdis_roster-integration` als benutzerdefiniertes Repository der
    Kategorie *Integration* hinzu.
@@ -127,7 +127,7 @@ dann kommt das Unternehmen in die Liste.
 
 ## ⚙️ Einrichtung
 
-1. **Einstellungen → Geräte & Dienste → Integration hinzufügen** und nach **Perdis Duty Roster**
+1. **Einstellungen → Geräte & Dienste → Integration hinzufügen** und nach **PERDIS Duty Roster**
    suchen.
 2. Wähle, wie dein Portal gefunden wird:
    - 🚌 **Mein Verkehrsunternehmen aus der Liste wählen** oder
@@ -148,7 +148,7 @@ dem neuen – die Integration muss nicht entfernt werden.
 
 ## 🎛️ Optionen
 
-**Einstellungen → Geräte & Dienste → Perdis Duty Roster → Konfigurieren**
+**Einstellungen → Geräte & Dienste → PERDIS Duty Roster → Konfigurieren**
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
@@ -248,22 +248,22 @@ Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verla
 ## 🃏 Dashboard-Karten
 
 Die Karten gehören zur Integration und registrieren sich selbst – **keine Ressource nötig**.
-Dashboard bearbeiten, **Karte hinzufügen** und nach **Perdis** suchen. Jede Karte hat einen
+Dashboard bearbeiten, **Karte hinzufügen** und nach **PERDIS** suchen. Jede Karte hat einen
 **visuellen Editor** mit Abschnitten (*Inhalt*, *Darstellung*, *Verhalten*) – du musst kein YAML
-schreiben. Ohne Einstellungen zeigt eine Karte das erste Perdis-Konto.
+schreiben. Ohne Einstellungen zeigt eine Karte das erste PERDIS-Konto.
 
 > **Karten nicht in der Auswahl?** Sie werden als Frontend-Modul geladen und erscheinen deshalb
 > **nicht** unter *Einstellungen → Dashboards → Ressourcen* – diese Liste ist nur für von Hand
 > hinzugefügte Ressourcen. Nach dem Installieren oder Aktualisieren den **Browser mit geleertem
 > Cache neu laden** (Strg/Cmd + Umschalt + R), denn Home Assistant und der Browser cachen
 > Frontend-Module. Immer noch nichts? Die Integration unter *Einstellungen → Geräte & Dienste*
-> neu laden, im Log auf die Zeile `Perdis dashboard cards served from …` achten und – nur als
+> neu laden, im Log auf die Zeile `PERDIS dashboard cards served from …` achten und – nur als
 > letzten Ausweg – die Ressource von Hand hinzufügen unter *Einstellungen → Dashboards →
 > Ressourcen*: URL `/perdis_roster_static/perdis-cards.js`, Typ *JavaScript-Modul*.
 
 | Karte | Zeigt |
 | --- | --- |
-| 🧩 `perdis-card` | **Alles-in-einem**: eine Reiterleiste über den folgenden Karten (Nächster Dienst, Dienstdetails, Dienstplan, Konten, Kalender, Tausch). Reiter im Editor ein-/ausschalten und sortieren. Die Kopfzeile zeigt deinen Betrieb als Badge; mit `logo` (z. B. `/local/logo.png`) zeigst du stattdessen dein eigenes Bild |
+| 🧩 `perdis-card` | **Alles-in-einem**: eine Reiterleiste über den folgenden Karten (Nächster Dienst, Dienstdetails, Dienstplan, Konten, Kalender, Tausch). Reiter im Editor ein-/ausschalten und sortieren. Die Kopfzeile zeigt deinen Betrieb als Badge; mit `logo` (z. B. `/local/logo.png`) zeigst du stattdessen dein eigenes Bild. Daneben: **PERDIS WebComm** (bzw. AppComm), ein runder **Aktualisieren**-Button und ein **Öffnen**-Button — er öffnet dein Portal oder das, was du bei `open_url` einträgst (eine Adresse, oder `app://paketname`, um in der Android-Companion-App eine App zu starten); mit `show_open: false` blendest du ihn aus. Als PWA installiert, öffnet sich das Portal in dieser App |
 | 🕐 `perdis-shift-card` | Den nächsten Dienst: Nummer, Dienstart, Countdown, Zeiten, Meldeort, Linien, Weck- und Losfahrzeit, Ruhezeit-Warnung, Fortschritt während des Dienstes |
 | 📋 `perdis-roster-card` | Die nächsten Tage nach Kalenderwoche, farbig nach Art, geänderte Tage markiert |
 | 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche oder des Monats |
@@ -273,7 +273,7 @@ Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
-| `device_id` | erstes Konto | Welches Perdis-Konto die Karte zeigt |
+| `device_id` | erstes Konto | Welches PERDIS-Konto die Karte zeigt |
 | `title` | Kartenname | Eigener Titel in der Kopfzeile |
 | `icon` | `mdi:bus-clock` | Eigenes Symbol in der Kopfzeile |
 | `show_header` | `true` | Kopfzeile ausblenden für eine schlichte Karte |
@@ -285,7 +285,7 @@ Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
-| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `duration`, `paid`, `breaks`, `rest` |
+| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `duration`, `breaks`, `paid`, `rest` |
 | `show_location` | `true` | Meldeort anzeigen |
 | `show_lines` | `true` | Linien-Badges anzeigen |
 | `show_countdown` | `true` | Countdown-Pille anzeigen |
@@ -344,7 +344,7 @@ device_id: 0123456789abcdef0123456789abcdef  # optional, für ein zweites Konto
 
 ### Geräte-Auslöser
 
-Im Automations-Editor **Gerät → dein Perdis-Konto** wählen. Die Auslöser kommen sekundengenau,
+Im Automations-Editor **Gerät → dein PERDIS-Konto** wählen. Die Auslöser kommen sekundengenau,
 ohne Abfrageschleife:
 
 | Auslöser | Wann |
@@ -444,12 +444,12 @@ response_variable: dienstplan
 ### 🔄 Diensttausch
 
 Bei Portalen mit Diensttausch listet der Sensor **Offene Diensttausche** die offenen Angebote und den
-Zeitraum für neue Wünsche, und die Dashboard-Karte **Perdis: Diensttausch** zeigt sie übersichtlich.
+Zeitraum für neue Wünsche, und die Dashboard-Karte **PERDIS: Diensttausch** zeigt sie übersichtlich.
 Vorerst nur zur Anzeige; das Eintragen und Beantworten von Tauschen aus Home Assistant folgt, sobald
 es gegen ein echtes Portal vollständig getestet ist. Portale ohne Tausch-Seite bekommen Sensor und
 Karte gar nicht erst.
 
-## 📱 AppComm (Perdis mobil)
+## 📱 AppComm (PERDIS mobil)
 
 Neben WebComm gibt es die App **AppComm**. Dahinter läuft ein JSON-Dienst, den jedes Unternehmen
 selbst freischalten muss; INIT veröffentlicht seine Schnittstelle nicht. Die Integration behandelt
@@ -508,7 +508,7 @@ Kennwort oder Token) allen weiter.
 | --- | --- |
 | *Das Portal hat Benutzerkennung oder Kennwort nicht akzeptiert* | Im Browser mit denselben Daten anmelden. Manche Unternehmen sperren das Konto nach mehreren Fehlversuchen. |
 | *Das Portal ist nicht erreichbar* | Die Adresse in einem Browser im selben Netz wie Home Assistant öffnen. Manche Portale sind nur im Firmennetz erreichbar. |
-| *Nicht wie ein Perdis-Portal* | Adresse prüfen; sie muss auf den Ordner des Portals enden (z. B. `/WebComm/`). |
+| *Nicht wie ein PERDIS-Portal* | Adresse prüfen; sie muss auf den Ordner des Portals enden (z. B. `/WebComm/`). |
 | Dienstplan bleibt leer | In **Letzte Aktualisierung** (Diagnose) das Attribut `pages` ansehen. Fehlt `roster`, den Pfad der Dienstplanseite in den erweiterten Optionen eintragen. |
 | Konten oder WE-Punkte sind unbekannt | Nicht jedes Unternehmen zeigt sie. Stehen sie im Portal unter anderem Namen, bitte ein Issue mit dem Bezeichnungstext öffnen. |
 

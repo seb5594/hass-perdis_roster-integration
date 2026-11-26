@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026.11.26.7
+
+- 🔠 **PERDIS** is written in capitals everywhere (name, texts, logo, README), and the card header
+  shows the way the portal is reached right next to it: **PERDIS WebComm** or **PERDIS AppComm**.
+  So does the title of the sign-in step.
+- 🧱 The next-shift tiles in a new order — wake-up and leave-home, shift length and breaks, pay and
+  rest — with every duration one unit per line ("8 Stunden" over "41 Minuten"). The pay tile adds
+  the same time once more in minutes, and the rest tile cheers a long rest. The paid time is read
+  from the exact minutes, not from rounded hours.
+- 😀 Emojis on the cards where they say something: the tiles, the shift type, the countdown, the
+  place, the kind of day in the roster and the accounts.
+- 🔗 The all-in-one card can have an **open** button next to the refresh button: it opens your
+  portal by default, or the address or app (`app://package.name` on Android) in `open_url`.
+
 ## 2026.11.26.6
 
 - 🔄 The **all-in-one card** has the refresh built in: a round button in its header asks the portal

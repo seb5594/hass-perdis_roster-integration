@@ -1,4 +1,4 @@
-"""Which data a Perdis portal exposes, so only sensors that can hold a value are created.
+"""Which data a PERDIS portal exposes, so only sensors that can hold a value are created.
 
 Every portal is an INIT installation configured by its transit operator, and operators unlock
 different parts of the API. One portal shows the weekend points account, another does not; one

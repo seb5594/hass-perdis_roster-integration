@@ -34,7 +34,7 @@ from .capabilities import (
 )
 from .changes import describe
 from .coordinator import PerdisConfigEntry, PerdisCoordinator, coordinator_of
-from .const import CONF_BASE_URL
+from .const import CONF_BASE_URL, CONF_PORTAL_TYPE, PortalType
 from .entity import ATTR_ROLE, PerdisEntity, description_frozen
 from .insights import ShiftCategory, shift_category
 from .labels import type_label
@@ -83,6 +83,7 @@ def duty_attributes(duty: Duty | None) -> dict[str, Any]:
         "end_location": duty.end_location,
         "lines": list(duty.lines),
         "hours": _hours(duty.worked_minutes),
+        "worked_minutes": duty.worked_minutes,
         "break_minutes": duty.break_minutes,
         "split_shift": duty.split,
         "category": category.value if category else None,
@@ -276,9 +277,12 @@ def _roster_attributes(coordinator: PerdisCoordinator) -> dict[str, Any]:
         "free_weekends": [saturday.isoformat() for saturday in coordinator.insights.free_weekends],
         "employee": coordinator.data.snapshot.employee_name,
         "online": coordinator.data.online,
-        # For the card header: the operator's short name ("VGF") and the account title.
+        # For the card header: the operator's short name ("VGF"), the account title, how the portal
+        # is reached ("WebComm" or "AppComm") and its address, for the "open PERDIS" button.
         "operator": operator.short if operator else None,
         "account": entry.title,
+        "portal": "AppComm" if entry.data[CONF_PORTAL_TYPE] == PortalType.APPCOMM else "WebComm",
+        "portal_url": entry.data[CONF_BASE_URL],
     }
 
 
