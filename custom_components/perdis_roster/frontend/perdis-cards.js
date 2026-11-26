@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.3";
+const VERSION = "2026.11.26.4";
 const DOMAIN = "perdis_roster";
 
 // --- Texts ---------------------------------------------------------------------------------
@@ -48,6 +48,9 @@ const TEXTS = {
     split: "split",
     hours: "h",
     days: "days",
+    clock: "",
+    units: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
+    unitsIn: { day: ["day", "days"], hour: ["hour", "hours"], minute: ["minute", "minutes"] },
     points: "pts",
     overtime: "Overtime balance",
     vacation: "Vacation left",
@@ -64,7 +67,10 @@ const TEXTS = {
       compensation: "Time off", sick: "Sick", unknown: "Unknown",
     },
     categories: { early: "Early", day: "Day", late: "Late", night: "Night", split: "Split" },
-    facts: { wake_up: "Wake up", leave_home: "Leave", paid: "Paid hours", rest: "Rest before" },
+    facts: {
+      wake_up: "Wake up", leave_home: "Leave", paid: "Paid hours", rest: "Rest before",
+      duration: "Shift length", breaks: "Breaks",
+    },
     tiles: {
       overtime: "Overtime balance", daily: "Time account today", vacation: "Vacation left",
       weekend_points: "Weekend points", free_weekends: "Free weekends",
@@ -111,6 +117,7 @@ const TEXTS = {
       // Calendar card
       initial_view: "Start view",
       tabs: "Tabs to show",
+      logo: "Logo (image address)",
       // Section headers
       sec_content: "Content",
       sec_appearance: "Appearance",
@@ -122,6 +129,7 @@ const TEXTS = {
       icon: "Leave empty for the default icon.",
       accent: "Leave empty to colour the card by the shift type.",
       hide_types: "Leave empty to show every day.",
+      logo: "Leave empty for the operator's name badge. Example: /local/my-logo.png",
     },
   },
   de: {
@@ -147,6 +155,10 @@ const TEXTS = {
     split: "geteilt",
     hours: "Std.",
     days: "Tage",
+    clock: "Uhr",
+    units: { day: ["Tag", "Tage"], hour: ["Stunde", "Stunden"], minute: ["Minute", "Minuten"] },
+    // After "in" German takes the dative: "in 2 Tagen", "in 1 Tag".
+    unitsIn: { day: ["Tag", "Tagen"], hour: ["Stunde", "Stunden"], minute: ["Minute", "Minuten"] },
     points: "Pkt.",
     overtime: "Zeitkonto",
     vacation: "Resturlaub",
@@ -163,7 +175,10 @@ const TEXTS = {
       compensation: "Ausgleich", sick: "Krank", unknown: "Unbekannt",
     },
     categories: { early: "Früh", day: "Mittel", late: "Spät", night: "Nacht", split: "Geteilt" },
-    facts: { wake_up: "Aufstehen", leave_home: "Losfahren", paid: "Bezahlte Stunden", rest: "Ruhezeit davor" },
+    facts: {
+      wake_up: "Aufstehen", leave_home: "Losfahren", paid: "Bezahlte Stunden", rest: "Ruhezeit davor",
+      duration: "Dienstdauer", breaks: "Pausen",
+    },
     tiles: {
       overtime: "Zeitkonto", daily: "Tageskonto heute", vacation: "Resturlaub", weekend_points: "WE-Punkte",
       free_weekends: "Freie Wochenenden", planned_week: "Geplant diese Woche", planned_month: "Geplant diesen Monat",
@@ -203,6 +218,7 @@ const TEXTS = {
       show_breaks: "Pausen anzeigen",
       initial_view: "Startansicht",
       tabs: "Angezeigte Reiter",
+      logo: "Logo (Bildadresse)",
       sec_content: "Inhalt",
       sec_appearance: "Darstellung",
       sec_behavior: "Verhalten",
@@ -213,6 +229,7 @@ const TEXTS = {
       icon: "Leer lassen für das Standardsymbol.",
       accent: "Leer lassen, um die Karte nach der Dienstart einzufärben.",
       hide_types: "Leer lassen, um jeden Tag anzuzeigen.",
+      logo: "Leer lassen für das Namens-Badge des Betriebs. Beispiel: /local/mein-logo.png",
     },
   },
 };
@@ -233,7 +250,7 @@ const CATEGORY_ICONS = {
 };
 const DEFAULT_HEADER_ICON = "mdi:bus-clock";
 const OFF_TYPES = ["free", "vacation", "compensation"];
-const FACT_KEYS = ["wake_up", "leave_home", "paid", "rest"];
+const FACT_KEYS = ["wake_up", "leave_home", "duration", "paid", "breaks", "rest"];
 const TILE_KEYS = ["overtime", "daily", "vacation", "weekend_points", "free_weekends", "planned_week", "planned_month"];
 // Which account entity each tile needs; a tile is hidden when its portal does not provide it.
 const TILE_ROLES = {
@@ -372,14 +389,34 @@ function relativeDay(hass, isoDate) {
   return formatDay(hass, isoDate, { weekday: "long", day: "2-digit", month: "2-digit" });
 }
 
-function formatCountdown(minutes) {
+/**
+ * A span of minutes in its largest units, the word following the number: "1 Tag 3 Stunden",
+ * "45 Minuten". Units that are zero are left out. `dative` is for "in …" ("in 2 Tagen").
+ */
+function formatDuration(hass, minutes, dative = false) {
+  if (minutes === null || minutes === undefined || Number.isNaN(Number(minutes))) return "–";
+  const t = texts(hass);
+  const words = dative ? t.unitsIn : t.units;
+  const total = Math.max(Math.round(Number(minutes)), 0);
+  const parts = [
+    [Math.floor(total / 1440), words.day],
+    [Math.floor((total % 1440) / 60), words.hour],
+    [total % 60, words.minute],
+  ].filter(([count]) => count > 0).map(([count, [one, many]]) => `${count} ${count === 1 ? one : many}`);
+  return parts.length ? parts.join(" ") : `0 ${words.minute[1]}`;
+}
+
+/** The time until a shift starts or ends: days and hours from a day on, else hours and minutes. */
+function formatCountdown(hass, minutes) {
   if (minutes === null || minutes === undefined) return "";
-  const days = Math.floor(minutes / 1440);
-  const hours = Math.floor((minutes % 1440) / 60);
-  const rest = minutes % 60;
-  if (days > 0) return `${days} d ${hours} h`;
-  if (hours > 0) return `${hours} h ${String(rest).padStart(2, "0")} min`;
-  return `${rest} min`;
+  // From a day on the minutes are noise, so they are dropped.
+  const shown = minutes >= 1440 ? Math.floor(minutes / 60) * 60 : minutes;
+  return formatDuration(hass, shown, true);
+}
+
+/** "Tag" or "Tage" by the number: the unit word of a count, e.g. for the days of vacation left. */
+function unitLabel(hass, unit, count) {
+  return texts(hass).units[unit][Number(count) === 1 ? 0 : 1];
 }
 
 function formatNumber(hass, value, digits = 1) {
@@ -601,10 +638,13 @@ const SHIFT_STYLE = `
           border-radius: 6px; padding: 1px 8px; font-weight: 600; font-size: 0.85rem; }
   .progress { height: 6px; border-radius: 3px; background: var(--divider-color); margin-top: 12px; overflow: hidden; }
   .progress > div { height: 100%; background: var(--accent); transition: width 1s linear; }
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 8px; margin-top: 14px; }
-  .fact { background: var(--secondary-background-color); border-radius: 12px; padding: 8px 10px; }
-  .fact .label { font-size: 0.75rem; color: var(--secondary-text-color); display: flex; align-items: center; gap: 4px; }
-  .fact .value { font-size: 1.05rem; font-weight: 600; margin-top: 2px; }
+  .facts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; }
+  .fact { background: var(--secondary-background-color); border-radius: 12px; padding: 10px 10px; text-align: center; }
+  /* An odd last tile spans the row, so the grid never ends lopsided. */
+  .fact:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .fact .label { font-size: 0.75rem; color: var(--secondary-text-color); display: flex; align-items: center;
+                 justify-content: center; gap: 4px; }
+  .fact .value { font-size: 1.05rem; font-weight: 600; margin-top: 3px; }
   .fact.warning { background: rgba(var(--rgb-error-color, 219, 68, 55), 0.15); }
   .fact.warning .value { color: var(--error-color, #db4437); }
 `;
@@ -633,8 +673,8 @@ class PerdisShiftCard extends PerdisCardBase {
     const accent = accentOf(config, shift.duty_type);
     const countdown = !config.show_countdown ? ""
       : shift.running
-        ? `<span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">${escapeHtml(t.running)} · ${escapeHtml(t.endsIn)} ${formatCountdown(shift.minutes_until_end)}</span>`
-        : `<span class="pill" style="background:var(--secondary-background-color)">${escapeHtml(t.startsIn)} ${formatCountdown(shift.minutes_until_start)}</span>`;
+        ? `<span class="pill" style="background:${accent};color:var(--text-primary-color,#fff)">${escapeHtml(t.running)} · ${escapeHtml(t.endsIn)} ${formatCountdown(this._hass, shift.minutes_until_end)}</span>`
+        : `<span class="pill" style="background:var(--secondary-background-color)">${escapeHtml(t.startsIn)} ${formatCountdown(this._hass, shift.minutes_until_start)}</span>`;
     const progress = config.show_progress && shift.running && shift.start && shift.end
       ? Math.min(100, Math.max(0, ((Date.now() - new Date(shift.start)) / (new Date(shift.end) - new Date(shift.start))) * 100))
       : null;
@@ -642,16 +682,23 @@ class PerdisShiftCard extends PerdisCardBase {
       ? (shift.lines || []).map((line) => `<span class="line">${escapeHtml(line)}</span>`).join("") : "";
     const rest = shift.rest_before_hours;
     const wanted = new Set(config.show_facts || FACT_KEYS);
+    const clock = (value) => `${formatTime(this._hass, value)}${t.clock ? ` ${t.clock}` : ""}`;
+    const spanMinutes = shift.start && shift.end ? (new Date(shift.end) - new Date(shift.start)) / 60000 : null;
     const facts = [
       wanted.has("wake_up") && !shift.running && shift.wake_up
-        ? [t.facts.wake_up, "mdi:alarm", formatTime(this._hass, shift.wake_up), false] : null,
+        ? [t.facts.wake_up, "mdi:alarm", clock(shift.wake_up), false] : null,
       wanted.has("leave_home") && !shift.running && shift.leave_home
-        ? [t.facts.leave_home, "mdi:home-export-outline", formatTime(this._hass, shift.leave_home), false] : null,
+        ? [t.facts.leave_home, "mdi:home-export-outline", clock(shift.leave_home), false] : null,
+      wanted.has("duration") && spanMinutes
+        ? [t.facts.duration, "mdi:timer-sand", formatDuration(this._hass, spanMinutes), false] : null,
       wanted.has("paid") && shift.hours
-        ? [t.facts.paid, "mdi:timer-outline", `${formatNumber(this._hass, shift.hours, 2)} ${t.hours}`, false] : null,
+        ? [t.facts.paid, "mdi:timer-outline", formatNumber(this._hass, shift.hours, 2), false] : null,
+      wanted.has("breaks") && spanMinutes
+        ? [t.facts.breaks, "mdi:coffee-outline",
+           shift.break_minutes ? formatDuration(this._hass, shift.break_minutes) : "–", false] : null,
       wanted.has("rest") && !shift.running && rest !== null && rest !== undefined
         ? [shift.short_rest ? t.shortRest : t.facts.rest, "mdi:bed-clock",
-           `${formatNumber(this._hass, rest)} ${t.hours}`, shift.short_rest] : null,
+           formatDuration(this._hass, Math.round(rest * 60)), shift.short_rest] : null,
     ].filter(Boolean).map(([label, icon, value, warning]) => `
       <div class="fact${warning ? " warning" : ""}">
         <div class="label"><ha-icon icon="${icon}" style="--mdc-icon-size:14px"></ha-icon>${escapeHtml(label)}</div>
@@ -904,7 +951,7 @@ class PerdisAccountsCard extends PerdisCardBase {
       case "vacation": {
         const vacation = numericState(hass, this._entities.vacation);
         const info = this.attributes("vacation") || {};
-        return wrap("vacation", "mdi:island", t.vacation, value(formatNumber(hass, vacation), t.days)
+        return wrap("vacation", "mdi:island", t.vacation, value(formatNumber(hass, vacation), unitLabel(hass, "day", vacation))
           + hint(info.planned_days ? `${formatNumber(hass, info.planned_days)} ${escapeHtml(t.planned)}` : ""));
       }
       case "weekend_points": {
@@ -1425,6 +1472,11 @@ const MASTER_STYLE = `
   .tab.on { color: var(--primary-color); border-bottom-color: var(--primary-color); font-weight: 600; }
   .tab ha-icon { --mdc-icon-size: 22px; }
   .panel { min-height: 40px; }
+  .brand { display: flex; align-items: center; gap: 12px; padding: 14px 16px 6px; }
+  .brand .badge { background: var(--primary-color); color: var(--text-primary-color, #fff); font-weight: 700;
+                  letter-spacing: 0.5px; padding: 5px 11px; border-radius: 10px; font-size: 0.95rem; }
+  .brand .logo { height: 34px; max-width: 140px; object-fit: contain; }
+  .brand .name { font-size: 1.05rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 
 // The panels the all-in-one card switches between: each one simply reuses the matching standalone
@@ -1468,16 +1520,31 @@ class PerdisMasterCard extends PerdisCardBase {
     return this._cards[key];
   }
 
+  /**
+   * The header: the operator's logo (or, without one, its name as a badge) and the account.
+   * The roster sensor tells which operator the account belongs to; `logo` is an image address of
+   * the user's own, e.g. /local/logo.png, since the operators' logos are not ours to ship.
+   */
+  _brand() {
+    const roster = this.attributes("roster") || {};
+    const operator = roster.operator || "";
+    const account = roster.account || "";
+    const name = this._config.title
+      || (operator && account.startsWith(`${operator} - `) ? account.slice(operator.length + 3) : account);
+    const badge = operator ? `<span class="badge">${escapeHtml(operator)}</span>` : "";
+    const mark = this._config.logo
+      ? `<img class="logo" src="${escapeHtml(this._config.logo)}" alt="${escapeHtml(operator)}">`
+      : (badge || `<ha-icon icon="${escapeHtml(this._config.icon || DEFAULT_HEADER_ICON)}"></ha-icon>`);
+    if (!name && !mark) return "";
+    return `<div class="brand" data-badge="${escapeHtml(badge)}">${mark}<span class="name">${escapeHtml(name)}</span></div>`;
+  }
+
   _render() {
     if (!this._hass || !this._config) return;
     const t = texts(this._hass);
     const tabs = this._activeTabs();
     if (!this._active || !tabs.includes(this._active)) this._active = tabs[0];
-    const titled = this._config.show_header !== false && this._config.title;
-    const header = titled
-      ? `<div class="header"><ha-icon icon="${escapeHtml(this._config.icon || DEFAULT_HEADER_ICON)}"></ha-icon>
-           <span class="title">${escapeHtml(this._config.title)}</span></div>`
-      : "";
+    const header = this._config.show_header !== false ? this._brand() : "";
     const bar = tabs.map((key) => {
       const panel = PANELS[key];
       return `<button class="tab${key === this._active ? " on" : ""}" data-tab="${key}">`
@@ -1490,6 +1557,13 @@ class PerdisMasterCard extends PerdisCardBase {
         <div class="panel"></div>
       </ha-card>`;
     this.shadowRoot.querySelector(".panel").appendChild(this._panel(this._active));
+    const logo = this.shadowRoot.querySelector(".brand .logo");
+    if (logo) {
+      logo.addEventListener("error", () => {
+        const fallback = logo.closest(".brand")?.dataset.badge;
+        if (fallback) logo.outerHTML = fallback; else logo.remove();
+      });
+    }
     this.shadowRoot.querySelectorAll(".tab").forEach((button) =>
       button.addEventListener("click", () => {
         this._active = button.dataset.tab;
@@ -1585,7 +1659,10 @@ class PerdisMasterEditor extends HTMLElement {
     delete formData.tabs;
     this._form.hass = this._hass;
     this._form.data = formData;
-    this._form.schema = [field.device, field.title, { type: "grid", schema: [field.showHeader, field.icon] }];
+    this._form.schema = [
+      field.device, field.title, { name: "logo", selector: { text: {} } },
+      { type: "grid", schema: [field.showHeader, field.icon] },
+    ];
     this._form.computeLabel = (schema) => t.editor[schema.name] || schema.name;
     this._form.computeHelper = (schema) => t.helper[schema.name] || "";
 

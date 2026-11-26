@@ -106,6 +106,12 @@
       },
       "last_refresh": {
         "default": "mdi:cloud-refresh"
+      },
+      "roster_records": {
+        "default": "mdi:trophy"
+      },
+      "detailed_shifts": {
+        "default": "mdi:table-clock"
       }
     },
     "binary_sensor": {
@@ -137,6 +143,11 @@
     "calendar": {
       "duties": {
         "default": "mdi:calendar-clock"
+      }
+    },
+    "button": {
+      "refresh": {
+        "default": "mdi:cloud-refresh"
       }
     }
   },

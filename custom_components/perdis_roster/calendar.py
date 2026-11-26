@@ -141,8 +141,6 @@ class PerdisCalendar(PerdisEntity, CalendarEntity):
         ]
         lines = [line for line in header if line]
         if duty.segments:
-            if lines:
-                lines.append("")
             lines.append(f"{words['parts']}:")
             lines.extend(self._segment_line(segment) for segment in _merge_breaks(duty.segments))
         elif duty.start_location:  # a timed duty whose detail legs are not (yet) available

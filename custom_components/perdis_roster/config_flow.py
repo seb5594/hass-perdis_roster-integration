@@ -16,6 +16,7 @@ from collections.abc import Mapping
 import logging
 import re
 from typing import Any
+import unicodedata
 
 import aiohttp
 import voluptuous as vol
@@ -73,6 +74,7 @@ from .const import (
     CONF_MINIMUM_REST,
     CONF_NOTIFY_ACTION,
     CONF_NOTIFY_CHANGES,
+    CONF_NOTIFY_TARGET,
     CONF_OPERATOR,
     CONF_PERSON,
     CONF_PORTAL_TYPE,
@@ -160,6 +162,25 @@ def _number(minimum: float, maximum: float, step: float = 1, unit: str | None = 
                                                mode=NumberSelectorMode.BOX))
 
 
+def _suggested_options(options: Mapping[str, Any]) -> dict[str, Any]:
+    """The saved options as form values; a service saved by an older version becomes an action.
+
+    The notification service used to be a text field. It is shown as the equivalent action, with the
+    title and message filled in, so saving the form keeps it instead of silently dropping it.
+    """
+    values = dict(_unfold_advanced(options))
+    legacy = values.pop(CONF_NOTIFY_TARGET, None)
+    if legacy and not values.get(CONF_NOTIFY_ACTION):
+        values[CONF_NOTIFY_ACTION] = [{"service": legacy, "data": {"title": "{{ title }}", "message": "{{ message }}"}}]
+    return values
+
+
+def _sort_key(label: str) -> str:
+    """Alphabetical order that files "Ü" under U instead of after Z."""
+    decomposed = unicodedata.normalize("NFKD", label)
+    return "".join(char for char in decomposed if not unicodedata.combining(char)).lower()
+
+
 def _units(hass: HomeAssistant) -> dict[str, str]:
     """The minute/hour/day unit labels for the form, in German words where the server is German."""
     if (hass.config.language or "en").split("-")[0] == "de":
@@ -198,7 +219,7 @@ class PerdisConfigFlow(ConfigFlow, domain=DOMAIN):
         # Pre-sorted by label instead of the selector's own `sort=True`, which only arrived in
         # Home Assistant 2023.9, so the dropdown stays alphabetical on older cores too.
         options = sorted((SelectOptionDict(value=operator.key, label=operator.label) for operator in OPERATORS),
-                         key=lambda option: option["label"].lower())
+                         key=lambda option: _sort_key(option["label"]))
         schema = vol.Schema({vol.Required(CONF_OPERATOR): SelectSelector(SelectSelectorConfig(
             options=options, mode=SelectSelectorMode.DROPDOWN))})
         return self.async_show_form(step_id="operator", data_schema=schema)
@@ -333,7 +354,14 @@ class PerdisOptionsFlow(OptionsFlow):
         })
         return self.async_show_form(
             step_id="init",
-            data_schema=self.add_suggested_values_to_schema(schema, _unfold_advanced(self._entry.options)),
+            data_schema=self.add_suggested_values_to_schema(schema, _suggested_options(self._entry.options)),
+            # The template snippets are placeholders, so the frontend does not read their braces as
+            # translation syntax.
+            description_placeholders={
+                "title_template": "`{{ title }}`",
+                "message_template": "`{{ message }}`",
+                "more_variables": "`{{ changes }}`, `{{ person }}`, `{{ entry_id }}`",
+            },
         )
 
 

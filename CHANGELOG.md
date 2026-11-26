@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026.11.26.4
+
+- 🧩 The **all-in-one card** shows your operator in its header: a name badge, or your own logo with
+  the new `logo` option (e.g. `/local/logo.png`). The next-shift page has an even grid of six
+  centered tiles; wake-up and leave-home times read "07:25 Uhr", the paid hours drop their
+  redundant unit, and two new tiles show the shift length and the total breaks.
+- 🕑 Durations read in their largest units with the right singular and plural — "10 Tage 15 Stunden
+  48 Minuten", "1 Stunde", "in 2 Tagen" — on the cards and on the **rest before the next shift**
+  sensor. The day unit of the sensors follows the number ("1 Tag", "2 Tage").
+- 🔔 The notification action is explained where you build it: enter `{{ title }}` and
+  `{{ message }}` to pass on exactly what Home Assistant's own notification shows, e.g. to WhatsApp.
+  A service saved with the older form is carried over as an action instead of being dropped.
+- 🔘 New **Refresh now** button (under *Controls* on the device page) next to the existing action.
+- 🏆 New diagnostic sensors: **Roster records** (longest shift, earliest start, latest end — an idea
+  from the community integration) and **Shifts with details**. More secondary sensors moved to the
+  device's *Diagnostic* section: the roster and change lists, the days until the next day off and the
+  weekend-points difference.
+- 📅 The calendar description no longer has a blank line before the legs.
+- 🔤 ÜSTRA is written in capitals and sorted under U in the setup list.
+
 ## 2026.11.26.3
 
 - ⏸️ Back-to-back breaks in a shift are merged into one block (three short breaks become a single

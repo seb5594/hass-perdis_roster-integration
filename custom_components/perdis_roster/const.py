@@ -13,7 +13,7 @@ DOMAIN: Final = "perdis_roster"
 MANUFACTURER: Final = "INIT Mobility Software Solutions (unofficial)"
 
 # Platforms are set up in this order; the calendar comes last because it only reads.
-PLATFORMS: Final = ("sensor", "binary_sensor", "calendar")
+PLATFORMS: Final = ("sensor", "binary_sensor", "button", "calendar")
 
 
 class PortalType(StrEnum):

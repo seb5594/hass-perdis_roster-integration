@@ -55,7 +55,7 @@ class IntegrationLayout(unittest.TestCase):
                     self.assertIn(key, icons.get(platform, {}), f"{platform}.{key} has no icon")
 
     def test_every_described_entity_is_translated(self):
-        for platform in ("sensor", "binary_sensor"):
+        for platform in ("sensor", "binary_sensor", "button"):
             source = (COMPONENT / f"{platform}.py").read_text()
             for key in re.findall(r'key="([a-z_]+)"', source):
                 self.assertIn(key, self.english["entity"][platform], f"{platform}.{key} has no translation")

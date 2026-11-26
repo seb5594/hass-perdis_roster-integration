@@ -54,7 +54,7 @@ OPERATORS: tuple[Operator, ...] = (
              "https://perdis.salzburg-ag.at/WebComm/"),
     Operator("transdev_nl", "Transdev / Connexxion", "Nederland", "NL",
              "https://diensten1.transdev.nl/WebComm/"),
-    Operator("uestra", "üstra Hannoversche Verkehrsbetriebe", "Hannover", "DE",
+    Operator("uestra", "ÜSTRA Hannoversche Verkehrsbetriebe", "Hannover", "DE",
              "https://wbc.uestra.de/WebComm/"),
     Operator("vgf", "VGF Verkehrsgesellschaft Frankfurt", "Frankfurt am Main", "DE",
              "https://perdis-info.vgf-ffm.de/WebComm/"),

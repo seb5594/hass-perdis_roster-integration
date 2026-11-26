@@ -89,7 +89,7 @@ Diese Unternehmen betreiben ein öffentliches PERDIS-WebComm-Portal. Jede Adress
 | rnv Rhein-Neckar-Verkehr | Mannheim / Heidelberg / Ludwigshafen 🇩🇪 | `https://fahrerauskunft.rnv-online.de/WebComm/` |
 | Salzburg AG Verkehr | Salzburg 🇦🇹 | `https://perdis.salzburg-ag.at/WebComm/` |
 | Transdev / Connexxion | Niederlande 🇳🇱 | `https://diensten1.transdev.nl/WebComm/` |
-| üstra Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
+| ÜSTRA Hannoversche Verkehrsbetriebe | Hannover 🇩🇪 | `https://wbc.uestra.de/WebComm/` |
 | VGF Verkehrsgesellschaft Frankfurt | Frankfurt am Main 🇩🇪 | `https://perdis-info.vgf-ffm.de/WebComm/` |
 | WSW mobil | Wuppertal 🇩🇪 | `https://service.wsw-online.de/WebComm/` ¹ |
 
@@ -161,7 +161,8 @@ dem neuen – die Integration muss nicht entfernt werden.
 | ⬅️ Vergangene Tage behalten | 7 | Vergangene Tage, die im Kalender bleiben |
 | 🕐 Genaue Dienstzeiten für so viele Tage voraus laden | 10 | Auf Portalen, die je Tag nur eine Dienstnummer zeigen, liefert die Detailseite jedes Dienstes seine echten Zeiten, Orte und Linien. Eine zusätzliche Anfrage je Arbeitstag; 0 schaltet es ab |
 | 👤 Mitarbeiter (Person) | – | Eine Person-Entität, zu der der Dienstplan gehört; wird an deine Benachrichtigung/dein Skript übergeben |
-| 🔔 Dienst bei Dienstplanänderungen | – | Ein Dienst wie `notify.mobile_app_handy` oder ein `script.…`, der bei jeder Dienstplanänderung aufgerufen wird |
+| 🔔 Aktion bei Dienstplanänderungen | – | Der volle Aktionen-Editor von Home Assistant: Dienst wählen (ein `notify.…` oder `script.…`) und Felder ausfüllen oder eine Sequenz bauen. Mit `{{ title }}` und `{{ message }}` übergibst du, was die Benachrichtigung anzeigt; außerdem verfügbar: `{{ changes }}`, `{{ person }}`, `{{ entry_id }}` |
+| 📅 Kalender: ein Eintrag je Dienstabschnitt | an | Teilt jeden Dienst in einen Kalendereintrag je Abschnitt (eine Fahrt mit Linie und Kurs, eine Pause als Pause); aus behält einen Eintrag mit den Abschnitten im Text |
 
 > [!TIP]
 > Zeigt die Monatsansicht deines Portals nur die Dienstnummer (keine Zeiten), stammen Beginn, Ende,
@@ -195,7 +196,7 @@ Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
 | Art des nächsten Dienstes | `Frühdienst` | Früh-, Mittel-, Spät-, Nacht- oder geteilter Dienst |
 | Weckzeit | Zeitstempel | Dienstbeginn minus Vorlaufzeit |
 | Losfahren | Zeitstempel | Dienstbeginn minus Arbeitsweg |
-| Ruhezeit vor nächstem Dienst | `9,5 h` | Ende des vorigen bis Beginn des nächsten Dienstes |
+| Ruhezeit vor nächstem Dienst | `1 Tag 3 Stunden 20 Minuten` | Ende des vorigen bis Beginn des nächsten Dienstes, in Tagen, Stunden und Minuten (die Stunden stehen im Attribut `hours`) |
 
 ### 📅 Tage
 
@@ -237,6 +238,9 @@ Deutsch heißen die Entitäten so, wie in der Spalte *Name* angegeben.
 | Dienstplan | Anzahl der Tage in den nächsten sechs Wochen; das Attribut `days` versorgt die Dienstplan-Karte |
 | Dienstplanänderungen | Änderungen der letzten 14 Tage, jeweils mit lesbarer Zusammenfassung |
 | Letzte Aktualisierung | Letzte erfolgreiche Abfrage, letzter Fehler und gefundene Seiten (Diagnose) |
+| Dienstplan-Rekorde | Längster Dienst, frühester Beginn und spätestes Ende im geladenen Dienstplan (Diagnose) |
+| Dienste mit Details | Wie viele der kommenden Dienste ihre Abschnitte im Detail haben (Diagnose) |
+| Schaltfläche *Jetzt aktualisieren* | Fragt das Portal sofort ab; entspricht der Aktion `perdis_roster.refresh` |
 | Kalender *Dienste* | Dienste als Termine mit Uhrzeit, freie Tage und Abwesenheiten ganztägig |
 
 Lange Listen werden nicht in die Recorder-Datenbank geschrieben, damit der Verlauf klein bleibt.
@@ -259,6 +263,7 @@ schreiben. Ohne Einstellungen zeigt eine Karte das erste Perdis-Konto.
 
 | Karte | Zeigt |
 | --- | --- |
+| 🧩 `perdis-card` | **Alles-in-einem**: eine Reiterleiste über den folgenden Karten (Nächster Dienst, Dienstdetails, Dienstplan, Konten, Kalender, Tausch). Reiter im Editor ein-/ausschalten und sortieren. Die Kopfzeile zeigt deinen Betrieb als Badge; mit `logo` (z. B. `/local/logo.png`) zeigst du stattdessen dein eigenes Bild |
 | 🕐 `perdis-shift-card` | Den nächsten Dienst: Nummer, Dienstart, Countdown, Zeiten, Meldeort, Linien, Weck- und Losfahrzeit, Ruhezeit-Warnung, Fortschritt während des Dienstes |
 | 📋 `perdis-roster-card` | Die nächsten Tage nach Kalenderwoche, farbig nach Art, geänderte Tage markiert |
 | 💼 `perdis-accounts-card` | Zeitkonto, Resturlaub, WE-Punkte im Vergleich zum Schnitt, freie Wochenenden und die geplanten Stunden der Woche oder des Monats |
@@ -280,7 +285,7 @@ Alles lässt sich im Editor (oder in YAML) anpassen. Optionen für alle Karten:
 
 | Option | Standard | Wirkung |
 | --- | --- | --- |
-| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `paid`, `rest` |
+| `show_facts` | alle | Welche Eckdaten: `wake_up`, `leave_home`, `duration`, `paid`, `breaks`, `rest` |
 | `show_location` | `true` | Meldeort anzeigen |
 | `show_lines` | `true` | Linien-Badges anzeigen |
 | `show_countdown` | `true` | Countdown-Pille anzeigen |
