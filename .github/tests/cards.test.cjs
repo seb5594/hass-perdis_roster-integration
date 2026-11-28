@@ -132,3 +132,23 @@ test("the open button can be switched off", () => {
   card.hass = hassWith();
   assert.doesNotMatch(card.shadowRoot.innerHTML, /action open/);
 });
+
+test("the accent option becomes a safe colour or is ignored", () => {
+  const w = world();
+  const config = (accent) => ({ accent });
+  const hass = hassWith();
+  const colour = (accent) => {
+    const card = new w.PerdisAccountsCard();
+    card.setConfig({ type: "x", accent });
+    card.hass = hass;
+    return card.shadowRoot.innerHTML;
+  };
+  assert.match(colour([123, 97, 255]), /--accent:rgb\(123, 97, 255\);/);
+  assert.match(colour([999, -5, 12.4]), /--accent:rgb\(255, 0, 12\);/);
+  assert.match(colour("#7b61ff"), /--accent:#7b61ff;/);
+  assert.match(colour("var(--primary-color)"), /--accent:var\(--primary-color\);/);
+  // a value with a quote must never reach the markup
+  const hostile = colour('red" onmouseover="alert(1)');
+  assert.doesNotMatch(hostile, /onmouseover/);
+  assert.doesNotMatch(colour("[1,2"), /--accent:\[/);
+});

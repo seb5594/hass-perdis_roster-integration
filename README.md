@@ -657,7 +657,7 @@ password or token) helps everyone.
 - 🔑 Your user name and password are stored in Home Assistant's config entry and only sent to the
   portal address you chose.
 - 🏠 The roster stays in your Home Assistant; nothing is sent anywhere else.
-- 🧾 The diagnostics download leaves out user name, password, your name and the raw account labels.
+- 🧾 The diagnostics download leaves out user name, password, your name, the raw account labels and the names of colleagues in duty swaps.
 
 ## 🩺 Troubleshooting
 

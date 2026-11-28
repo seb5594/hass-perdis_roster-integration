@@ -628,7 +628,7 @@ Kennwort oder Token) allen weiter.
 - 🔑 Benutzerkennung und Kennwort liegen im Konfigurationseintrag von Home Assistant und werden nur
   an die gewählte Portal-Adresse geschickt.
 - 🏠 Der Dienstplan bleibt in deinem Home Assistant; nichts wird anderswohin gesendet.
-- 🧾 Der Diagnose-Download lässt Benutzerkennung, Kennwort, deinen Namen und die Kontenbezeichnungen weg.
+- 🧾 Der Diagnose-Download lässt Benutzerkennung, Kennwort, deinen Namen, die Kontenbezeichnungen und die Namen von Kolleginnen und Kollegen bei Diensttäuschen weg.
 
 ## 🩺 Fehlersuche
 

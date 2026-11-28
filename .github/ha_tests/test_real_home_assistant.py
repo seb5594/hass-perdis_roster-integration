@@ -543,3 +543,19 @@ async def test_the_roster_sensor_tells_the_card_how_the_portal_is_reached(hass, 
     assert isinstance(shift["worked_minutes"], int) and shift["worked_minutes"] > 0
     assert abs(shift["worked_minutes"] / 60 - shift["hours"]) < 0.01
     await hass.config_entries.async_unload(entry_of(hass).entry_id)
+
+
+async def test_the_diagnostics_download_names_nobody(hass, fake_webcomm):
+    """Neither the account holder nor the colleague of a duty swap may end up in a bug report."""
+    import json
+
+    from custom_components.perdis_roster.diagnostics import async_get_config_entry_diagnostics
+
+    await add_account(hass, fake_webcomm)
+    await hass.async_block_till_done()
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry_of(hass))
+    swaps = diagnostics["snapshot"]["swaps"]
+    assert swaps, "the fixture portal lists a duty swap"
+    assert all(swap["partner"] == "**REDACTED**" for swap in swaps)
+    assert "Mustermann" not in json.dumps(diagnostics)
+    await hass.config_entries.async_unload(entry_of(hass).entry_id)
