@@ -19,7 +19,7 @@
  * small and independent of the frontend version of Home Assistant.
  */
 
-const VERSION = "2026.11.26.9";
+const VERSION = "2026.11.26.10";
 const DOMAIN = "perdis_roster";
 
 // --- Optional extras -----------------------------------------------------------------------
@@ -352,9 +352,26 @@ function escapeHtml(value) {
 }
 
 /** The accent colour of the card: the option, otherwise the colour of the duty type. */
+/**
+ * The accent colour of the card option, as a CSS value that is safe to put into a style attribute.
+ * The editor stores a colour as [r, g, b]; YAML may also hold a hex colour, a colour name, an
+ * rgb()/hsl() function or a theme variable. Anything else is ignored, so a stray quote in the
+ * option can never break out of the attribute.
+ */
+function accentFrom(value) {
+  if (Array.isArray(value) && value.length === 3 && value.every((n) => Number.isFinite(Number(n)))) {
+    const [r, g, b] = value.map((n) => Math.min(255, Math.max(0, Math.round(Number(n)))));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+  if (typeof value !== "string") return "";
+  const text = value.trim();
+  const safe = /^#[0-9a-f]{3,8}$/i.test(text) || /^[a-z]{3,30}$/i.test(text)
+    || /^(?:rgb|hsl)a?\([0-9\s.,%/]+\)$/i.test(text) || /^var\(--[a-z0-9-]+\)$/i.test(text);
+  return safe ? text : "";
+}
+
 function accentOf(config, dutyType) {
-  if (config?.accent) return config.accent;
-  return TYPE_COLORS[dutyType] || TYPE_COLORS.work;
+  return accentFrom(config?.accent) || TYPE_COLORS[dutyType] || TYPE_COLORS.work;
 }
 
 // --- Actions (tap) -------------------------------------------------------------------------------

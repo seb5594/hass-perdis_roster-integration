@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026.11.26.10
+
+- 🔒 The diagnostics download no longer contains the **partner of a duty swap** (a colleague's
+  name), neither as its own field nor inside the details. Found in the HACS review.
+- 🛡️ The `accent` option of the cards is turned into a colour before it is used: the editor's
+  `[r, g, b]` list becomes `rgb(r, g, b)` (it had no effect before), a hex colour, a colour name,
+  an `rgb()`/`hsl()` function or a theme variable pass, and anything else is ignored, so a stray
+  quote can no longer break out of the markup.
+
 ## 2026.11.26.9
 
 - 🚌 Nine more portals in the list: Stadtwerke Bielefeld, Stadtwerke Hamm, Stadtwerke Münster,

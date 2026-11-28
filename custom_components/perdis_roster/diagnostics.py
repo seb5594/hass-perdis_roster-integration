@@ -10,7 +10,8 @@ from homeassistant.core import HomeAssistant
 
 from .coordinator import PerdisConfigEntry, coordinator_of
 
-TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "employee_name", "title", "raw"}
+# "partner" is the colleague named in a duty swap; it appears as its own field and inside "details".
+TO_REDACT = {CONF_PASSWORD, CONF_USERNAME, "employee_name", "title", "raw", "partner"}
 
 
 async def async_get_config_entry_diagnostics(hass: HomeAssistant, entry: PerdisConfigEntry) -> dict[str, Any]:
